@@ -201,6 +201,11 @@ pre code {
   margin-right: 0;
 }
 /* ======= Promo Section ======= */
+
+.larger {
+  font-weight: bolder;
+}
+
 .promo {
   background: #17baef;
   color: #fff;
