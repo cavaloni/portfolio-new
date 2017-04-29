@@ -278,125 +278,7 @@ pre code {
   background-color: #fff;
 }
 
-@media (min-width: 768px) {
-  .navbar-nav {
-    float: left;
-    margin: 0;
-  }
-  .navbar-nav>li {
-    float: left;
-  }
-  .navbar-nav>li>a {
-    padding-top: 15px;
-    padding-bottom: 15px;
-  }
-  .container>.navbar-header,
-  .container>.navbar-close,
-  {
-    margin-right: 0;
-    margin-left: 0;
-  }
-  .navbar-close {
-    width: auto;
-    border-top: 0;
-    -webkit-box-shadow: none;
-    box-shadow: none;
-  }
-  .navbar-close.close {
-    display: block;
-    height: auto;
-    padding-bottom: 0;
-    overflow: visible
-  }
-  .navbar-close.in {
-    overflow-y: visible;
-  }
-  .navbar-close,
-  .navbar-close,
-  .navbar-close {
-    padding-right: 0;
-    padding-left: 0;
-  }
-  .toggle-nav {
-    display: none;
-  }
-  .navbar-header {
-    float: left;
-  }
-  .navbar-right {
-    right: 0;
-    left: auto;
-  }
-  .navbar-right-left {
-    right: auto;
-    left: 0;
-  }
-  .navbar-left {
-    float: left
-  }
-  .navbar-right {
-    float: right;
-  }
-  .navbar-right~.navbar-right {
-    margin-right: 0;
-  }
-}
 
-.top-navbar .navbar-close,
-.navbar-close {
-  max-height: 340px;
-}
-
-@media (max-device-width: 480px) and (orientation: landscape) {
-  .navbar-close,
-  .navbar-close {
-    max-height: 200px;
-  }
-}
-
-.close {
-  display: none;
-}
-
-.close.in {
-  display: block;
-}
-
-tr.close.in {
-  display: table-row;
-}
-
-tbody.close.in {
-  display: table-row-group;
-}
-
-.top-navbar .navbar-close,
-.navbar-close {
-  max-height: 340px;
-}
-
-@media (max-device-width: 480px) and (orientation: landscape) {
-  .navbar-close,
-  .navbar-close {
-    max-height: 200px;
-  }
-}
-
-.container>.navbar-header,
-.container>.navbar-close,
-{
-  margin-right: -15px;
-  margin-left: -15px;
-}
-
-@media (min-width: 768px) {
-  .container>.navbar-header,
-  .container>.navbar-close,
-  {
-    margin-right: 0;
-    margin-left: 0;
-  }
-}
 
 .navbar-close:before,
 .navbar-close:after,
@@ -683,6 +565,10 @@ tbody.close.in {
   margin-top: 0;
   color: #074f66;
   font-size: 18px;
+}
+
+.content > p {
+    max-width: 250px;
 }
 
 .left {
@@ -1082,6 +968,8 @@ tbody.close.in {
   display: block;
   max-width: 100%;
   height: auto;
+  position: relative;
+  bottom: 50px;
 }
 
 
@@ -1137,5 +1025,132 @@ tbody.close.in {
   }
   .contact .social-icons a .fa:before {
     font-size: 18px;
+  }
+}
+
+@media (min-width: 768px) {
+  .content > p {
+    max-width: initial;
+  } 
+  .img-responsive {
+    bottom: 0;
+  }
+
+  .navbar-nav {
+    float: left;
+    margin: 0;
+  }
+  .navbar-nav>li {
+    float: left;
+  }
+  .navbar-nav>li>a {
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
+  .container>.navbar-header,
+  .container>.navbar-close,
+  {
+    margin-right: 0;
+    margin-left: 0;
+  }
+  .navbar-close {
+    width: auto;
+    border-top: 0;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+  }
+  .navbar-close.close {
+    display: block;
+    height: auto;
+    padding-bottom: 0;
+    overflow: visible
+  }
+  .navbar-close.in {
+    overflow-y: visible;
+  }
+  .navbar-close,
+  .navbar-close,
+  .navbar-close {
+    padding-right: 0;
+    padding-left: 0;
+  }
+  .toggle-nav {
+    display: none;
+  }
+  .navbar-header {
+    float: left;
+  }
+  .navbar-right {
+    right: 0;
+    left: auto;
+  }
+  .navbar-right-left {
+    right: auto;
+    left: 0;
+  }
+  .navbar-left {
+    float: left
+  }
+  .navbar-right {
+    float: right;
+  }
+  .navbar-right~.navbar-right {
+    margin-right: 0;
+  }
+}
+
+.top-navbar .navbar-close,
+.navbar-close {
+  max-height: 340px;
+}
+
+@media (max-device-width: 480px) and (orientation: landscape) {
+  .navbar-close,
+  .navbar-close {
+    max-height: 200px;
+  }
+}
+
+.close {
+  display: none;
+}
+
+.close.in {
+  display: block;
+}
+
+tr.close.in {
+  display: table-row;
+}
+
+tbody.close.in {
+  display: table-row-group;
+}
+
+.top-navbar .navbar-close,
+.navbar-close {
+  max-height: 340px;
+}
+
+@media (max-device-width: 480px) and (orientation: landscape) {
+  .navbar-close,
+  .navbar-close {
+    max-height: 200px;
+  }
+}
+
+.container>.navbar-header,
+.container>.navbar-close,
+{
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+@media (min-width: 768px) {
+  .container>.navbar-header,
+  .container>.navbar-close,
+  {
+    margin-right: 0;
+    margin-left: 0;
   }
 }
