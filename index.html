@@ -16,8 +16,8 @@
 <!--     <link rel="shortcut icon" href="favicon.ico"> -->
     <link href='http://fonts.googleapis.com/css?family=Lato:300,400,300italic,400italic' rel='stylesheet' type='text/css'>
     <link href='http://fonts.googleapis.com/css?family=Montserrat:400,700' rel='stylesheet' type='text/css'>
+    <link href="https://fonts.googleapis.com/css?family=Poppins" rel="stylesheet">
     <!-- Global CSS -->
-    <link rel="stylesheet" href="assets/plugins/bootstrap/css/bootstrap.min.css">
     <!-- Plugins CSS -->
     <link rel="stylesheet" href="assets/plugins/font-awesome/css/font-awesome.css">
     <link rel="stylesheet" href="assets/plugins/prism/prism.css">
@@ -48,43 +48,36 @@
     <!-- ******HEADER****** -->
     <header id="header" class="header">
         <div class="container">
-            <h1 class="logo pull-left">
-                <a class="scrollto" href="#promo">
+            <h1 class="logo left">
+                <a class="scrollto" href="#informative">
                     <span class="logo-title">ChadAvalon</span>
                 </a>
             </h1>
-            <!--//logo-->
             <nav id="main-nav" class="main-nav navbar-right" role="navigation">
                 <div class="navbar-header">
-                    <button class="navbar-toggle" type="button" data-toggle="collapse" data-target="#navbar-collapse">
-                        <span class="sr-only">Toggle navigation</span>
+                    <button class="toggle-nav" type="button" data-toggle="close" data-target="#navbar-close">
+                        <span class="sr-only"></span>
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                     </button>
-                    <!--//nav-toggle-->
                 </div>
-                <!--//navbar-header-->
-                <div class="navbar-collapse collapse" id="navbar-collapse">
+                <div class="navbar-close close" id="navbar-close">
                     <ul class="nav navbar-nav">
-                        <li class="active nav-item sr-only"><a class="scrollto" href="#promo">Home</a></li>
+                        <li class="active nav-item sr-only"><a class="scrollto" href="#informative">Home</a></li>
                         <li class="nav-item"><a class="scrollto" href="#about">About</a></li>
                         <li class="nav-item"><a class="scrollto" href="#features">Skills</a></li>
                         <li class="nav-item"><a class="scrollto" href="#docs">Projects</a></li>
-                        <li class="nav-item"><a class="scrollto" href="#license">Why Chad?</a></li>
+                        <li class="nav-item"><a class="scrollto" href="#why-chad">Why Chad?</a></li>
                         <li class="nav-item last"><a class="scrollto" href="#contact">Contact</a></li>
                     </ul>
-                    <!--//nav-->
                 </div>
-                <!--//navabr-collapse-->
             </nav>
-            <!--//main-nav-->
         </div>
     </header>
-    <!--//header-->
 
-    <!-- ******PROMO****** -->
-    <section id="promo" class="promo section offset-header">
+    <!-- ******informative****** -->
+    <section id="informative" class="informative section offset-header">
         <div class="container text-center">
             <h2 class="title">Chad<span class="highlight">Avalon</span></h2>
             <p class="intro">Web Developer, user experience design focused</p>
@@ -92,17 +85,15 @@
                 <a class="btn btn-cta-secondary scrollto" href="#contact">Hire Me</a>
                 <a class="btn btn-cta-primary <scrollto></scrollto>" href="#docs">Portfolio</a>
             </div>
-            <ul class="meta list-inline larger">
+            <ul class="meta bold mytag">
                 <li><a href="https://github.com/cavaloni" target="_blank">GitHub Profile</a></li>
                 <li><a href="https://www.linkedin.com/in/chad-avalon-b5710a61/" target="_blank">LinkedIn</a></li>
                 <li><a href="https://docs.google.com/document/d/1SBndiHUiiCANCH6G8PQoPCI4lS9br7E_euukkvKvloQ/edit?usp=sharing" target="_blank">Download Resume</a></li>
             </ul>
-            <!--//meta-->
         </div>
-        <!--//container-->
 
     </section>
-    <!--//promo-->
+    <!--//informative-->
 
     <!-- ******ABOUT****** -->
     <section id="about" class="about section">
@@ -116,8 +107,8 @@
                 through UX design. More human things: empathy, communication skills, readable code, reusable code, teamwork
                 and relatability, with more than 10 years of psychology study and practice to support.
             </p>
-            <div class="row">
-                <div class="item col-md-4 col-sm-6 col-xs-12">
+            <div class="sec">
+                <div class="item highlighters">
                     <div class="icon-holder">
                         <i class="fa fa-heart"></i>
                     </div>
@@ -125,10 +116,8 @@
                         <h3 class="sub-title">Human centered</h3>
                         <p>10 years of psychology study and work. A human, and empathy focused approach to everything.</p>
                     </div>
-                    <!--//content-->
                 </div>
-                <!--//item-->
-                <div class="item col-md-4 col-sm-6 col-xs-12">
+                <div class="item highlighters">
                     <div class="icon-holder">
                         <i class="fa fa-clock-o"></i>
                     </div>
@@ -138,10 +127,8 @@
                             of functional programming and declarative style for more reusable code.
                         </p>
                     </div>
-                    <!--//content-->
                 </div>
-                <!--//item-->
-                <div class="item col-md-4 col-sm-6 col-xs-12">
+                <div class="item highlighters">
                     <div class="icon-holder">
                         <i class="fa fa-crosshairs"></i>
                     </div>
@@ -149,11 +136,9 @@
                         <h3 class="sub-title">UX-centred</h3>
                         <p>Who is using what we make? Isn't that most important? </p>
                     </div>
-                    <!--//content-->
                 </div>
-                <!--//item-->
                 <div class="clearfix visible-md"></div>
-                <div class="item col-md-4 col-sm-6 col-xs-12">
+                <div class="item highlighters">
                     <div class="icon-holder">
                         <i class="fa fa-tablet"></i>
                     </div>
@@ -161,10 +146,8 @@
                         <h3 class="sub-title">Mobile-friendly</h3>
                         <p>Mobile first responsive designs.</p>
                     </div>
-                    <!--//content-->
                 </div>
-                <!--//item-->
-                <div class="item col-md-4 col-sm-6 col-xs-12">
+                <div class="item highlighters">
                     <div class="icon-holder">
                         <i class="fa fa-code"></i>
                     </div>
@@ -172,15 +155,9 @@
                         <h3 class="sub-title">Latest tech goodies</h3>
                         <p>ReactJS, Redux, NodeJS, Webpack, and RxJS proficient. </p>
                     </div>
-                    <!--//content-->
                 </div>
-                <!--//item-->
-
-                <!--//item-->
             </div>
-            <!--//row-->
         </div>
-        <!--//container-->
     </section>
     <!--//about-->
 
@@ -188,7 +165,7 @@
     <section id="features" class="features section">
         <div class="container text-center">
             <h2 class="title">Fun tech</h2>
-            <ul class="feature-list list-unstyled">
+            <ul class="feature-list lister">
                 <li><i class="fa fa-check"></i> ReactJS and Redux</li>
                 <li><i class="fa fa-check"></i> NodeJS</li>
                 <li><i class="fa fa-check"></i> MongoDB, Mongoose, Express, Passport Authentication</li>
@@ -198,7 +175,6 @@
                 <li><i class="fa fa-check"></i> JQeury</li>
             </ul>
         </div>
-        <!--//container-->
     </section>
     <!--//features-->
 
@@ -212,7 +188,7 @@
                     <p>Workout tracker app with the goal of simplicity and ease of use. Nothing more, nothing less.</p>
                     <p>Track your progress with charts. Share with your friends in app, and track their progress as well. Keep
                         each other in check.</p>
-                    <ul class="list-unstyled">
+                    <ul class="lister">
                         <li><strong>UI Framework:</strong> React JS</li>
                         <li><strong>Server Tech:</strong> NodeJS, MongoDB, ExpressJS, Mongoose</li>
                         <li><strong>UX focused:</strong> Responsive, Material-UI design</li>
@@ -224,16 +200,14 @@
                     <div class="code-block">
                         <a href="http://floating-wave-76240.herokuapp.com/"><img src="assets/images/workinit.png" class="imager"></a>
                     </div>
-                    <!--//code-block-->
                 </div>
-                <!--//block-->
 
                 <div class="block">
                     <h3 class="sub-title text-center"><a href="https://tranquil-wave-81128.herokuapp.com/">Give Me A Night</a></h3>
                     <p>You know those days when you want to do something tonight and go out but not sure what? Here's a bunch
                         of easy ideas. Just put in your mood and location.
                     </p>
-                    <ul class="list-unstyled">
+                    <ul class="lister">
                         <li><strong>UI Framework:</strong> React JS</li>
                         <li><strong>Fun Tech:</strong> RxJS for the tough async stuff</li>
                         <li><strong>UX focused:</strong> Responsive, Material-UI design</li>
@@ -245,9 +219,7 @@
                     <div class="code-block">
                         <a href="https://tranquil-wave-81128.herokuapp.com/"><img src="assets/images/givemeanight.png" class="imager"></a>
                     </div>
-                    <!--//code-block-->
                 </div>
-                <!--//block-->
 
                 <div class="block">
                     <h3 class="sub-title text-center"><a href="https://intense-ravine-62468.herokuapp.com/">Transcriptor</h3></a>
@@ -266,9 +238,7 @@
                     <div class="code-block">
                         <a href="https://intense-ravine-62468.herokuapp.com/"><img src="assets/images/transcriptor.png" class="imager"></a>
                     </div>
-                    <!--//code-block-->
                 </div>
-                <!--//block-->
                 <div class="block">
                     <div class="block">
                         <h3 class="sub-title text-center"><a href="https://cavaloni.github.io/WatchTonight/">WatchTonight</h3></a>
@@ -278,24 +248,18 @@
                         <div class="code-block">
                             <a href="https://cavaloni.github.io/WatchTonight/"><img src="assets/images/watchtonight.png" class="imager"></a>
                         </div>
-                        <!--//code-block-->
                     </div>
-
                 </div>
-                <!--//docs-inner-->
             </div>
-            <!--//container-->
     </section>
-    <!--//features-->
 
-    <!-- ******LICENSE****** -->
-    <section id="license" class="license section">
+    <!-- ******why-chad****** -->
+    <section id="why-chad" class="why-chad section">
         <div class="container">
-            <div class="license-inner">
+            <div class="why-chad-inner">
                 <h2 class="title text-center">Why Chad?</h2>
                 <div class="info">
                     <div class="code-block">
-                        <!--//Use Prismjs - http://prismjs.com/index.html#basic-usage -->
                         <pre class="language-js">
                             <code class="language-js">
 
@@ -336,17 +300,10 @@
                                 <p class="intro text-center">Sound good? Read on.</p>
                                 <div class="icon-holder  text-center"><i class="fa fa-smile-o"></i></div>
                             </div>
-                            <!--//speech-bubble-->
-                            
-                            <!--//btn-container-->
                         </div>
-                        <!--//cta-container-->
                 </div>
-                <!--//license-inner-->
             </div>
-            <!--//container-->
     </section>
-    <!--//how-->
 
     <!-- ******CONTACT****** -->
     <section id="contact" class="contact section has-pattern">
@@ -359,7 +316,6 @@
                     <div class="profile">
                         <img class="img-responsive" src="assets/images/profile.jpg" alt="" />
                     </div>
-                    <!--//profile-->
                     <div class="speech-bubble">
                         <h3 class="sub-title">Ways to get in touch</h3>
                         <p><strong>Email</strong> me at <a href="mailto:chad.avalon1@gmail.com"
@@ -371,11 +327,8 @@
                                 <br />
                                 <span class="title">Web Developer</span>
                             </div>
-                            <!--//source-->
                     </div>
-                    <!--//speech-bubble-->
                 </div>
-                <!--//author-message-->
                 <div class="clearfix"></div>
                 <div class="info text-center">
                     <h4 class="sub-title">Get Connected</h4>
@@ -385,28 +338,19 @@
                         <li class="last"><a href="mailto:chad.avalon1@gmail.com"><i class="fa fa-envelope"></i></a></li>
                     </ul>
                 </div>
-                <!--//info-->
             </div>
-            <!--//contact-inner-->
         </div>
-        <!--//container-->
     </section>
-    <!--//contact-->
 
     <!-- ******FOOTER****** -->
     <footer class="footer">
         <div class="container text-center">
-            <!--/* This template is released under the Creative Commons Attribution 3.0 License. Please keep the attribution link below when using for your own project. Thank you for your support. :) If you'd like to use the template without the attribution, you can check out other license options via our website: themes.3rdwavemedia.com */-->
-            <small class="copyright">Thanks for reading! <i class="fa fa-heart"></i> </small>
+            <small class="copyright">Thanks for reading!</small>
         </div>
-        <!--//container-->
     </footer>
-    <!--//footer-->
 
-    <!-- Javascript -->
     <script type="text/javascript" src="assets/plugins/jquery-1.11.3.min.js"></script>
     <script type="text/javascript" src="assets/plugins/jquery.easing.1.3.js"></script>
-    <script type="text/javascript" src="assets/plugins/bootstrap/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="assets/plugins/jquery-scrollTo/jquery.scrollTo.min.js"></script>
     <script type="text/javascript" src="assets/plugins/prism/prism.js"></script>
     <script type="text/javascript" src="assets/js/main.js"></script>

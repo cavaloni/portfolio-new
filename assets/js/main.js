@@ -1,16 +1,15 @@
 jQuery(document).ready(function($) {
 
-    /* ======= Scrollspy ======= */
-    $('body').scrollspy({ target: '#header', offset: 400});
-    
-    /* ======= Fixed header when scrolled ======= */
+    state = {
+        navbarOpen: false,
+    }
     
     $(window).bind('scroll', function() {
          if ($(window).scrollTop() > 50) {
-             $('#header').addClass('navbar-fixed-top');
+             $('#header').addClass('top-navbar');
          }
          else {
-             $('#header').removeClass('navbar-fixed-top');
+             $('#header').removeClass('top-navbar');
          }
     });
    
@@ -23,11 +22,28 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         
 		$('body').scrollTo(target, 800, {offset: -70, 'axis':'y', easing:'easeOutQuad'});
-        //Collapse mobile menu after clicking
-		if ($('.navbar-collapse').hasClass('in')){
-			$('.navbar-collapse').removeClass('in').addClass('collapse');
+        //close mobile menu after clicking
+		if ($('.navbar-close').hasClass('in')){
+			$('.navbar-close').removeClass('in').addClass('close');
 		}
 		
 	});
 
+    $('.toggle-nav').on('click', function (e) {
+        e.preventDefault();
+        if (state.navbarOpen === true) {
+            state.navbarOpen = false;
+            $('.navbar-close').addClass('close')
+        } else {
+            state.navbarOpen = true;
+            $('.navbar-close').removeClass('close')
+        }
+    })
+    $('.navbar-nav').on('click', function (e) {
+        if (state.navbarOpen) {
+            state.navbarOpen = false;
+            $('.navbar-close').addClass('close')
+        }
+        e.preventDefault();
+    })
 });
