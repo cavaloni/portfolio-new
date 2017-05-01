@@ -119,7 +119,7 @@ pre code {
 .header {
   z-index: 10;
   padding: 10px 0;
-  background: #17baef;
+  background: #414A51;
   color: #fff;
   position: fixed;
   width: 100%;
@@ -144,7 +144,7 @@ pre code {
 .header .logo {
   margin: 0;
   font-size: 26px;
-  padding-top: 10px;
+  padding-top: 2px;
 }
 
 .header .logo a {
