@@ -928,6 +928,7 @@ pre code {
 
 .contact .social-icons a .fa {
   color: #fff;
+  margin: 5px;
 }
 
 .contact .social-icons a .fa:before {
