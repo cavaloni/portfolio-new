@@ -187,12 +187,12 @@ pre code {
 }
 
 .header .main-nav .nav .nav-item.active a {
-  color: #17baef;
+  color: #49B7A9;
   background: none;
 }
 
 .header .main-nav .nav .nav-item a {
-  color: #0a7396;
+  color: #0A73ED;
   -webkit-transition: none;
   -moz-transition: none;
   -ms-transition: none;
@@ -202,7 +202,7 @@ pre code {
 }
 
 .header .main-nav .nav .nav-item a:hover {
-  color: #074f66;
+  color: #EA4846;
   background: none;
 }
 
