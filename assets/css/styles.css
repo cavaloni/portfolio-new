@@ -351,7 +351,7 @@ pre code {
 .navbar-nav>li>a {
   padding-top: 10px;
   padding-bottom: 10px;
-  line-height: 20px;
+  line-height: 24px;
 }
 
 .navbar-nav>li>a {
@@ -442,6 +442,15 @@ pre code {
 }
 
 .lister {
+    text-align: cener;
+    vertical-align: top;
+    display: inline-block;
+    width: 40%;
+    padding-left: 0;
+    list-style: none;
+}
+
+.lister2 {
   padding-left: 0;
   list-style: none;
 }
@@ -456,6 +465,8 @@ pre code {
 
 .bold {
   font-weight: bolder;
+  list-style: none;
+  padding-left: 0;
 }
 
 .informative {
@@ -526,6 +537,7 @@ pre code {
 /* ======= About Section ======= */
 
 .about {
+  line-height: 24px;
   padding: 80px 0;
   background: #f5f5f5;
 }
@@ -605,6 +617,7 @@ pre code {
 /* ======= Features Section ======= */
 
 .features {
+  line-height: 24px;
   clear: both;
   padding: 80px 0;
   background: #49B7A9;
@@ -625,7 +638,7 @@ pre code {
   color: #042a36;
 }
 
-.features .feature-list li {
+.features .feature-list li {  
   margin-bottom: 10px;
   color: #074f66;
 }
@@ -639,6 +652,7 @@ pre code {
 /* ======= Docs Section ======= */
 
 .docs {
+  line-height: 24px;
   padding: 80px 0;
   background: #f5f5f5;
 }
@@ -665,7 +679,9 @@ pre code {
 }
 
 .docs .block {
-  margin-bottom: 60px;
+  border-bottom: 1px solid #EA4846;
+  margin-bottom: 30px;
+  padding-bottom: 30px;
 }
 
 .docs .code-block {
@@ -687,6 +703,7 @@ pre code {
 /* ======= why-chad Section ======= */
 
 .why-chad {
+  line-height: 24px;
   padding: 80px 0;
   background: #f5f5f5;
 }
@@ -777,6 +794,7 @@ pre code {
 /* ======= Contact Section ======= */
 
 .contact {
+  line-height: 24px;
   padding: 80px 0;
   background: #414A51;
   color: #fff;
@@ -819,11 +837,11 @@ pre code {
 }
 
 .contact .author-message .profile img {
-  -webkit-border-radius: 50%;
-  -moz-border-radius: 50%;
-  -ms-border-radius: 50%;
-  -o-border-radius: 50%;
-  border-radius: 50%;
+  -webkit-border-radius: 10%;
+  -moz-border-radius: 10%;
+  -ms-border-radius: 10%;
+  -o-border-radius: 10%;
+  border-radius: 10%;
   -moz-background-clip: padding;
   -webkit-background-clip: padding-box;
   background-clip: padding-box;
@@ -888,11 +906,11 @@ pre code {
 }
 
 .contact .social-icons {
+  padding-left: 0;
   list-style: none;
-  padding: 10px 0;
   margin-bottom: 0;
   display: inline-block;
-  margin: 0 auto;
+  margin: 12px;
 }
 
 .contact .social-icons li {
@@ -966,12 +984,13 @@ pre code {
   display: inline-flex;
 }
 
-.img-responsive {
+.profile-image {
+  transform: scale(1.25);
   display: block;
   max-width: 100%;
   height: auto;
   position: relative;
-  bottom: 50px;
+  bottom: 20px;
 }
 
 
@@ -1031,10 +1050,14 @@ pre code {
 }
 
 @media (min-width: 768px) {
+  .lister{
+    text-align: center;
+  }
+
   .content > p {
     max-width: initial;
   } 
-  .img-responsive {
+  .profile-image {
     bottom: 0;
   }
 

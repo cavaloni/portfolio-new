@@ -13,7 +13,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="">
-<!--     <link rel="shortcut icon" href="favicon.ico"> -->
+    <!--     <link rel="shortcut icon" href="favicon.ico"> -->
     <link href='http://fonts.googleapis.com/css?family=Lato:300,400,300italic,400italic' rel='stylesheet' type='text/css'>
     <link href='http://fonts.googleapis.com/css?family=Montserrat:400,700' rel='stylesheet' type='text/css'>
     <link href="https://fonts.googleapis.com/css?family=Poppins" rel="stylesheet">
@@ -88,7 +88,8 @@
             <ul class="meta bold mytag">
                 <li><a href="https://github.com/cavaloni" target="_blank">GitHub Profile</a></li>
                 <li><a href="https://www.linkedin.com/in/chad-avalon-b5710a61/" target="_blank">LinkedIn</a></li>
-                <li><a href="https://docs.google.com/document/d/1SBndiHUiiCANCH6G8PQoPCI4lS9br7E_euukkvKvloQ/edit?usp=sharing" target="_blank">Download Resume</a></li>
+                <li><a href="https://docs.google.com/document/d/1SBndiHUiiCANCH6G8PQoPCI4lS9br7E_euukkvKvloQ/edit?usp=sharing"
+                        target="_blank">Download Resume</a></li>
             </ul>
         </div>
 
@@ -99,7 +100,6 @@
     <section id="about" class="about section">
         <div class="container">
             <h2 class="title text-center">Chad Who?</h2>
-            <img class="my-image" src="assets/images/profile.jpg" alt="" />
             <p class="intro text-center">ReacJS and NodeJS are currently strong skills of mine, emphasizing the MERN stack. Passion for coding, learning
                 the latest and greatest (and contributing to it!). RxJS and functional reactive programming being a current
                 strong interest of mine.</p>
@@ -123,8 +123,8 @@
                     </div>
                     <div class="content">
                         <h3 class="sub-title">Productive</h3>
-                        <p>Emphasizing a love of readability makes for longer lasting code, less time spent on updates. Strong grasp
-                            of functional programming and declarative style for more reusable code.
+                        <p>Emphasizing a love of readability makes for longer lasting code, less time spent on updates. Strong
+                            grasp of functional programming and declarative style for more reusable code.
                         </p>
                     </div>
                 </div>
@@ -167,11 +167,18 @@
             <h2 class="title">Fun tech</h2>
             <ul class="feature-list lister">
                 <li><i class="fa fa-check"></i> ReactJS and Redux</li>
+                <li><i class="fa fa-check"></i> Redux</li>
                 <li><i class="fa fa-check"></i> NodeJS</li>
-                <li><i class="fa fa-check"></i> MongoDB, Mongoose, Express, Passport Authentication</li>
+                <li><i class="fa fa-check"></i> MongoDB</li>
+                <li><i class="fa fa-check"></i> Mongoose</li>
+                <li><i class="fa fa-check"></i> Express, Passport Authentication</li>
+            </ul>
+            <ul class="feature-list lister">
+                <li><i class="fa fa-check"></i> Passport Authentication</li>
                 <li><i class="fa fa-check"></i> RxJS</li>
                 <li><i class="fa fa-check"></i> Webpack</li>
                 <li><i class="fa fa-check"></i> HTML, CSS</li>
+                <li><i class="fa fa-check"></i> CSS</li>
                 <li><i class="fa fa-check"></i> JQeury</li>
             </ul>
         </div>
@@ -185,10 +192,16 @@
                 <h2 class="title text-center">Projects</h2>
                 <div class="block">
                     <h3 class="sub-title text-center"><a href="http://floating-wave-76240.herokuapp.com/">Workin' It</a></h3>
+                    <div class="code-block">
+                        <a href="http://floating-wave-76240.herokuapp.com/"><img src="assets/images/workinit.png" class="imager"></a>
+                    </div>
+                    <ul class="meta bold">
+                        <li class="text-center"><a href="https://github.com/cavaloni/workin-it" target="_blank">GitHub Repo</a></li>
+                    </ul>
                     <p>Workout tracker app with the goal of simplicity and ease of use. Nothing more, nothing less.</p>
                     <p>Track your progress with charts. Share with your friends in app, and track their progress as well. Keep
                         each other in check.</p>
-                    <ul class="lister">
+                    <ul class="lister2">
                         <li><strong>UI Framework:</strong> React JS</li>
                         <li><strong>Server Tech:</strong> NodeJS, MongoDB, ExpressJS, Mongoose</li>
                         <li><strong>UX focused:</strong> Responsive, Material-UI design</li>
@@ -197,17 +210,20 @@
                             as well as trying to make the easiest to use interface for inputting data as simple as possible,
                             considering the complexity of all the data.</li>
                     </ul>
-                    <div class="code-block">
-                        <a href="http://floating-wave-76240.herokuapp.com/"><img src="assets/images/workinit.png" class="imager"></a>
-                    </div>
                 </div>
 
                 <div class="block">
                     <h3 class="sub-title text-center"><a href="https://tranquil-wave-81128.herokuapp.com/">Give Me A Night</a></h3>
+                    <div class="code-block">
+                        <a href="https://tranquil-wave-81128.herokuapp.com/"><img src="assets/images/givemeanight.png" class="imager"></a>
+                    </div>
+                    <ul class="meta bold">
+                        <li class="text-center"><a href="https://github.com/cavaloni/give-me-a-night" target="_blank">GitHub Repo</a></li>
+                    </ul>
                     <p>You know those days when you want to do something tonight and go out but not sure what? Here's a bunch
                         of easy ideas. Just put in your mood and location.
                     </p>
-                    <ul class="lister">
+                    <ul class="lister2">
                         <li><strong>UI Framework:</strong> React JS</li>
                         <li><strong>Fun Tech:</strong> RxJS for the tough async stuff</li>
                         <li><strong>UX focused:</strong> Responsive, Material-UI design</li>
@@ -216,39 +232,48 @@
                             algorithm in the Redux reducer that makes it quite easy to swap out an API for another, very
                             flexible for updates.</li>
                     </ul>
-                    <div class="code-block">
-                        <a href="https://tranquil-wave-81128.herokuapp.com/"><img src="assets/images/givemeanight.png" class="imager"></a>
-                    </div>
+                    
                 </div>
 
                 <div class="block">
                     <h3 class="sub-title text-center"><a href="https://intense-ravine-62468.herokuapp.com/">Transcriptor</h3></a>
-                    <p>Through my years as a student in psychology, qualitative research was often more interesting than quantitative,
-                        but nobody wanted to do it because of the amount of work involved! This app attempted to help in
-                        some manner to bypass the complexity of using private shared systems like google drive or dropbox,
-                        and make a single, simple and easy to use, proprietary interface to share transcripts, as well as
-                        to search and update them as needed.
-                        <li><strong>UI Framework:</strong> JQuery</li>
-                        <li><strong>Server Tech:</strong> NodeJS, MongoDB, ExpressJS, Mongoose</li>
-                        <li><strong>UX focused:</strong> Responsive, Material-UI design</li>
-                        <li><strong>Biggest Challenges:</strong>Protecting every endpoint in the most secure way possible using
-                            PassportJS.
-                        </li>
-                    </p>
                     <div class="code-block">
-                        <a href="https://intense-ravine-62468.herokuapp.com/"><img src="assets/images/transcriptor.png" class="imager"></a>
-                    </div>
+                            <a href="https://intense-ravine-62468.herokuapp.com/"><img src="assets/images/transcriptor.png" class="imager"></a>
+                        </div>
+                        <ul class="meta bold">
+                            <li class="text-center"><a href="https://github.com/cavaloni/Transcriptor" target="_blank">GitHub Repo</a></li>
+                        </ul>
+                        <p>Through my years as a student in psychology, qualitative research was often more interesting than
+                            quantitative, but nobody wanted to do it because of the amount of work involved! This app attempted
+                            to help in some manner to bypass the complexity of using private shared systems like google drive
+                            or dropbox, and make a single, simple and easy to use, proprietary interface to share transcripts,
+                            as well as to search and update them as needed.
+                            <ul class="lister2">
+                                <li><strong>UI Framework:</strong> JQuery</li>
+                                <li><strong>Server Tech:</strong> NodeJS, MongoDB, ExpressJS, Mongoose</li>
+                                <li><strong>UX focused:</strong> Responsive, Material-UI design</li>
+                                <li><strong>Biggest Challenges:</strong>Protecting every endpoint in the most secure way possible
+                                    using PassportJS.
+                               </li>
+                            </ul>
+                        </p>
                 </div>
                 <div class="block">
-                    <div class="block">
                         <h3 class="sub-title text-center"><a href="https://cavaloni.github.io/WatchTonight/">WatchTonight</h3></a>
-                        <p>You've seen every movie you like....you think. This helps to show you that you don't so that you
-                            can find something great to watch thats similar to other movies youve watched. One input. Simple
-                            evening pleasure. </p>
                         <div class="code-block">
-                            <a href="https://cavaloni.github.io/WatchTonight/"><img src="assets/images/watchtonight.png" class="imager"></a>
+                                <a href="https://cavaloni.github.io/WatchTonight/"><img src="assets/images/watchtonight.png" class="imager"></a>
                         </div>
-                    </div>
+                        <ul class="meta bold">
+                            <li class="text-center"><a href="https://github.com/cavaloni/WatchTonight" target="_blank">GitHub Repo</a></li>
+                        </ul>
+                        <ul class="lister2">
+                                <li><strong>UI Framework:</strong> JQuery</li>
+                                <li><strong>Server Tech:</strong> API calls; one which receives similar movies, TasteKid, 
+                                    and one which ranks them, IMDB.</li>
+                                <li><strong>UX focused:</strong>Extremely simple, one page with one input</li>
+                                <li><strong>Biggest Challenges:</strong>Implementing a lightbox for the video trailers from scratch.
+                               </li>
+                        </ul>
                 </div>
             </div>
     </section>
@@ -293,16 +318,16 @@
                             </code>
                         </pre>
                     </div>
-                     </div>
-                        <!--//info-->
-                        <div class="cta-container">
-                            <div class="speech-bubble">
-                                <p class="intro text-center">Sound good? Read on.</p>
-                                <div class="icon-holder  text-center"><i class="fa fa-smile-o"></i></div>
-                            </div>
-                        </div>
+                </div>
+                <!--//info-->
+                <div class="cta-container">
+                    <div class="speech-bubble">
+                        <p class="intro text-center">Sound good? Read on.</p>
+                        <div class="icon-holder  text-center"><i class="fa fa-smile-o"></i></div>
+                    </div>
                 </div>
             </div>
+        </div>
     </section>
 
     <!-- ******CONTACT****** -->
@@ -310,16 +335,14 @@
         <div class="container">
             <div class="contact-inner">
                 <h2 class="title  text-center">Contact</h2>
-                <p class="intro  text-center">Thanks for looking over everything! <br />Feel free to get in touch if you have any questions
-                    or suggestions.</p>
+                <p class="intro  text-center">Thanks for looking over everything! <br />Feel free to get in touch if you have any questions or suggestions.</p>
                 <div class="author-message">
                     <div class="profile">
-                        <img class="img-responsive" src="assets/images/profile.jpg" alt="" />
+                        <img class="profile-image" src="assets/images/profile.jpg" alt="" />
                     </div>
                     <div class="speech-bubble">
                         <h3 class="sub-title">Ways to get in touch</h3>
-                        <p><strong>Email</strong> me at <a href="mailto:chad.avalon1@gmail.com"
-                                target="_blank">chad.avalon1@gmail.com</a>
+                        <p><strong>Email</strong> me at <a href="mailto:chad.avalon1@gmail.com" target="_blank">chad.avalon1@gmail.com</a>
                             <p><strong>Call</strong> me at (503)801-1095</p>
                             <p>My availability is flexible and so can be reached by phone easily.</p>
                             <div class="source">
