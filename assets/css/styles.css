@@ -829,6 +829,9 @@ pre code {
 }
 
 .contact .author-message .profile {
+  width: 200px; 
+  height: 200px; 
+  overflow: hidden;
   position: absolute;
   left: 30px;
   top: 15px;
@@ -922,12 +925,12 @@ pre code {
 }
 
 .contact .social-icons a {
+  
   display: inline-block;
   background: #0c86ae;
   width: 48px;
   height: 48px;
   text-align: center;
-  padding-top: 12px;
   -webkit-border-radius: 50%;
   -moz-border-radius: 50%;
   -ms-border-radius: 50%;
@@ -950,6 +953,7 @@ pre code {
 }
 
 .contact .social-icons a .fa:before {
+  line-height: 40px;
   font-size: 26px;
   text-align: center;
   padding: 0;
@@ -1039,17 +1043,24 @@ pre code {
     display: none;
   }
   .contact .social-icons a {
+    line-height: 20px;
     width: 36px;
     height: 36px;
     padding-top: 7px;
     margin-right: 2px;
   }
   .contact .social-icons a .fa:before {
+    line-height: 20px;
     font-size: 18px;
   }
 }
 
 @media (min-width: 768px) {
+  #about {
+    padding-left: 0;
+    text-align: center;
+  }
+
   .lister{
     text-align: center;
   }
