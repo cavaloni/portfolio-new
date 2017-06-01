@@ -296,6 +296,7 @@
         <span class="token keyword">while</span> <span class="token punctuation">(</span>goodIdea<span class="token punctuation">)</span> <span class="token punctuation">{</span>
             happyHirerLevel<span class="token operator">+</span><span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>
         <span class="token punctuation">}</span>
+        <span class="token operator">return</span> happyHirerLevel<span class="token punctuation">;</span>
     <span class="token punctuation">}</span>
 
     <span class="token namespace">function</span><span class="token function"> searchOtherDevs</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation"> {</span>
@@ -303,6 +304,7 @@
             <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>goodIdea <span class="token punctuation">)</span> <span class="token punctuation">{</span>
                 happyHirerLevel<span class="token operator">-</span><span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>
         <span class="token punctuation">}</span>
+        <span class="token operator">return</span> happyHirerLevel<span class="token punctuation">;</span>
     <span class="token punctuation">}</span>
 
     <span class="token keyword">if</span> <span class="token punctuation">(</span>needDev <span class="token operator">&&</span> likeHumanBeings <span class="token operator">&&</span> wantPassionateCoder<span class="token punctuation">)</span> <span class="token punctuation">{</span>
@@ -311,7 +313,6 @@
     <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
         <span class="token operator">return</span> <span class="token function">searchOtherDevs</span><span class="token punctuation">;</span>
     <span class="token punctuation">}</span>
-    <span class="token operator">return</span> happyHirerLevel<span class="token punctuation">;</span>
 <span class="token punctuation">}</span>
 
 
