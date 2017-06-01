@@ -292,29 +292,30 @@
     <span class="token keyword">let</span> happyHirerLevel <span class="token operator">=</span><span class="token number"> 50</span><span class="token punctuation">;</span>
     <span class="token keyword">let</span> goodIdea<span class="token punctuation">;</span>
 
+    <span class="token namespace">function</span><span class="token function"> hireChad</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation"> {</span>
+        <span class="token keyword">while</span> <span class="token punctuation">(</span>goodIdea<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+            happyHirerLevel<span class="token operator">+</span><span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+
+    <span class="token namespace">function</span><span class="token function"> searchOtherDevs</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation"> {</span>
+        <span class="token keyword">for</span><span class="token punctuation">(</span><span class="token keyword">let</span> i<span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">< </span>allOtherDevs.<span class="token property">length </span><span class="token operator">|| </span><span class="token number">3000</span><span class="token punctuation">; </span>i<span class="token operator">+</span><span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token number">{</span>
+            <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>goodIdea <span class="token punctuation">)</span> <span class="token punctuation">{</span>
+                happyHirerLevel<span class="token operator">-</span><span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>
+        <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+
     <span class="token keyword">if</span> <span class="token punctuation">(</span>needDev <span class="token operator">&&</span> likeHumanBeings <span class="token operator">&&</span> wantPassionateCoder<span class="token punctuation">)</span> <span class="token punctuation">{</span>
         goodIdea <span class="token operator">=</span> <span class="token boolean">true</span><span class="token punctuation">;</span>
-        <span class="token function">hireChad</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token operator">return</span> <span class="token function">hireChad</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
     <span class="token punctuation">}</span> <span class="token keyword">else</span> <span class="token punctuation">{</span>
-        <span class="token function">searchOtherDevs</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token operator">return</span> <span class="token function">searchOtherDevs</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
     <span class="token punctuation">}</span>
     <span class="token operator">return</span> happyHirerLevel<span class="token punctuation">;</span>
 <span class="token punctuation">}</span>
 
-<span class="token namespace">function</span><span class="token function"> hireChad</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation"> {</span>
-    <span class="token keyword">while</span> <span class="token punctuation">(</span>goodIdea<span class="token punctuation">)</span> <span class="token punctuation">{</span>
-        happyHirerLevel<span class="token operator">+</span><span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>
-    <span class="token punctuation">}</span>
-<span class="token punctuation">}</span>
 
-<span class="token namespace">function</span><span class="token function"> searchOtherDevs</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation"> {</span>
-    <span class="token keyword">for</span><span class="token punctuation">(</span><span class="token keyword">let</span> i<span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span> i <span class="token operator">< </span>allOtherDevs.<span class="token property">length </span><span class="token operator">|| </span><span class="token number">3000</span><span class="token punctuation">; </span>i<span class="token operator">+</span><span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">)</span> <span class="token number">{</span>
-        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>goodIdea <span class="token punctuation">)</span> <span class="token punctuation">{</span>
-            happyHirerLevel<span class="token operator">-</span><span class="token operator">=</span><span class="token number">1</span><span class="token punctuation">;</span>
-    <span class="token punctuation">}</span>
-<span class="token punctuation">}</span>
-
-<span class="token keyword">const</span> whyChad <span class="token operator">=</span> <span class="token function">considerChad</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token keyword">const</span> whyChad <span class="token operator">=</span> <span class="token function">considerChad</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation"><span class="token punctuation">(</span><span class="token punctuation">)</span>;</span>
                             </code>
                         </pre>
                     </div>
