@@ -1,0 +1,107 @@
+# Docker Compose Override Example
+# Copy this file to docker-compose.override.yml to customize your development environment
+# This file is automatically loaded by docker compose and overrides settings in docker-compose.yml
+
+version: '3.8'
+
+services:
+  # Backend customizations
+  backend:
+    # Override environment variables
+    environment:
+      LOG_LEVEL: debug
+      # Add your custom environment variables here
+    
+    # Add additional volumes for development
+    volumes:
+      - ./packages/backend/src:/app/src:ro
+      - ./packages/backend/package.json:/app/package.json:ro
+      - ./packages/backend/tsconfig.json:/app/tsconfig.json:ro
+      # Add more volumes as needed
+    
+    # Override ports if needed
+    # ports:
+    #   - "3002:3001"  # Map to different host port
+
+  # Frontend customizations
+  frontend:
+    # Override environment variables
+    environment:
+      # Add your custom environment variables here
+      NEXT_PUBLIC_DEBUG: "true"
+    
+    # Add additional volumes for development
+    volumes:
+      - ./packages/frontend/src:/app/src:ro
+      - ./packages/frontend/public:/app/public:ro
+      - ./packages/frontend/package.json:/app/package.json:ro
+      - ./packages/frontend/next.config.js:/app/next.config.js:ro
+      - ./packages/frontend/tailwind.config.js:/app/tailwind.config.js:ro
+      - ./packages/frontend/postcss.config.js:/app/postcss.config.js:ro
+      - ./packages/frontend/tsconfig.json:/app/tsconfig.json:ro
+      # Add more volumes as needed
+    
+    # Override ports if needed
+    # ports:
+    #   - "3001:3000"  # Map to different host port
+
+  # Database customizations
+  postgres:
+    # Override environment variables
+    environment:
+      # Add custom PostgreSQL configuration
+      POSTGRES_SHARED_PRELOAD_LIBRARIES: "pg_stat_statements"
+    
+    # Add additional volumes
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      # Add custom SQL scripts
+      # - ./scripts/custom-init.sql:/docker-entrypoint-initdb.d/02-custom-init.sql:ro
+    
+    # Override ports if needed (useful for external database tools)
+    # ports:
+    #   - "5433:5432"  # Map to different host port
+
+  # Redis customizations
+  redis:
+    # Add custom Redis configuration
+    # command: redis-server --appendonly yes --maxmemory 128mb
+    
+    # Override ports if needed
+    # ports:
+    #   - "6380:6379"  # Map to different host port
+
+  # Add additional services for development
+  # Example: Database admin tool
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: carbon-aware-adminer-dev
+  #   ports:
+  #     - "8080:8080"
+  #   networks:
+  #     - carbon-aware-network
+  #   depends_on:
+  #     - postgres
+
+  # Example: Redis admin tool
+  # redis-commander:
+  #   image: rediscommander/redis-commander:latest
+  #   container_name: carbon-aware-redis-commander-dev
+  #   environment:
+  #     REDIS_HOSTS: local:redis:6379
+  #   ports:
+  #     - "8081:8081"
+  #   networks:
+  #     - carbon-aware-network
+  #   depends_on:
+  #     - redis
+
+# You can also override networks and volumes if needed
+# networks:
+#   carbon-aware-network:
+#     driver: bridge
+
+# volumes:
+#   postgres_data_dev:
+#   redis_data_dev:

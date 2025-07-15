@@ -1,0 +1,35 @@
+# Development Dockerfile for Backend
+# Optimized for development with hot reload
+
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install development dependencies with retry and memory optimization
+RUN apk add --no-cache python3 make g++ || \
+    (sleep 5 && apk add --no-cache python3 make g++)
+
+# Copy package files
+COPY package.json ./
+COPY package-lock.json* ./
+COPY tsconfig.json ./
+
+# Install dependencies with optimizations for development
+RUN npm config set fund false && \
+    npm config set audit-level moderate && \
+    if [ -f package-lock.json ]; then npm ci --prefer-offline --no-audit; else npm install --prefer-offline --no-audit; fi && \
+    npm cache clean --force
+
+# Copy source code
+COPY src/ ./src/
+
+# Expose port
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Start development server with hot reload
+CMD ["npm", "run", "dev"]
