@@ -1,0 +1,107 @@
+graph TD
+  %% Frontend (Next.js 14)
+  subgraph Frontend["Frontend (Next.js 14)"]
+    UI_App[Next.js App Router]
+    UI_Pages[Pages & Components]
+    UI_State[React Query State]
+    UI_Auth[Auth Context]
+    UI_WS[WebSocket Client]
+    UI_Theme[Theme Provider]
+  end
+
+  %% Backend (Node.js/Express)
+  subgraph Backend["Backend (Node.js/Express)"]
+    API_Gateway[Express Server]
+    
+    %% API Routes
+    subgraph API_Routes["API Routes (/v1)"]
+      API_Auth[Auth Routes]
+      API_Chat[Chat Routes]
+      API_Models[Models Routes]
+      API_Carbon[Carbon Routes]
+      API_Metrics[Metrics Routes]
+      API_Routing[Routing Routes]
+    end
+    
+    %% Services
+    subgraph Services["Services"]
+      S_Auth[Auth Service]
+      S_Chat[Chat Service]
+      S_Model[Model Service]
+      S_Footprint[Model Footprint Service]
+      S_Carbon[Carbon Service]
+      S_Routing[Routing Service]
+      S_Metrics[Metrics Service]
+      S_WS[WebSocket Service]
+    end
+    
+    %% Middleware
+    subgraph Middleware["Middleware"]
+      MW_Auth[Authentication]
+      MW_RateLimit[Rate Limiting]
+      MW_Logging[Request Logging]
+      MW_Error[Error Handling]
+    end
+  end
+
+  %% Data Layer
+  subgraph Data_Layer["Data Layer"]
+    DB[(PostgreSQL)]
+    Redis[(Redis)]
+  end
+
+  %% External Services
+  subgraph External_Services["External Services"]
+    LLM_Providers["LLM Providers"]
+    Carbon_APIs["Carbon Data APIs"]
+  end
+
+  %% Infrastructure
+  subgraph Infrastructure["Infrastructure"]
+    Docker[Docker]
+    CI[GitHub Actions]
+    Vercel[Vercel]
+  end
+
+  %% Frontend Connections
+  UI_App --> |HTTP/HTTPS| API_Gateway
+  UI_WS --> |WebSocket| S_WS
+  
+  %% Backend Internal Flow
+  API_Gateway --> MW_Logging
+  API_Gateway --> MW_RateLimit
+  API_Gateway --> MW_Auth
+  API_Gateway --> API_Routes
+  
+  %% Routes to Services
+  API_Auth --> S_Auth
+  API_Chat --> S_Chat
+  API_Models --> S_Model
+  API_Carbon --> S_Carbon
+  API_Metrics --> S_Metrics
+  API_Routing --> S_Routing
+  
+  %% Services to Data Layer
+  S_Auth --> DB
+  S_Auth --> Redis
+  S_Model --> DB
+  S_Footprint --> DB
+  S_Chat --> Redis
+  S_Metrics --> DB
+  S_WS --> S_Chat
+  
+  %% External API Connections
+  S_Carbon --> Carbon_APIs
+  S_Routing --> LLM_Providers
+  
+  %% Infrastructure Connections
+  Frontend --> Vercel
+  Backend --> Docker
+  Backend --> CI
+  
+  %% Data Layer Connections
+  S_Auth --> Redis
+  S_Model --> DB
+  S_Footprint --> DB
+  S_Chat --> Redis
+  S_Metrics --> DB

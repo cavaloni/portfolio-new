@@ -1,3 +1,4 @@
+"use client"
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
