@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { logger } from '../utils/logger';
+import { Request, Response, NextFunction } from "express";
+import { logger } from "../utils/logger";
 
 export class ApiError extends Error {
   constructor(
@@ -22,9 +22,10 @@ export const errorHandler = (
   next: NextFunction,
 ) => {
   // Default to 500 if status code is not set
-  const statusCode = 'statusCode' in err && err.statusCode ? err.statusCode : 500;
-  const message = err.message || 'Internal Server Error';
-  const details = 'details' in err ? err.details : undefined;
+  const statusCode =
+    "statusCode" in err && err.statusCode ? err.statusCode : 500;
+  const message = err.message || "Internal Server Error";
+  const details = "details" in err ? err.details : undefined;
 
   // Log the error for debugging
   logger.error({
@@ -38,17 +39,20 @@ export const errorHandler = (
 
   // Don't leak error details in production for non-API errors
   const response: Record<string, unknown> = {
-    status: 'error',
+    status: "error",
     message,
   };
 
   // Include error details in development or for operational errors
-  if (process.env.NODE_ENV !== 'production' || ('isOperational' in err && err.isOperational)) {
+  if (
+    process.env.NODE_ENV !== "production" ||
+    ("isOperational" in err && err.isOperational)
+  ) {
     response.error = {
       name: err.name,
       message: err.message,
       ...(details && { details }),
-      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+      ...(process.env.NODE_ENV !== "production" && { stack: err.stack }),
     };
   }
 

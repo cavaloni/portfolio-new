@@ -12,12 +12,14 @@ This guide provides comprehensive instructions for setting up and deploying the 
 ## 🚀 Quick Start (Development)
 
 1. **Clone and navigate to the project:**
+
    ```bash
    git clone <repository-url>
    cd carbon-aware-llm-proxy
    ```
 
 2. **Run the development setup script:**
+
    ```bash
    ./scripts/docker-dev.sh
    ```
@@ -69,17 +71,20 @@ carbon-aware-llm-proxy/
 ### Manual Setup
 
 1. **Create environment file:**
+
    ```bash
    cp .env.docker .env
    # Edit .env with your configuration
    ```
 
 2. **Start services:**
+
    ```bash
    docker compose up -d
    ```
 
 3. **Run database migrations:**
+
    ```bash
    docker compose exec backend npm run migration:run
    ```
@@ -116,6 +121,7 @@ docker compose build --no-cache
 ### Prerequisites
 
 1. **Configure environment:**
+
    ```bash
    cp .env.production .env
    # Update all CHANGE_THIS_* values with secure configurations
@@ -130,6 +136,7 @@ docker compose build --no-cache
 ### Deployment
 
 1. **Run production deployment script:**
+
    ```bash
    ./scripts/docker-prod.sh
    ```
@@ -161,24 +168,26 @@ docker compose -f docker-compose.prod.yml up -d --scale backend=2
 
 Key environment variables for Docker deployment:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DB_HOST` | Database hostname | `postgres` |
-| `DB_PASSWORD` | Database password | `postgres` |
-| `REDIS_HOST` | Redis hostname | `redis` |
-| `JWT_SECRET` | JWT signing secret | Required |
-| `CORS_ORIGINS` | Allowed origins | `http://localhost:3000` |
-| `NODE_ENV` | Environment | `development` |
+| Variable       | Description        | Default                 |
+| -------------- | ------------------ | ----------------------- |
+| `DB_HOST`      | Database hostname  | `postgres`              |
+| `DB_PASSWORD`  | Database password  | `postgres`              |
+| `REDIS_HOST`   | Redis hostname     | `redis`                 |
+| `JWT_SECRET`   | JWT signing secret | Required                |
+| `CORS_ORIGINS` | Allowed origins    | `http://localhost:3000` |
+| `NODE_ENV`     | Environment        | `development`           |
 
 ### Volume Persistence
 
 Data is persisted in Docker volumes:
+
 - `postgres_data_dev/prod`: Database data
 - `redis_data_dev/prod`: Redis data
 
 ### Networking
 
 Services communicate through a custom Docker network:
+
 - Development: `carbon-aware-network`
 - Production: `carbon-aware-network-prod`
 
@@ -192,6 +201,7 @@ Services communicate through a custom Docker network:
 ### Container Health Checks
 
 All services include health checks:
+
 - PostgreSQL: `pg_isready`
 - Redis: `redis-cli ping`
 - Backend: HTTP health endpoint
@@ -215,6 +225,7 @@ docker compose exec backend curl http://localhost:3001/health
 ### Common Issues
 
 1. **Build failures (exit code 137 - out of memory):**
+
    ```bash
    # Quick fix for build issues
    ./scripts/fix-build-issues.sh
@@ -229,6 +240,7 @@ docker compose exec backend curl http://localhost:3001/health
    ```
 
 2. **npm ci failures:**
+
    ```bash
    # Clean npm cache and rebuild
    docker compose down
@@ -238,6 +250,7 @@ docker compose exec backend curl http://localhost:3001/health
    ```
 
 3. **Port conflicts:**
+
    ```bash
    # Check what's using the port
    lsof -i :3000
@@ -245,6 +258,7 @@ docker compose exec backend curl http://localhost:3001/health
    ```
 
 4. **Database connection issues:**
+
    ```bash
    # Check database logs
    docker compose logs postgres
@@ -253,6 +267,7 @@ docker compose exec backend curl http://localhost:3001/health
    ```
 
 5. **Migration failures:**
+
    ```bash
    # Run migrations manually
    docker compose exec backend npm run migration:run
@@ -322,6 +337,7 @@ echo ".env" >> .gitignore
 ### Resource Limits
 
 Production containers include resource limits:
+
 - Backend: 512MB memory limit
 - Frontend: 256MB memory limit
 - Database: 512MB memory limit
@@ -376,6 +392,7 @@ docker compose down -v
 ## 📞 Support
 
 For issues and questions:
+
 1. Check the troubleshooting section above
 2. Review container logs: `docker compose logs`
 3. Check service health: `docker compose ps`

@@ -44,12 +44,14 @@ A carbon-aware proxy gateway for Large Language Models (LLMs) that intelligently
 ### Prerequisites
 
 **For Docker Setup (Recommended):**
+
 - Docker Engine 20.10+
 - Docker Compose Plugin 2.0+ (or Docker Desktop with Compose V2)
 - 4GB+ RAM available for containers
 - 10GB+ free disk space
 
 **For Local Development:**
+
 - Node.js 18+
 - PostgreSQL 13+
 - Redis 6+
@@ -61,30 +63,33 @@ A carbon-aware proxy gateway for Large Language Models (LLMs) that intelligently
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/yourusername/carbon-aware-llm-proxy.git
    cd carbon-aware-llm-proxy
    ```
 
 2. Install dependencies:
+
    ```bash
    # Install root dependencies
    npm install
-   
+
    # Install backend dependencies
    cd packages/backend
    npm install
-   
+
    # Install frontend dependencies
    cd ../frontend
    npm install
    ```
 
 3. Set up environment variables:
+
    ```bash
    # Copy the example .env file
    cp .env.example .env
-   
+
    # Update the .env file with your API keys and configuration
    # See .env.example for all required variables
    ```
@@ -92,12 +97,14 @@ A carbon-aware proxy gateway for Large Language Models (LLMs) that intelligently
 4. Start the development environment:
 
    **Option A: Quick Docker Setup (Recommended)**
+
    ```bash
    # Run the automated setup script
    ./scripts/docker-dev.sh
    ```
 
    **Option B: Manual Docker Setup**
+
    ```bash
    # Copy Docker environment template
    cp .env.docker .env
@@ -110,6 +117,7 @@ A carbon-aware proxy gateway for Large Language Models (LLMs) that intelligently
    ```
 
    **Option C: Local Development (without Docker)**
+
    ```bash
    # Start database and Redis with Docker
    docker compose up -d postgres redis
@@ -164,12 +172,14 @@ make troubleshoot     # Interactive troubleshooting
 ### Production Deployment with Docker
 
 1. **Configure production environment:**
+
    ```bash
    cp .env.production .env
    # Update all CHANGE_THIS_* values with secure configurations
    ```
 
 2. **Deploy using the automated script:**
+
    ```bash
    ./scripts/docker-prod.sh
    ```
@@ -184,6 +194,7 @@ make troubleshoot     # Interactive troubleshooting
 ### Vercel Deployment (Frontend)
 
 1. Install Vercel CLI:
+
    ```bash
    npm install -g vercel
    ```
@@ -212,17 +223,20 @@ See `.env.example` for all available configuration options.
 ### Database Migrations
 
 To create a new migration:
+
 ```bash
 cd packages/backend
 npm run typeorm migration:create src/migrations/YourMigrationName
 ```
 
 To run migrations:
+
 ```bash
 npm run typeorm migration:run
 ```
 
 To revert the last migration:
+
 ```bash
 npm run typeorm migration:revert
 ```
@@ -234,6 +248,7 @@ API documentation is available at `/api/docs` when running the backend in develo
 ### Authentication
 
 All protected routes require a JWT token in the `Authorization` header:
+
 ```
 Authorization: Bearer <your-jwt-token>
 ```

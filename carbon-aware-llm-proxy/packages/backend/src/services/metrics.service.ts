@@ -1,6 +1,6 @@
-import { webSocketService } from './websocket.service';
-import { logger } from '../utils/logger';
-import { redisService } from './redis.service';
+import { webSocketService } from "./websocket.service";
+import { logger } from "../utils/logger";
+import { redisService } from "./redis.service";
 
 // Types for metrics
 type SystemMetrics = {
@@ -12,8 +12,8 @@ type SystemMetrics = {
   };
   memory: {
     total: number; // in bytes
-    used: number;  // in bytes
-    free: number;  // in bytes
+    used: number; // in bytes
+    free: number; // in bytes
   };
   network: {
     bytesIn: number;
@@ -60,7 +60,7 @@ class MetricsService {
   // Initialize metrics collection
   initialize() {
     if (this.isInitialized) {
-      logger.warn('Metrics service already initialized');
+      logger.warn("Metrics service already initialized");
       return;
     }
 
@@ -70,7 +70,7 @@ class MetricsService {
     // Set up periodic collection
     this.metricsInterval = setInterval(
       () => this.collectSystemMetrics(),
-      60000 // Every minute
+      60000, // Every minute
     );
 
     // Set up hourly and daily rollups
@@ -78,7 +78,7 @@ class MetricsService {
     setInterval(() => this.rollupDailyMetrics(), 24 * 60 * 60 * 1000); // Every day
 
     this.isInitialized = true;
-    logger.info('Metrics service initialized');
+    logger.info("Metrics service initialized");
   }
 
   // Clean up resources
@@ -98,17 +98,23 @@ class MetricsService {
   }
 
   // Record model usage for carbon footprint calculation
-  async recordModelUsage(userId: string, modelId: string, tokens: number, carbonGrams: number) {
+  async recordModelUsage(
+    userId: string,
+    modelId: string,
+    tokens: number,
+    carbonGrams: number,
+  ) {
     try {
       const now = Date.now();
       const dayKey = `metrics:user:${userId}:${this.getDayKey()}`;
       const hourKey = `metrics:user:${userId}:${this.getHourKey()}`;
-      
+
       // Update Redis counters with transaction
-      await redisService.multi()
-        .hIncrBy(dayKey, 'requests', 1)
-        .hIncrBy(dayKey, 'tokens', tokens)
-        .hIncrByFloat(dayKey, 'carbon', carbonGrams)
+      await redisService
+        .multi()
+        .hIncrBy(dayKey, "requests", 1)
+        .hIncrBy(dayKey, "tokens", tokens)
+        .hIncrByFloat(dayKey, "carbon", carbonGrams)
         .hIncrBy(dayKey, `model:${modelId}:count`, 1)
         .hIncrBy(dayKey, `model:${modelId}:tokens`, tokens)
         .hIncrByFloat(dayKey, `model:${modelId}:carbon`, carbonGrams)
@@ -116,19 +122,19 @@ class MetricsService {
         .exec();
 
       // Also update hourly metrics
-      await redisService.multi()
-        .hIncrBy(hourKey, 'requests', 1)
-        .hIncrBy(hourKey, 'tokens', tokens)
-        .hIncrByFloat(hourKey, 'carbon', carbonGrams)
+      await redisService
+        .multi()
+        .hIncrBy(hourKey, "requests", 1)
+        .hIncrBy(hourKey, "tokens", tokens)
+        .hIncrByFloat(hourKey, "carbon", carbonGrams)
         .expire(hourKey, 48 * 60 * 60) // Keep for 2 days
         .exec();
 
       // Broadcast user metrics update
       const userMetrics = await this.getUserMetrics(userId);
-      webSocketService.broadcast('user_metrics', userMetrics);
-      
+      webSocketService.broadcast("user_metrics", userMetrics);
     } catch (error) {
-      logger.error('Error recording model usage:', error);
+      logger.error("Error recording model usage:", error);
     }
   }
 
@@ -143,23 +149,23 @@ class MetricsService {
       const now = Date.now();
       const dayKey = `metrics:user:${userId}:${this.getDayKey()}`;
       const hourKey = `metrics:user:${userId}:${this.getHourKey()}`;
-      
+
       // Get daily metrics
       const [dayMetrics, hourMetrics] = await Promise.all([
         redisService.hGetAll(dayKey) as Promise<Record<string, string>>,
-        redisService.hGetAll(hourKey) as Promise<Record<string, string>>
+        redisService.hGetAll(hourKey) as Promise<Record<string, string>>,
       ]);
 
       // Get model usage for the day
       const modelMetrics = Object.entries(dayMetrics)
-        .filter(([key]) => key.startsWith('model:') && key.endsWith(':count'))
+        .filter(([key]) => key.startsWith("model:") && key.endsWith(":count"))
         .map(([key, count]) => {
-          const modelId = key.split(':')[1];
+          const modelId = key.split(":")[1];
           return {
             modelId,
             requests: parseInt(count, 10) || 0,
-            tokens: parseInt(dayMetrics[`model:${modelId}:tokens`] || '0', 10),
-            carbon: parseFloat(dayMetrics[`model:${modelId}:carbon`] || '0'),
+            tokens: parseInt(dayMetrics[`model:${modelId}:tokens`] || "0", 10),
+            carbon: parseFloat(dayMetrics[`model:${modelId}:carbon`] || "0"),
           };
         });
 
@@ -167,19 +173,19 @@ class MetricsService {
         userId,
         timestamp: now,
         requests: {
-          total: parseInt(dayMetrics.requests || '0', 10),
-          lastHour: parseInt(hourMetrics.requests || '0', 10),
-          lastDay: parseInt(dayMetrics.requests || '0', 10),
+          total: parseInt(dayMetrics.requests || "0", 10),
+          lastHour: parseInt(hourMetrics.requests || "0", 10),
+          lastDay: parseInt(dayMetrics.requests || "0", 10),
         },
         carbonFootprint: {
-          total: parseFloat(dayMetrics.carbon || '0'),
-          lastHour: parseFloat(hourMetrics.carbon || '0'),
-          lastDay: parseFloat(dayMetrics.carbon || '0'),
+          total: parseFloat(dayMetrics.carbon || "0"),
+          lastHour: parseFloat(hourMetrics.carbon || "0"),
+          lastDay: parseFloat(dayMetrics.carbon || "0"),
         },
         models: modelMetrics,
       };
     } catch (error) {
-      logger.error('Error getting user metrics:', error);
+      logger.error("Error getting user metrics:", error);
       return {
         userId,
         timestamp: Date.now(),
@@ -194,20 +200,20 @@ class MetricsService {
   private async collectSystemMetrics() {
     try {
       const now = Date.now();
-      
+
       // In a real app, you would collect actual system metrics here
       // This is a simplified version that generates mock data
       this.systemMetrics = {
         timestamp: now,
         cpu: {
           usage: Math.min(100, Math.max(0, 20 + Math.random() * 60)), // 20-80%
-          cores: require('os').cpus().length,
-          load: require('os').loadavg(),
+          cores: require("os").cpus().length,
+          load: require("os").loadavg(),
         },
         memory: {
-          total: require('os').totalmem(),
-          free: require('os').freemem(),
-          used: require('os').totalmem() - require('os').freemem(),
+          total: require("os").totalmem(),
+          free: require("os").freemem(),
+          used: require("os").totalmem() - require("os").freemem(),
         },
         network: {
           bytesIn: Math.floor(Math.random() * 1024 * 1024), // Mock data
@@ -218,27 +224,28 @@ class MetricsService {
           http: this.httpRequestCount,
         },
         carbonIntensity: {
-          'us-west-2': 120 + Math.random() * 80, // 120-200 gCO2eq/kWh
-          'us-east-1': 80 + Math.random() * 100, // 80-180 gCO2eq/kWh
-          'eu-west-1': 60 + Math.random() * 80,  // 60-140 gCO2eq/kWh
+          "us-west-2": 120 + Math.random() * 80, // 120-200 gCO2eq/kWh
+          "us-east-1": 80 + Math.random() * 100, // 80-180 gCO2eq/kWh
+          "eu-west-1": 60 + Math.random() * 80, // 60-140 gCO2eq/kWh
         },
       };
 
       // Broadcast system metrics to subscribers
-      webSocketService.broadcast('system_status', this.systemMetrics);
-      
+      webSocketService.broadcast("system_status", this.systemMetrics);
+
       // Also broadcast carbon intensity updates
-      for (const [region, intensity] of Object.entries(this.systemMetrics.carbonIntensity)) {
-        webSocketService.broadcast('carbon_intensity', {
+      for (const [region, intensity] of Object.entries(
+        this.systemMetrics.carbonIntensity,
+      )) {
+        webSocketService.broadcast("carbon_intensity", {
           region,
           intensity,
-          unit: 'gCO2eq/kWh',
+          unit: "gCO2eq/kWh",
           timestamp: new Date(now).toISOString(),
         });
       }
-      
     } catch (error) {
-      logger.error('Error collecting system metrics:', error);
+      logger.error("Error collecting system metrics:", error);
     }
   }
 
@@ -247,7 +254,7 @@ class MetricsService {
     const now = new Date();
     this.lastHourRequestCount = 0;
     this.lastHourTimestamp = now.getTime();
-    logger.info('Rolled up hourly metrics');
+    logger.info("Rolled up hourly metrics");
   }
 
   // Roll up daily metrics
@@ -255,19 +262,19 @@ class MetricsService {
     const now = new Date();
     this.lastDayRequestCount = 0;
     this.lastDayTimestamp = now.getTime();
-    logger.info('Rolled up daily metrics');
+    logger.info("Rolled up daily metrics");
   }
 
   // Get current day key in YYYY-MM-DD format
   private getDayKey(date: Date = new Date()): string {
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   }
 
   // Get current hour key in YYYY-MM-DD-HH format
   private getHourKey(date: Date = new Date()): string {
     const isoStr = date.toISOString();
-    const [dateStr, timeStr] = isoStr.split('T');
-    const hour = timeStr.split(':')[0];
+    const [dateStr, timeStr] = isoStr.split("T");
+    const hour = timeStr.split(":")[0];
     return `${dateStr}-${hour}`;
   }
 }

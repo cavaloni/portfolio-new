@@ -1,31 +1,31 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Icons } from '@/components/icons';
-import { useAuth } from '@/contexts/auth-context';
-import { useUpdateProfile } from '@/hooks/use-auth';
-import { toast } from '@/lib/toast';
-import React from 'react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Icons } from "@/components/icons";
+import { useAuth } from "@/contexts/auth-context";
+import { useUpdateProfile } from "@/hooks/use-auth";
+import { toast } from "@/lib/toast";
+import React from "react";
 
 // Form validation schema
 const profileFormSchema = z.object({
   name: z.string().min(2, {
-    message: 'Name must be at least 2 characters.',
+    message: "Name must be at least 2 characters.",
   }),
   email: z.string().email({
-    message: 'Please enter a valid email address.',
+    message: "Please enter a valid email address.",
   }),
   bio: z.string().max(160).optional(),
-  website: z.string().url().optional().or(z.literal('')),
+  website: z.string().url().optional().or(z.literal("")),
   location: z.string().optional(),
 });
 
@@ -36,117 +36,119 @@ export default function ProfilePage() {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   const { mutate: updateProfile, isPending } = useUpdateProfile();
-  
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user?.name || '',
-      email: user?.email || '',
-      bio: user?.bio || '',
-      website: user?.website || '',
-      location: user?.location || '',
+      name: user?.name || "",
+      email: user?.email || "",
+      bio: user?.bio || "",
+      website: user?.website || "",
+      location: user?.location || "",
     },
-    values: user ? {
-      name: user.name || '',
-      email: user.email,
-      bio: user.bio || '',
-      website: user.website || '',
-      location: user.location || '',
-    } : undefined,
+    values: user
+      ? {
+          name: user.name || "",
+          email: user.email,
+          bio: user.bio || "",
+          website: user.website || "",
+          location: user.location || "",
+        }
+      : undefined,
   });
-  
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (file.size > 2 * 1024 * 1024) {
       toast.error({
-        title: 'File too large',
-        description: 'Please upload an image smaller than 2MB',
+        title: "File too large",
+        description: "Please upload an image smaller than 2MB",
       });
       return;
     }
-    
-    if (!file.type.startsWith('image/')) {
+
+    if (!file.type.startsWith("image/")) {
       toast.error({
-        title: 'Invalid file type',
-        description: 'Please upload an image file',
+        title: "Invalid file type",
+        description: "Please upload an image file",
       });
       return;
     }
-    
+
     setIsUploading(true);
-    
+
     try {
       // In a real app, you would upload the file to a storage service
       // and then update the user's avatar URL in the database
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate upload
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate upload
+
       const avatarUrl = URL.createObjectURL(file);
-      
-// Get current form values to ensure we have name and email
+
+      // Get current form values to ensure we have name and email
       const currentValues = form.getValues();
       updateProfile(
         {
           name: currentValues.name,
           email: currentValues.email,
-          avatar: avatarUrl
+          avatar: avatarUrl,
         },
         {
           onSuccess: () => {
             toast.success({
-              title: 'Success',
-              description: 'Your profile picture has been updated',
+              title: "Success",
+              description: "Your profile picture has been updated",
             });
           },
           onError: (error) => {
-            console.error('Error updating avatar:', error);
+            console.error("Error updating avatar:", error);
             toast.error({
-              title: 'Error',
-              description: 'Failed to update profile picture',
+              title: "Error",
+              description: "Failed to update profile picture",
             });
           },
-        }
+        },
       );
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error("Error uploading file:", error);
       toast.error({
-        title: 'Error',
-        description: 'Failed to upload file',
+        title: "Error",
+        description: "Failed to upload file",
       });
     } finally {
       setIsUploading(false);
     }
   };
-  
+
   const onSubmit = (data: ProfileFormValues) => {
     updateProfile(data, {
       onSuccess: () => {
         toast.success({
-          title: 'Success',
-          description: 'Your profile has been updated',
+          title: "Success",
+          description: "Your profile has been updated",
         });
       },
       onError: (error) => {
-        console.error('Error updating profile:', error);
+        console.error("Error updating profile:", error);
         toast.error({
-          title: 'Error',
-          description: 'Failed to update profile',
+          title: "Error",
+          description: "Failed to update profile",
         });
       },
     });
   };
-  
+
   const getInitials = (name?: string | null) => {
-    if (!name) return 'U';
+    if (!name) return "U";
     return name
-      .split(' ')
+      .split(" ")
       .map((n) => n[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .substring(0, 2);
   };
-  
+
   return (
     <div className="space-y-8">
       <div>
@@ -155,19 +157,22 @@ export default function ProfilePage() {
           Manage your account settings and profile information.
         </p>
       </div>
-      
+
       <div className="space-y-8">
         {/* Profile Picture */}
         <div className="space-y-2">
           <Label>Profile Picture</Label>
           <div className="flex items-center space-x-4">
             <Avatar className="h-32 w-32">
-              <AvatarImage src={user?.avatar_url || ''} alt={user?.name || 'User'} />
+              <AvatarImage
+                src={user?.avatar_url || ""}
+                alt={user?.name || "User"}
+              />
               <AvatarFallback>
                 {user?.name
-                  ?.split(' ')
+                  ?.split(" ")
                   .map((n) => n[0])
-                  .join('') || 'U'}
+                  .join("") || "U"}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -191,7 +196,7 @@ export default function ProfilePage() {
                         Uploading...
                       </>
                     ) : (
-                      'Change Avatar'
+                      "Change Avatar"
                     )}
                   </Label>
                 </div>
@@ -207,16 +212,16 @@ export default function ProfilePage() {
                       {
                         name: currentValues.name,
                         email: currentValues.email,
-                        avatar: undefined // Using undefined instead of null to match the expected type
+                        avatar: undefined, // Using undefined instead of null to match the expected type
                       },
                       {
                         onSuccess: () => {
                           toast.success({
-                            title: 'Success',
-                            description: 'Profile picture removed',
+                            title: "Success",
+                            description: "Profile picture removed",
                           });
                         },
-                      }
+                      },
                     );
                   }}
                 >
@@ -229,7 +234,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-        
+
         {/* Profile Form */}
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -238,7 +243,7 @@ export default function ProfilePage() {
               <Input
                 id="name"
                 placeholder="Your name"
-                {...form.register('name')}
+                {...form.register("name")}
                 disabled={isUploading || isPending}
               />
               {form.formState.errors.name && (
@@ -247,14 +252,14 @@ export default function ProfilePage() {
                 </p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="your.email@example.com"
-                {...form.register('email')}
+                {...form.register("email")}
                 disabled={isUploading || isPending}
               />
               {form.formState.errors.email && (
@@ -263,14 +268,14 @@ export default function ProfilePage() {
                 </p>
               )}
             </div>
-            
+
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="bio">Bio</Label>
               <Textarea
                 id="bio"
                 placeholder="Tell us a little bit about yourself"
                 className="min-h-[100px]"
-                {...form.register('bio')}
+                {...form.register("bio")}
                 disabled={isUploading || isPending}
               />
               {form.formState.errors.bio && (
@@ -279,14 +284,14 @@ export default function ProfilePage() {
                 </p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="website">Website</Label>
               <Input
                 id="website"
                 type="url"
                 placeholder="https://example.com"
-                {...form.register('website')}
+                {...form.register("website")}
                 disabled={isUploading || isPending}
               />
               {form.formState.errors.website && (
@@ -295,13 +300,13 @@ export default function ProfilePage() {
                 </p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
               <Input
                 id="location"
                 placeholder="Your location"
-                {...form.register('location')}
+                {...form.register("location")}
                 disabled={isUploading || isPending}
               />
               {form.formState.errors.location && (
@@ -311,7 +316,7 @@ export default function ProfilePage() {
               )}
             </div>
           </div>
-          
+
           <div className="flex justify-end space-x-4">
             <Button
               type="button"

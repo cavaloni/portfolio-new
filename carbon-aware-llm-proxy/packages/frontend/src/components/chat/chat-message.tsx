@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Icons } from '@/components/icons';
-import { Message, MessageRole } from '@/types/chat';
-import { formatDistanceToNow } from 'date-fns';
-import { useRef, useState } from 'react';
+import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Icons } from "@/components/icons";
+import { Message, MessageRole } from "@/types/chat";
+import { formatDistanceToNow } from "date-fns";
+import { useRef, useState } from "react";
 
 export interface ChatMessageProps {
   message: Message;
@@ -42,17 +42,17 @@ export function ChatMessage({
         textareaRef.current?.focus();
         textareaRef.current?.setSelectionRange(
           editedContent.length,
-          editedContent.length
+          editedContent.length,
         );
       }, 0);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleEdit();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       setIsEditing(false);
       setEditedContent(message.content);
     }
@@ -70,7 +70,7 @@ export function ChatMessage({
     return (
       <Avatar className="h-8 w-8 bg-primary/10 text-primary">
         <AvatarFallback>
-          {message.role === MessageRole.Assistant ? 'AI' : 'Sys'}
+          {message.role === MessageRole.Assistant ? "AI" : "Sys"}
         </AvatarFallback>
       </Avatar>
     );
@@ -120,10 +120,11 @@ export function ChatMessage({
     if (!message.carbonFootprint) return null;
 
     const { emissions, energy, intensity } = message.carbonFootprint;
-    const emissionsText = emissions < 1 ? 
-      `${(emissions * 1000).toFixed(2)} mg CO₂e` : 
-      `${emissions.toFixed(2)} g CO₂e`;
-    
+    const emissionsText =
+      emissions < 1
+        ? `${(emissions * 1000).toFixed(2)} mg CO₂e`
+        : `${emissions.toFixed(2)} g CO₂e`;
+
     return (
       <div className="mt-2 text-xs text-muted-foreground flex items-center space-x-2">
         <span title="Carbon emissions">
@@ -193,9 +194,9 @@ export function ChatMessage({
   return (
     <div
       className={cn(
-        'group relative flex items-start gap-4 py-4 px-4',
-        isCurrentUser ? 'bg-muted/50' : 'bg-background',
-        className
+        "group relative flex items-start gap-4 py-4 px-4",
+        isCurrentUser ? "bg-muted/50" : "bg-background",
+        className,
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -204,10 +205,16 @@ export function ChatMessage({
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <span className="text-sm font-medium">
-            {isCurrentUser ? 'You' : message.role === MessageRole.Assistant ? 'AI Assistant' : 'System'}
+            {isCurrentUser
+              ? "You"
+              : message.role === MessageRole.Assistant
+                ? "AI Assistant"
+                : "System"}
           </span>
           <span className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
+            {formatDistanceToNow(new Date(message.timestamp), {
+              addSuffix: true,
+            })}
             {message.model && ` • ${message.model}`}
           </span>
         </div>

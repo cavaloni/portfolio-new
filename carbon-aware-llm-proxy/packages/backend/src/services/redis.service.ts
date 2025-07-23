@@ -1,22 +1,23 @@
-import { createClient } from 'redis';
-import { logger } from '../utils/logger';
+import { createClient } from "redis";
+import { logger } from "../utils/logger";
 
 class RedisService {
   private client: ReturnType<typeof createClient>;
   private isConnected: boolean = false;
 
   constructor() {
-    const redisHost = process.env.REDIS_HOST || 'localhost';
-    const redisPort = process.env.REDIS_PORT || '6379';
-    const redisUrl = process.env.REDIS_URL || `redis://${redisHost}:${redisPort}`;
-    
+    const redisHost = process.env.REDIS_HOST || "localhost";
+    const redisPort = process.env.REDIS_PORT || "6379";
+    const redisUrl =
+      process.env.REDIS_URL || `redis://${redisHost}:${redisPort}`;
+
     this.client = createClient({
       url: redisUrl,
       socket: {
         reconnectStrategy: (retries) => {
           if (retries > 5) {
-            logger.error('Max Redis reconnection attempts reached');
-            return new Error('Max reconnection attempts reached');
+            logger.error("Max Redis reconnection attempts reached");
+            return new Error("Max reconnection attempts reached");
           }
           return Math.min(retries * 100, 5000); // Exponential backoff up to 5s
         },
@@ -27,22 +28,22 @@ class RedisService {
   }
 
   private setupEventListeners() {
-    this.client.on('connect', () => {
-      logger.info('Redis client connected');
+    this.client.on("connect", () => {
+      logger.info("Redis client connected");
       this.isConnected = true;
     });
 
-    this.client.on('error', (error) => {
-      logger.error('Redis error:', error);
+    this.client.on("error", (error) => {
+      logger.error("Redis error:", error);
       this.isConnected = false;
     });
 
-    this.client.on('reconnecting', () => {
-      logger.info('Redis client reconnecting...');
+    this.client.on("reconnecting", () => {
+      logger.info("Redis client reconnecting...");
     });
 
-    this.client.on('end', () => {
-      logger.warn('Redis client connection closed');
+    this.client.on("end", () => {
+      logger.warn("Redis client connection closed");
       this.isConnected = false;
     });
   }
@@ -53,7 +54,7 @@ class RedisService {
         await this.client.connect();
         this.isConnected = true;
       } catch (error) {
-        logger.error('Failed to connect to Redis:', error);
+        logger.error("Failed to connect to Redis:", error);
         throw error;
       }
     }
@@ -73,7 +74,7 @@ class RedisService {
       const value = await this.client.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
-      logger.error('Redis get error:', error);
+      logger.error("Redis get error:", error);
       return null;
     }
   }
@@ -82,16 +83,16 @@ class RedisService {
     try {
       if (!this.isConnected) await this.connect();
       const serializedValue = JSON.stringify(value);
-      
+
       if (ttlSeconds) {
         await this.client.setEx(key, ttlSeconds, serializedValue);
       } else {
         await this.client.set(key, serializedValue);
       }
-      
+
       return true;
     } catch (error) {
-      logger.error('Redis set error:', error);
+      logger.error("Redis set error:", error);
       return false;
     }
   }
@@ -101,7 +102,7 @@ class RedisService {
       if (!this.isConnected) await this.connect();
       return await this.client.del(key);
     } catch (error) {
-      logger.error('Redis delete error:', error);
+      logger.error("Redis delete error:", error);
       return 0;
     }
   }
@@ -112,7 +113,7 @@ class RedisService {
       const value = await this.client.hGet(key, field);
       return value ? JSON.parse(value) : null;
     } catch (error) {
-      logger.error('Redis hGet error:', error);
+      logger.error("Redis hGet error:", error);
       return null;
     }
   }
@@ -123,7 +124,7 @@ class RedisService {
       const serializedValue = JSON.stringify(value);
       return await this.client.hSet(key, field, serializedValue);
     } catch (error) {
-      logger.error('Redis hSet error:', error);
+      logger.error("Redis hSet error:", error);
       return 0;
     }
   }
@@ -133,7 +134,7 @@ class RedisService {
       if (!this.isConnected) await this.connect();
       return await this.client.hDel(key, field);
     } catch (error) {
-      logger.error('Redis hDel error:', error);
+      logger.error("Redis hDel error:", error);
       return 0;
     }
   }
@@ -144,10 +145,13 @@ class RedisService {
       const result = await this.client.hGetAll(key);
       // Convert string values to their parsed values
       return Object.fromEntries(
-        Object.entries(result).map(([field, value]) => [field, JSON.parse(value)])
+        Object.entries(result).map(([field, value]) => [
+          field,
+          JSON.parse(value),
+        ]),
       );
     } catch (error) {
-      logger.error('Redis hGetAll error:', error);
+      logger.error("Redis hGetAll error:", error);
       return {};
     }
   }
@@ -157,7 +161,7 @@ class RedisService {
       if (!this.isConnected) await this.connect();
       return await this.client.expire(key, seconds);
     } catch (error) {
-      logger.error('Redis expire error:', error);
+      logger.error("Redis expire error:", error);
       return false;
     }
   }
@@ -167,7 +171,7 @@ class RedisService {
       if (!this.isConnected) await this.connect();
       return await this.client.ttl(key);
     } catch (error) {
-      logger.error('Redis ttl error:', error);
+      logger.error("Redis ttl error:", error);
       return -2; // Key doesn't exist or error occurred
     }
   }
@@ -180,16 +184,16 @@ class RedisService {
     if (!this.isConnected) {
       // Note: This is a simplified implementation. In a real-world scenario,
       // you might want to handle the connection state more gracefully.
-      throw new Error('Redis client is not connected');
+      throw new Error("Redis client is not connected");
     }
     return this.client.multi();
   }
 
   async withCache<T>(
-    key: string, 
-    fetchFn: () => Promise<T>, 
+    key: string,
+    fetchFn: () => Promise<T>,
     ttlSeconds: number = 300, // 5 minutes default TTL
-    forceRefresh: boolean = false
+    forceRefresh: boolean = false,
   ): Promise<T> {
     try {
       // If not forcing refresh, try to get from cache first
@@ -200,18 +204,18 @@ class RedisService {
           return cached;
         }
       }
-      
+
       // If cache miss or force refresh, fetch fresh data
       logger.debug(`Cache miss for key: ${key}, fetching fresh data`);
       const data = await fetchFn();
-      
+
       // Cache the result
       await this.set(key, data, ttlSeconds);
-      
+
       return data;
     } catch (error) {
       // If there's an error with Redis, try to fetch fresh data anyway
-      logger.error('Cache error, falling back to direct fetch:', error);
+      logger.error("Cache error, falling back to direct fetch:", error);
       return fetchFn();
     }
   }
@@ -220,14 +224,14 @@ class RedisService {
 export const redisService = new RedisService();
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
-  logger.info('Shutting down Redis client...');
+process.on("SIGINT", async () => {
+  logger.info("Shutting down Redis client...");
   await redisService.disconnect();
   process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
-  logger.info('Shutting down Redis client...');
+process.on("SIGTERM", async () => {
+  logger.info("Shutting down Redis client...");
   await redisService.disconnect();
   process.exit(0);
 });

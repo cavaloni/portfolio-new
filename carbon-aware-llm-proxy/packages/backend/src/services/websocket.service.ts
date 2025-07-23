@@ -1,9 +1,9 @@
-import { WebSocket as WS, WebSocketServer, RawData, OPEN } from 'ws';
-import { Server } from 'http';
-import { logger } from '../utils/logger';
-import { v4 as uuidv4 } from 'uuid';
-import { carbonService } from './carbon.service';
-import { redisService } from './redis.service';
+import { WebSocket as WS, WebSocketServer, RawData, OPEN } from "ws";
+import { Server } from "http";
+import { logger } from "../utils/logger";
+import { v4 as uuidv4 } from "uuid";
+import { carbonService } from "./carbon.service";
+import { redisService } from "./redis.service";
 
 // Define our custom WebSocket type with additional properties
 interface CustomWebSocket extends WS {
@@ -25,13 +25,13 @@ interface Subscription {
 
 // Event types that can be subscribed to
 const EVENT_TYPES = [
-  'carbon_intensity',     // Carbon intensity updates for a region
-  'model_recommendation', // Model recommendation updates
-  'user_metrics',         // User-specific metrics and stats
-  'system_status',        // System status updates
+  "carbon_intensity", // Carbon intensity updates for a region
+  "model_recommendation", // Model recommendation updates
+  "user_metrics", // User-specific metrics and stats
+  "system_status", // System status updates
 ] as const;
 
-type EventType = typeof EVENT_TYPES[number];
+type EventType = (typeof EVENT_TYPES)[number];
 
 class WebSocketService {
   private wss: WebSocketServer | null = null;
@@ -43,16 +43,16 @@ class WebSocketService {
   // Initialize WebSocket server
   initialize(server: Server) {
     if (this.isInitialized) {
-      logger.warn('WebSocket server already initialized');
+      logger.warn("WebSocket server already initialized");
       return;
     }
 
-    this.wss = new WebSocketServer({ server, path: '/ws' });
+    this.wss = new WebSocketServer({ server, path: "/ws" });
     this.setupEventHandlers();
     this.setupPingInterval();
     this.setupCarbonIntensityUpdates();
     this.isInitialized = true;
-    logger.info('WebSocket server initialized');
+    logger.info("WebSocket server initialized");
   }
 
   // Clean up resources
@@ -64,7 +64,7 @@ class WebSocketService {
 
     if (this.wss) {
       this.wss.close(() => {
-        logger.info('WebSocket server closed');
+        logger.info("WebSocket server closed");
       });
       this.wss = null;
     }
@@ -78,10 +78,10 @@ class WebSocketService {
   private setupEventHandlers() {
     if (!this.wss) return;
 
-    this.wss.on('connection', (ws: CustomWebSocket, req) => {
+    this.wss.on("connection", (ws: CustomWebSocket, req) => {
       const clientId = uuidv4();
-      const clientIp = req.socket.remoteAddress || 'unknown';
-      
+      const clientIp = req.socket.remoteAddress || "unknown";
+
       logger.info(`New WebSocket connection: ${clientId} from ${clientIp}`);
 
       const subscription: Subscription = {
@@ -90,9 +90,9 @@ class WebSocketService {
       };
 
       // Add JWT token from query params if present
-      const url = new URL(req.url || '', `http://${req.headers.host}`);
-      const token = url.searchParams.get('token');
-      
+      const url = new URL(req.url || "", `http://${req.headers.host}`);
+      const token = url.searchParams.get("token");
+
       if (token) {
         // In a real app, you would validate the JWT token here
         // and extract the user ID
@@ -102,20 +102,20 @@ class WebSocketService {
       this.clients.set(clientId, subscription);
 
       // Set up message handler
-      ws.on('message', (data) => this.handleMessage(clientId, data));
+      ws.on("message", (data) => this.handleMessage(clientId, data));
 
       // Set up close handler
-      ws.on('close', () => this.handleClose(clientId));
+      ws.on("close", () => this.handleClose(clientId));
 
       // Set up error handler
-      ws.on('error', (error) => {
+      ws.on("error", (error) => {
         logger.error(`WebSocket error for client ${clientId}:`, error);
         this.handleClose(clientId);
       });
 
       // Send welcome message with client ID
       this.send(clientId, {
-        type: 'connection_established',
+        type: "connection_established",
         data: { clientId },
       });
     });
@@ -130,39 +130,42 @@ class WebSocketService {
       // Handle different types of incoming data (Buffer, ArrayBuffer, or Buffer[])
       let messageStr: string;
       if (Buffer.isBuffer(data)) {
-        messageStr = data.toString('utf8');
+        messageStr = data.toString("utf8");
       } else if (Array.isArray(data)) {
-        messageStr = Buffer.concat(data).toString('utf8');
+        messageStr = Buffer.concat(data).toString("utf8");
       } else if (data instanceof ArrayBuffer) {
-        messageStr = Buffer.from(data).toString('utf8');
+        messageStr = Buffer.from(data).toString("utf8");
       } else {
-        throw new Error('Unsupported WebSocket message format');
+        throw new Error("Unsupported WebSocket message format");
       }
 
       const message: WebSocketMessage = JSON.parse(messageStr);
 
       switch (message.type) {
-        case 'subscribe':
+        case "subscribe":
           this.handleSubscribe(clientId, message.data);
           break;
-        case 'unsubscribe':
+        case "unsubscribe":
           this.handleUnsubscribe(clientId, message.data);
           break;
-        case 'ping':
-          this.send(clientId, { type: 'pong', data: { timestamp: Date.now() } });
+        case "ping":
+          this.send(clientId, {
+            type: "pong",
+            data: { timestamp: Date.now() },
+          });
           break;
         default:
           logger.warn(`Unknown message type: ${message.type}`);
           this.send(clientId, {
-            type: 'error',
+            type: "error",
             data: { message: `Unknown message type: ${message.type}` },
           });
       }
     } catch (error) {
-      logger.error('Error handling WebSocket message:', error);
+      logger.error("Error handling WebSocket message:", error);
       this.send(clientId, {
-        type: 'error',
-        data: { message: 'Invalid message format' },
+        type: "error",
+        data: { message: "Invalid message format" },
       });
     }
   }
@@ -182,18 +185,21 @@ class WebSocketService {
   }
 
   // Handle subscription requests
-  private handleSubscribe(clientId: string, data: { event: EventType | EventType[] }) {
+  private handleSubscribe(
+    clientId: string,
+    data: { event: EventType | EventType[] },
+  ) {
     const client = this.clients.get(clientId);
     if (!client) return;
 
     const events = Array.isArray(data?.event) ? data.event : [data?.event];
-    
+
     events.forEach((event) => {
       if (EVENT_TYPES.includes(event as EventType)) {
         this.subscribe(clientId, event as EventType);
       } else {
         this.send(clientId, {
-          type: 'error',
+          type: "error",
           data: { message: `Invalid event type: ${event}` },
         });
       }
@@ -201,12 +207,15 @@ class WebSocketService {
   }
 
   // Handle unsubscription requests
-  private handleUnsubscribe(clientId: string, data: { event: EventType | EventType[] }) {
+  private handleUnsubscribe(
+    clientId: string,
+    data: { event: EventType | EventType[] },
+  ) {
     const client = this.clients.get(clientId);
     if (!client) return;
 
     const events = Array.isArray(data?.event) ? data.event : [data?.event];
-    
+
     events.forEach((event) => {
       if (EVENT_TYPES.includes(event as EventType)) {
         this.unsubscribe(clientId, event as EventType);
@@ -227,11 +236,11 @@ class WebSocketService {
     this.eventSubscribers.get(eventType)?.add(clientId);
 
     logger.debug(`Client ${clientId} subscribed to ${eventType}`);
-    
+
     this.send(clientId, {
-      type: 'subscription_update',
-      data: { 
-        event: eventType, 
+      type: "subscription_update",
+      data: {
+        event: eventType,
         subscribed: true,
         subscriptions: Array.from(client.subscriptions),
       },
@@ -247,11 +256,11 @@ class WebSocketService {
     this.eventSubscribers.get(eventType)?.delete(clientId);
 
     logger.debug(`Client ${clientId} unsubscribed from ${eventType}`);
-    
+
     this.send(clientId, {
-      type: 'subscription_update',
-      data: { 
-        event: eventType, 
+      type: "subscription_update",
+      data: {
+        event: eventType,
         subscribed: false,
         subscriptions: Array.from(client.subscriptions),
       },
@@ -259,7 +268,7 @@ class WebSocketService {
   }
 
   // Send a message to a specific client
-  send(clientId: string, message: Omit<WebSocketMessage, 'timestamp'>) {
+  send(clientId: string, message: Omit<WebSocketMessage, "timestamp">) {
     const client = this.clients.get(clientId);
     if (!client || client.socket.readyState !== OPEN) return false;
 
@@ -325,28 +334,31 @@ class WebSocketService {
   private setupCarbonIntensityUpdates() {
     // In a real app, you would set up a more sophisticated system
     // to monitor for carbon intensity changes and broadcast updates
-    
+
     // Example: Check for carbon intensity updates every 5 minutes
-    setInterval(async () => {
-      try {
-        // This is a simplified example - in a real app, you would track
-        // which regions have active subscribers and only update those
-        const regions = ['us-west-2', 'us-east-1', 'eu-west-1'];
-        
-        for (const region of regions) {
-          const intensity = await carbonService.getCarbonIntensity(region);
-          
-          this.broadcast('carbon_intensity', {
-            region,
-            intensity,
-            unit: 'gCO2eq/kWh',
-            timestamp: new Date().toISOString(),
-          });
+    setInterval(
+      async () => {
+        try {
+          // This is a simplified example - in a real app, you would track
+          // which regions have active subscribers and only update those
+          const regions = ["us-west-2", "us-east-1", "eu-west-1"];
+
+          for (const region of regions) {
+            const intensity = await carbonService.getCarbonIntensity(region);
+
+            this.broadcast("carbon_intensity", {
+              region,
+              intensity,
+              unit: "gCO2eq/kWh",
+              timestamp: new Date().toISOString(),
+            });
+          }
+        } catch (error) {
+          logger.error("Error updating carbon intensity:", error);
         }
-      } catch (error) {
-        logger.error('Error updating carbon intensity:', error);
-      }
-    }, 5 * 60 * 1000); // Every 5 minutes
+      },
+      5 * 60 * 1000,
+    ); // Every 5 minutes
   }
 
   // Get client count
@@ -357,11 +369,11 @@ class WebSocketService {
   // Get subscription count by event type
   getSubscriptionCounts(): Record<EventType, number> {
     const counts = {} as Record<EventType, number>;
-    
+
     EVENT_TYPES.forEach((eventType) => {
       counts[eventType] = this.eventSubscribers.get(eventType)?.size || 0;
     });
-    
+
     return counts;
   }
 }

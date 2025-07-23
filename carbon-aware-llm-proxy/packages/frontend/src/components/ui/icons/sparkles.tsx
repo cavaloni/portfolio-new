@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 interface SparklesProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
@@ -9,7 +9,7 @@ export const Sparkles = React.forwardRef<SVGSVGElement, SparklesProps>(
   ({ className, ...props }, ref) => (
     <svg
       ref={ref}
-      className={cn('h-5 w-5', className)}
+      className={cn("h-5 w-5", className)}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
@@ -28,9 +28,9 @@ export const Sparkles = React.forwardRef<SVGSVGElement, SparklesProps>(
         fill="currentColor"
       />
     </svg>
-  )
+  ),
 );
 
-Sparkles.displayName = 'Sparkles';
+Sparkles.displayName = "Sparkles";
 
 export default Sparkles;

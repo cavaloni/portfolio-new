@@ -1,8 +1,8 @@
-import { apiPost, withAuth } from '@/lib/api-client';
+import { apiPost, withAuth } from "@/lib/api-client";
 
 export interface Message {
   id: string;
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
   model?: string;
   timestamp?: string;
@@ -14,7 +14,7 @@ export interface Message {
 
 export interface ChatCompletionRequest {
   messages: Array<{
-    role: 'user' | 'assistant' | 'system';
+    role: "user" | "assistant" | "system";
     content: string;
   }>;
   model: string;
@@ -53,13 +53,13 @@ export const chatService = {
       temperature?: number;
       maxTokens?: number;
       carbonAware?: boolean;
-    } = {}
+    } = {},
   ): Promise<Message | null> {
     const { temperature = 0.7, maxTokens = 1000, carbonAware = true } = options;
 
     try {
       const response = await apiPost<ChatCompletionResponse>(
-        '/v1/chat/completions',
+        "/v1/chat/completions",
         {
           messages: messages.map(({ role, content }) => ({ role, content })),
           model: modelId,
@@ -68,7 +68,7 @@ export const chatService = {
           carbon_aware: carbonAware,
           stream: false,
         },
-        { headers: withAuth() }
+        { headers: withAuth() },
       );
 
       if (response.error) {
@@ -77,12 +77,12 @@ export const chatService = {
 
       const assistantMessage = response.data?.choices?.[0]?.message;
       if (!assistantMessage) {
-        throw new Error('No response from the model');
+        throw new Error("No response from the model");
       }
 
       return {
         id: assistantMessage.id || `msg_${Date.now()}`,
-        role: 'assistant',
+        role: "assistant",
         content: assistantMessage.content,
         model: modelId,
         timestamp: new Date().toISOString(),
@@ -91,7 +91,7 @@ export const chatService = {
         tokenCount: response.data?.usage?.total_tokens,
       };
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error("Error sending message:", error);
       throw error;
     }
   },
@@ -104,18 +104,18 @@ export const chatService = {
       temperature?: number;
       maxTokens?: number;
       carbonAware?: boolean;
-    } = {}
+    } = {},
   ): Promise<Message> {
     const { temperature = 0.7, maxTokens = 1000, carbonAware = true } = options;
     const messageId = `msg_${Date.now()}`;
-    
+
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/v1/chat/completions`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/v1/chat/completions`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
             ...withAuth(),
           },
           body: JSON.stringify({
@@ -126,49 +126,49 @@ export const chatService = {
             carbon_aware: carbonAware,
             stream: true,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Failed to stream response');
+        throw new Error(error.message || "Failed to stream response");
       }
 
       if (!response.body) {
-        throw new Error('No response body');
+        throw new Error("No response body");
       }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let content = '';
+      let content = "";
       let done = false;
 
       while (!done) {
         const { value, done: doneReading } = await reader.read();
         done = doneReading;
-        
+
         if (done) break;
-        
+
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n').filter(line => line.trim() !== '');
-        
+        const lines = chunk.split("\n").filter((line) => line.trim() !== "");
+
         for (const line of lines) {
-          if (line === 'data: [DONE]') {
+          if (line === "data: [DONE]") {
             done = true;
             break;
           }
-          
-          if (line.startsWith('data: ')) {
+
+          if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
-              const chunk = data.choices?.[0]?.delta?.content || '';
-              
+              const chunk = data.choices?.[0]?.delta?.content || "";
+
               if (chunk) {
                 content += chunk;
                 onChunk(chunk);
               }
             } catch (e) {
-              console.error('Error parsing chunk:', e);
+              console.error("Error parsing chunk:", e);
             }
           }
         }
@@ -177,7 +177,7 @@ export const chatService = {
       // Return the complete message
       return {
         id: messageId,
-        role: 'assistant',
+        role: "assistant",
         content,
         model: modelId,
         timestamp: new Date().toISOString(),
@@ -185,7 +185,7 @@ export const chatService = {
         // You might want to make a separate API call to get this data
       };
     } catch (error) {
-      console.error('Error streaming message:', error);
+      console.error("Error streaming message:", error);
       throw error;
     }
   },

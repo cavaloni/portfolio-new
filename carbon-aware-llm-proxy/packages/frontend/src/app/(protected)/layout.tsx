@@ -1,33 +1,29 @@
-import { ReactNode } from 'react';
-import { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { Toaster } from 'sonner';
-import { QueryProvider } from '@/providers/query-provider';
-import { AuthProvider } from '@/contexts/auth-context';
-import { ChatProvider } from '@/contexts/chat-context';
-import { ThemeProvider } from '@/components/theme/theme-provider';
-import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
-import { TailwindIndicator } from '@/components/theme/tailwind-indicator';
-import { cn } from '@/lib/utils';
-import '../globals.css';
+import { ReactNode } from "react";
+import { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { Toaster } from "sonner";
+import { QueryProvider } from "@/providers/query-provider";
+import { AuthProvider } from "@/contexts/auth-context";
+import { ChatProvider } from "@/contexts/chat-context";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { SiteHeader } from "@/components/layout/site-header";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { TailwindIndicator } from "@/components/theme/tailwind-indicator";
+import { cn } from "@/lib/utils";
+import "../globals.css";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: 'Carbon-Aware LLM Proxy',
-  description: 'A proxy for LLM APIs with carbon awareness',
+  title: "Carbon-Aware LLM Proxy",
+  description: "A proxy for LLM APIs with carbon awareness",
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: 'white' },
-    { media: '(prefers-color-scheme: dark)', color: 'black' },
+    { media: "(prefers-color-scheme: light)", color: "white" },
+    { media: "(prefers-color-scheme: dark)", color: "black" },
   ],
 };
 
-export default function ProtectedLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function ProtectedLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -47,8 +43,8 @@ export default function ProtectedLayout({
       </head>
       <body
         className={cn(
-          'min-h-screen bg-background font-sans antialiased flex flex-col',
-          inter.variable
+          "min-h-screen bg-background font-sans antialiased flex flex-col",
+          inter.variable,
         )}
       >
         <QueryProvider>

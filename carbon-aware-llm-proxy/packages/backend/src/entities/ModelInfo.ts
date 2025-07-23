@@ -1,69 +1,76 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Message } from './Message';
-import { CarbonFootprint } from './CarbonFootprint';
+import {
+  Entity,
+  PrimaryColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from "typeorm";
+import { Message } from "./Message";
+import { CarbonFootprint } from "./CarbonFootprint";
 
-@Entity('model_info')
+@Entity("model_info")
 export class ModelInfo {
-  @PrimaryColumn('varchar')
-  id: string = '';
+  @PrimaryColumn("varchar")
+  id: string = "";
 
   @Column({ unique: true })
-  providerModelId: string = '';
+  providerModelId: string = "";
 
   @Column()
-  name: string = '';
+  name: string = "";
 
   @Column()
-  provider: string = '';
+  provider: string = "";
 
-  @Column('text', { nullable: true })
+  @Column("text", { nullable: true })
   description: string | null = null;
 
-  @Column('int')
+  @Column("int")
   contextWindow: number = 0;
 
-  @Column('int')
+  @Column("int")
   maxTokens: number = 0;
 
-  @Column('varchar')
-  trainingData: string = '';
+  @Column("varchar")
+  trainingData: string = "";
 
-  @Column('varchar')
-  knowledgeCutoff: string = '';
+  @Column("varchar")
+  knowledgeCutoff: string = "";
 
-  @Column('varchar')
-  architecture: string = '';
+  @Column("varchar")
+  architecture: string = "";
 
-  @Column('int')
+  @Column("int")
   parameters: number = 0;
 
-  @Column('float')
+  @Column("float")
   flopsPerToken: number = 0;
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  @Column("decimal", { precision: 10, scale: 2, nullable: true })
   tokensPerSecond: number | null = null;
 
-  @Column('decimal', { precision: 10, scale: 4, nullable: true })
+  @Column("decimal", { precision: 10, scale: 4, nullable: true })
   costPer1kTokens: number | null = null;
 
-  @Column('simple-array')
+  @Column("simple-array")
   capabilities: string[] = [];
 
-  @Column('jsonb')
+  @Column("jsonb")
   carbonIntensity: {
     min: number;
     max: number;
     avg: number;
     unit: string;
-  } = { min: 0, max: 0, avg: 0, unit: 'gCO2e/kWh' };
+  } = { min: 0, max: 0, avg: 0, unit: "gCO2e/kWh" };
 
-  @Column('jsonb')
+  @Column("jsonb")
   latency: {
     min: number;
     max: number;
     avg: number;
     unit: string;
-  } = { min: 0, max: 0, avg: 0, unit: 'ms' };
+  } = { min: 0, max: 0, avg: 0, unit: "ms" };
 
   @Column({ default: false })
   isRecommended: boolean = false;
@@ -74,13 +81,13 @@ export class ModelInfo {
   @Column({ default: true })
   isActive: boolean = true;
 
-  @Column('jsonb', { nullable: true })
+  @Column("jsonb", { nullable: true })
   metadata: Record<string, any> = {};
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: "timestamp", nullable: true })
   lastUpdated: Date | null = null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: "timestamp", nullable: true })
   publishedDate: Date | null = null;
 
   @OneToMany(() => Message, (message) => message.modelId)

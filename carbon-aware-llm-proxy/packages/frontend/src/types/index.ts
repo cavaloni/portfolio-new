@@ -19,7 +19,7 @@ export interface UserProfile {
 export interface UserPreferences {
   id: string;
   user_id: string;
-  theme?: 'light' | 'dark' | 'system';
+  theme?: "light" | "dark" | "system";
   email_notifications?: boolean;
   push_notifications?: boolean;
   marketing_emails?: boolean;

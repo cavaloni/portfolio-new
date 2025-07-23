@@ -18,7 +18,7 @@ A reusable React component for selecting preferences between Efficiency, Trust, 
 The component is already integrated into the carbon-aware-llm-proxy project. Simply import and use:
 
 ```typescript
-import { QuadrantJoystick } from '@/components/quadrant-joystick';
+import { QuadrantJoystick } from "@/components/quadrant-joystick";
 ```
 
 ## Usage
@@ -61,15 +61,15 @@ function AdvancedExample() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `onChange` | `(position: QuadrantPosition) => void` | - | Callback fired when position changes |
-| `defaultPosition` | `{ x: number, y: number }` | `{ x: 0, y: 0 }` | Initial position (normalized -1 to 1) |
-| `disabled` | `boolean` | `false` | Whether the joystick is disabled |
-| `size` | `number` | `320` | Size of the joystick container in pixels |
-| `showCoordinates` | `boolean` | `false` | Whether to display coordinate values |
-| `snapToCenter` | `boolean` | `false` | Whether to snap to center on release |
-| `className` | `string` | - | Additional CSS classes |
+| Prop              | Type                                   | Default          | Description                              |
+| ----------------- | -------------------------------------- | ---------------- | ---------------------------------------- |
+| `onChange`        | `(position: QuadrantPosition) => void` | -                | Callback fired when position changes     |
+| `defaultPosition` | `{ x: number, y: number }`             | `{ x: 0, y: 0 }` | Initial position (normalized -1 to 1)    |
+| `disabled`        | `boolean`                              | `false`          | Whether the joystick is disabled         |
+| `size`            | `number`                               | `320`            | Size of the joystick container in pixels |
+| `showCoordinates` | `boolean`                              | `false`          | Whether to display coordinate values     |
+| `snapToCenter`    | `boolean`                              | `false`          | Whether to snap to center on release     |
+| `className`       | `string`                               | -                | Additional CSS classes                   |
 
 ## Quadrant Mapping
 
@@ -110,7 +110,7 @@ function RoutingPreferences() {
       performance: Math.max(0, position.x), // Right = performance
       simplicity: Math.max(0, -position.y), // Bottom = simplicity
     };
-    
+
     setPreferences(weights);
   };
 

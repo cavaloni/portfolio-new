@@ -1,83 +1,88 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import { useAuth } from '@/contexts/auth-context';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Icons } from '@/components/icons';
-import { toast } from '@/lib/toast';
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "@/contexts/auth-context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Icons } from "@/components/icons";
+import { toast } from "@/lib/toast";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
-  
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
-  
+
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error({
-        title: 'Error',
-        description: 'Please enter both email and password',
+        title: "Error",
+        description: "Please enter both email and password",
       });
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       await login(email, password);
       // The AuthProvider will handle the redirect
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       toast.error({
-        title: 'Login failed',
-        description: error instanceof Error ? error.message : 'An error occurred during login',
+        title: "Login failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An error occurred during login",
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const handleGoogleLogin = async () => {
     // In a real app, this would redirect to your OAuth provider
     toast.info({
-      title: 'Coming soon',
-      description: 'Google login will be available soon',
+      title: "Coming soon",
+      description: "Google login will be available soon",
     });
   };
-  
+
   const handleGithubLogin = async () => {
     // In a real app, this would redirect to your OAuth provider
     toast.info({
-      title: 'Coming soon',
-      description: 'GitHub login will be available soon',
+      title: "Coming soon",
+      description: "GitHub login will be available soon",
     });
   };
-  
+
   return (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Sign in to your account</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Sign in to your account
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Or{' '}
-          <Link 
-            href={`/signup${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`}
+          Or{" "}
+          <Link
+            href={`/signup${redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : ""}`}
             className="font-medium text-primary hover:underline"
           >
             create a new account
           </Link>
         </p>
       </div>
-      
+
       <div className="grid gap-6">
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4">
@@ -95,7 +100,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            
+
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
@@ -115,14 +120,16 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            
+
             <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && (
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Sign In
             </Button>
           </div>
         </form>
-        
+
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
@@ -133,11 +140,11 @@ export default function LoginPage() {
             </span>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
-          <Button 
-            variant="outline" 
-            type="button" 
+          <Button
+            variant="outline"
+            type="button"
             disabled={isLoading}
             onClick={handleGoogleLogin}
           >
@@ -148,10 +155,10 @@ export default function LoginPage() {
             )}
             Email
           </Button>
-          
-          <Button 
-            variant="outline" 
-            type="button" 
+
+          <Button
+            variant="outline"
+            type="button"
             disabled={isLoading}
             onClick={handleGithubLogin}
           >

@@ -228,3 +228,68 @@ update-prod: ## Update and restart production environment
 	@docker compose -f docker-compose.prod.yml up -d
 	@make migrate-prod
 	@echo "✅ Production environment updated"
+
+# RunPod Management Commands
+runpod-info: ## Show available RunPod models, regions, and GPU types
+	@echo "📋 Showing RunPod configuration..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts info
+
+runpod-list: ## List all RunPod deployments
+	@echo "📋 Listing RunPod deployments..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts list
+
+runpod-deploy: ## Deploy model to RunPod (usage: make runpod-deploy MODEL=llama-3-8b-instruct REGIONS=US-OR-1)
+	@if [ -z "$(MODEL)" ]; then \
+		echo "❌ Error: MODEL is required. Usage: make runpod-deploy MODEL=llama-3-8b-instruct REGIONS=US-OR-1"; \
+		exit 1; \
+	fi
+	@if [ -z "$(REGIONS)" ]; then \
+		echo "❌ Error: REGIONS is required. Usage: make runpod-deploy MODEL=llama-3-8b-instruct REGIONS=US-OR-1"; \
+		exit 1; \
+	fi
+	@echo "🚀 Deploying $(MODEL) to $(REGIONS)..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts deploy -m $(MODEL) -r $(REGIONS)
+
+runpod-deploy-dry: ## Dry run deployment (usage: make runpod-deploy-dry MODEL=llama-3-8b-instruct REGIONS=US-OR-1)
+	@if [ -z "$(MODEL)" ]; then \
+		echo "❌ Error: MODEL is required. Usage: make runpod-deploy-dry MODEL=llama-3-8b-instruct REGIONS=US-OR-1"; \
+		exit 1; \
+	fi
+	@if [ -z "$(REGIONS)" ]; then \
+		echo "❌ Error: REGIONS is required. Usage: make runpod-deploy-dry MODEL=llama-3-8b-instruct REGIONS=US-OR-1"; \
+		exit 1; \
+	fi
+	@echo "🧪 Dry run: Deploying $(MODEL) to $(REGIONS)..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts deploy -m $(MODEL) -r $(REGIONS) --dry-run
+
+runpod-status: ## Get detailed status of a deployment (usage: make runpod-status ID=deployment-id)
+	@if [ -z "$(ID)" ]; then \
+		echo "❌ Error: ID is required. Usage: make runpod-status ID=deployment-id"; \
+		exit 1; \
+	fi
+	@echo "📊 Getting status for deployment $(ID)..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts status $(ID)
+
+runpod-health: ## Perform health checks on all RunPod deployments
+	@echo "🏥 Performing health checks..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts health-check
+
+runpod-test-api: ## Test RunPod API connection and list existing endpoints
+	@echo "🧪 Testing RunPod API connection..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/test-runpod-api.ts
+
+runpod-api-status: ## Check RunPod endpoints directly from API
+	@echo "🔍 Checking RunPod endpoints from API..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts runpod-status
+
+runpod-update-urls: ## Update endpoint URLs for deployments that don't have them
+	@echo "🔗 Updating endpoint URLs..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts update-urls
+
+runpod-stop: ## Stop a RunPod deployment (usage: make runpod-stop ID=deployment-id)
+	@if [ -z "$(ID)" ]; then \
+		echo "❌ Error: ID is required. Usage: make runpod-stop ID=deployment-id"; \
+		exit 1; \
+	fi
+	@echo "🛑 Stopping deployment $(ID)..."
+	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts stop $(ID)

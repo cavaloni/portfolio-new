@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { userService } from '@/services/user-service';
-import { queryKeys } from '@/lib/query-client';
-import { useRouter } from 'next/navigation';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { userService } from "@/services/user-service";
+import { queryKeys } from "@/lib/query-client";
+import { useRouter } from "next/navigation";
 
 export function useUser() {
   const queryClient = useQueryClient();
@@ -25,21 +25,27 @@ export function useUser() {
 export function useLogin() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  
+
   return useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+    mutationFn: async ({
+      email,
+      password,
+    }: {
+      email: string;
+      password: string;
+    }) => {
       // In a real app, this would call your authentication API
       // For now, we'll simulate a successful login
-      return { success: true, token: 'dummy-token' };
+      return { success: true, token: "dummy-token" };
     },
     onSuccess: (data) => {
       if (data.success) {
         // Store the token
-        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem("auth_token", data.token);
         // Invalidate the user query to refetch the user data
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
         // Redirect to the dashboard
-        router.push('/dashboard');
+        router.push("/dashboard");
       }
     },
   });
@@ -48,7 +54,7 @@ export function useLogin() {
 export function useLogout() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  
+
   return useMutation({
     mutationFn: async () => {
       // In a real app, this would call your logout API
@@ -56,13 +62,13 @@ export function useLogout() {
     },
     onSuccess: () => {
       // Remove the auth token
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem("auth_token");
       // Clear the user data from the cache
       queryClient.setQueryData(queryKeys.auth.me, null);
       // Clear all queries
       queryClient.clear();
       // Redirect to the login page
-      router.push('/login');
+      router.push("/login");
     },
   });
 }
@@ -70,7 +76,7 @@ export function useLogout() {
 export function useSignup() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  
+
   return useMutation({
     mutationFn: async ({
       email,
@@ -83,16 +89,16 @@ export function useSignup() {
     }) => {
       // In a real app, this would call your signup API
       // For now, we'll simulate a successful signup
-      return { success: true, token: 'dummy-token' };
+      return { success: true, token: "dummy-token" };
     },
     onSuccess: (data) => {
       if (data.success) {
         // Store the token
-        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem("auth_token", data.token);
         // Invalidate the user query to refetch the user data
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
         // Redirect to the dashboard
-        router.push('/dashboard');
+        router.push("/dashboard");
       }
     },
   });
@@ -108,7 +114,7 @@ export function useRequestPasswordReset() {
 
 export function useResetPassword() {
   const router = useRouter();
-  
+
   return useMutation({
     mutationFn: async ({
       token,
@@ -122,7 +128,7 @@ export function useResetPassword() {
     onSuccess: (success) => {
       if (success) {
         // Redirect to login page after successful password reset
-        router.push('/login');
+        router.push("/login");
       }
     },
   });
@@ -130,9 +136,13 @@ export function useResetPassword() {
 
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (data: { name: string; email: string; avatar?: string }) => {
+    mutationFn: async (data: {
+      name: string;
+      email: string;
+      avatar?: string;
+    }) => {
       // In a real app, this would call your profile update API
       // For now, we'll use the userService
       return userService.updateProfile(data);
@@ -148,7 +158,7 @@ export function useUpdateProfile() {
 
 export function useUpdatePreferences() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: async (preferences: Record<string, any>) => {
       // In a real app, this would call your preferences update API

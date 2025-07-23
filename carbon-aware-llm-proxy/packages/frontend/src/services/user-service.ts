@@ -1,12 +1,12 @@
-import { apiGet, apiPost, apiPut, withAuth } from '@/lib/api-client';
+import { apiGet, apiPost, apiPut, withAuth } from "@/lib/api-client";
 
 export interface UserPreferences {
   id: string;
   user_id: string;
   default_model_id: string;
   carbon_aware_enabled: boolean;
-  carbon_aware_aggressiveness: 'low' | 'medium' | 'high';
-  dark_mode: 'light' | 'dark' | 'system';
+  carbon_aware_aggressiveness: "low" | "medium" | "high";
+  dark_mode: "light" | "dark" | "system";
   show_carbon_footprint: boolean;
   show_energy_usage: boolean;
   max_tokens: number;
@@ -32,19 +32,21 @@ export const userService = {
   // Get current user's profile
   async getCurrentUser(): Promise<UserProfile | null> {
     try {
-      const response = await apiGet<{ user: UserProfile }>(
-        '/v1/users/me',
-        { headers: withAuth() }
-      );
+      const response = await apiGet<{ user: UserProfile }>("/v1/users/me", {
+        headers: withAuth(),
+      });
 
       if (response.error || !response.data) {
-        console.warn('User not authenticated or error fetching profile:', response.error?.message);
+        console.warn(
+          "User not authenticated or error fetching profile:",
+          response.error?.message,
+        );
         return null;
       }
 
       return response.data.user;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error("Error fetching user profile:", error);
       return null;
     }
   },
@@ -53,40 +55,47 @@ export const userService = {
   async getUserPreferences(): Promise<UserPreferences | null> {
     try {
       const response = await apiGet<{ preferences: UserPreferences }>(
-        '/v1/users/me/preferences',
-        { headers: withAuth() }
+        "/v1/users/me/preferences",
+        { headers: withAuth() },
       );
 
       if (response.error || !response.data) {
-        console.warn('Error fetching user preferences:', response.error?.message);
+        console.warn(
+          "Error fetching user preferences:",
+          response.error?.message,
+        );
         return null;
       }
 
       return response.data.preferences;
     } catch (error) {
-      console.error('Error fetching user preferences:', error);
+      console.error("Error fetching user preferences:", error);
       return null;
     }
   },
 
   // Update user preferences
   async updateUserPreferences(
-    updates: Partial<Omit<UserPreferences, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
+    updates: Partial<
+      Omit<UserPreferences, "id" | "user_id" | "created_at" | "updated_at">
+    >,
   ): Promise<UserPreferences | null> {
     try {
       const response = await apiPut<{ preferences: UserPreferences }>(
-        '/v1/users/me/preferences',
+        "/v1/users/me/preferences",
         updates,
-        { headers: withAuth() }
+        { headers: withAuth() },
       );
 
       if (response.error || !response.data) {
-        throw new Error(response.error?.message || 'Failed to update preferences');
+        throw new Error(
+          response.error?.message || "Failed to update preferences",
+        );
       }
 
       return response.data.preferences;
     } catch (error) {
-      console.error('Error updating user preferences:', error);
+      console.error("Error updating user preferences:", error);
       throw error;
     }
   },
@@ -109,36 +118,39 @@ export const userService = {
           request_count: number;
           carbon_footprint_kg: number;
         }>;
-      }>('/v1/users/me/carbon-stats', { headers: withAuth() });
+      }>("/v1/users/me/carbon-stats", { headers: withAuth() });
 
       if (response.error || !response.data) {
-        console.warn('Error fetching carbon stats:', response.error?.message);
+        console.warn("Error fetching carbon stats:", response.error?.message);
         return null;
       }
 
       return response.data;
     } catch (error) {
-      console.error('Error fetching carbon stats:', error);
+      console.error("Error fetching carbon stats:", error);
       return null;
     }
   },
 
   // Update user profile
-  async updateProfile(updates: { name?: string; avatar_url?: string }): Promise<UserProfile | null> {
+  async updateProfile(updates: {
+    name?: string;
+    avatar_url?: string;
+  }): Promise<UserProfile | null> {
     try {
       const response = await apiPut<{ user: UserProfile }>(
-        '/v1/users/me',
+        "/v1/users/me",
         updates,
-        { headers: withAuth() }
+        { headers: withAuth() },
       );
 
       if (response.error || !response.data) {
-        throw new Error(response.error?.message || 'Failed to update profile');
+        throw new Error(response.error?.message || "Failed to update profile");
       }
 
       return response.data.user;
     } catch (error) {
-      console.error('Error updating user profile:', error);
+      console.error("Error updating user profile:", error);
       throw error;
     }
   },
@@ -146,10 +158,13 @@ export const userService = {
   // Request password reset
   async requestPasswordReset(email: string): Promise<boolean> {
     try {
-      const response = await apiPost<{ success: boolean }>('/v1/auth/forgot-password', { email });
+      const response = await apiPost<{ success: boolean }>(
+        "/v1/auth/forgot-password",
+        { email },
+      );
       return response.data?.success || false;
     } catch (error) {
-      console.error('Error requesting password reset:', error);
+      console.error("Error requesting password reset:", error);
       return false;
     }
   },
@@ -157,13 +172,16 @@ export const userService = {
   // Reset password
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
     try {
-      const response = await apiPost<{ success: boolean }>('/v1/auth/reset-password', {
-        token,
-        password: newPassword,
-      });
+      const response = await apiPost<{ success: boolean }>(
+        "/v1/auth/reset-password",
+        {
+          token,
+          password: newPassword,
+        },
+      );
       return response.data?.success || false;
     } catch (error) {
-      console.error('Error resetting password:', error);
+      console.error("Error resetting password:", error);
       return false;
     }
   },

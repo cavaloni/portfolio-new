@@ -1,40 +1,36 @@
-'use client';
+"use client";
 
-import { toast as sonnerToast } from 'sonner';
+import { toast as sonnerToast } from "sonner";
 
 type Toast = {
   title?: string;
   description?: string;
-  variant?: 'default' | 'destructive' | 'success' | 'warning' | 'info';
+  variant?: "default" | "destructive" | "success" | "warning" | "info";
 };
 
 function useToast() {
-  const toast = ({
-    title,
-    description,
-    variant = 'default',
-  }: Toast) => {
+  const toast = ({ title, description, variant = "default" }: Toast) => {
     const toastOptions = {
       className: `toast-${variant}`,
     };
 
     switch (variant) {
-      case 'destructive':
+      case "destructive":
         return sonnerToast.error(title, {
           ...toastOptions,
           description,
         });
-      case 'success':
+      case "success":
         return sonnerToast.success(title, {
           ...toastOptions,
           description,
         });
-      case 'warning':
+      case "warning":
         return sonnerToast.warning(title, {
           ...toastOptions,
           description,
         });
-      case 'info':
+      case "info":
         return sonnerToast.info(title, {
           ...toastOptions,
           description,

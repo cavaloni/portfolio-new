@@ -24,6 +24,7 @@ RUN npm config set fund false && \
 
 # Copy source code
 COPY src/ ./src/
+COPY scripts/ ./scripts/
 
 # Build the application
 RUN npm run build
@@ -56,6 +57,9 @@ COPY --from=builder /app/dist ./dist
 
 # Copy migration files (needed for runtime)
 COPY src/migrations ./src/migrations
+
+# Copy scripts (needed for RunPod CLI)
+COPY scripts/ ./scripts/
 
 # Change ownership to app user
 RUN chown -R backend:nodejs /app

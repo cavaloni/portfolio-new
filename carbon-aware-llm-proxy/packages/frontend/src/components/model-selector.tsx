@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { useState } from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
 
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-} from '@/components/ui/command';
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 
 interface Model {
   id: string;
@@ -30,36 +30,36 @@ interface Model {
 
 const models: Model[] = [
   {
-    id: 'gpt-4',
-    name: 'GPT-4',
-    provider: 'OpenAI',
+    id: "gpt-4",
+    name: "GPT-4",
+    provider: "OpenAI",
     maxTokens: 8192,
     carbonIntensity: 0.4,
     latency: 50,
     cost: 30,
   },
   {
-    id: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
-    provider: 'OpenAI',
+    id: "gpt-3.5-turbo",
+    name: "GPT-3.5 Turbo",
+    provider: "OpenAI",
     maxTokens: 4096,
     carbonIntensity: 0.2,
     latency: 30,
     cost: 1.5,
   },
   {
-    id: 'claude-2',
-    name: 'Claude 2',
-    provider: 'Anthropic',
+    id: "claude-2",
+    name: "Claude 2",
+    provider: "Anthropic",
     maxTokens: 100000,
     carbonIntensity: 0.35,
     latency: 75,
     cost: 11.02,
   },
   {
-    id: 'llama-2-70b',
-    name: 'Llama 2 70B',
-    provider: 'Meta',
+    id: "llama-2-70b",
+    name: "Llama 2 70B",
+    provider: "Meta",
     maxTokens: 4096,
     carbonIntensity: 0.15,
     latency: 100,
@@ -86,7 +86,7 @@ export function ModelSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn('w-[240px] justify-between', className)}
+          className={cn("w-[240px] justify-between", className)}
         >
           <div className="flex items-center">
             <span className="font-medium">{selectedModel.name}</span>
@@ -115,8 +115,8 @@ export function ModelSelector({
                 <div className="flex w-full items-center">
                   <Check
                     className={cn(
-                      'mr-2 h-4 w-4',
-                      value === model.id ? 'opacity-100' : 'opacity-0'
+                      "mr-2 h-4 w-4",
+                      value === model.id ? "opacity-100" : "opacity-0",
                     )}
                   />
                   <span className="font-medium">{model.name}</span>

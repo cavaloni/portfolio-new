@@ -1,6 +1,6 @@
-import Link from 'next/link';
-import { ThemeToggle } from './theme-toggle';
-import { Button } from './ui/button';
+import Link from "next/link";
+import { ThemeToggle } from "./theme-toggle";
+import { Button } from "./ui/button";
 
 export function Navbar() {
   return (
@@ -38,17 +38,15 @@ export function Navbar() {
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <nav className="flex items-center
-          ">
+          <nav
+            className="flex items-center
+          "
+          >
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/login">
-                Sign In
-              </Link>
+              <Link href="/login">Sign In</Link>
             </Button>
             <Button size="sm" asChild className="ml-2">
-              <Link href="/signup">
-                Get Started
-              </Link>
+              <Link href="/signup">Get Started</Link>
             </Button>
             <div className="ml-2">
               <ThemeToggle />

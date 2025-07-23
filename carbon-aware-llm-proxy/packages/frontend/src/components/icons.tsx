@@ -1,4 +1,4 @@
-import { Sparkles } from '@/components/ui/icons/sparkles';
+import { Sparkles } from "@/components/ui/icons/sparkles";
 import {
   Loader2,
   Send,
@@ -168,7 +168,7 @@ import {
   Bot as Robot,
   Skull,
   Bone,
-} from 'lucide-react'
+} from "lucide-react";
 
 export const Icons = {
   // logo: Sparkles,  // Temporarily commented out as we need to implement a custom Sparkles component
@@ -295,4 +295,4 @@ export const Icons = {
   music: Music, // Added music icon
   helpCircle: HelpCircle, // Added helpCircle icon
   github: Github,
-}
+};

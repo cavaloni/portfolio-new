@@ -1,5 +1,5 @@
-import { Toaster as SonnerToaster } from 'sonner'
+import { Toaster as SonnerToaster } from "sonner";
 
 export function Toaster() {
-  return <SonnerToaster />
+  return <SonnerToaster />;
 }

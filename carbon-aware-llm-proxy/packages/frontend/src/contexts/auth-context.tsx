@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useMemo, ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser, useLogin, useLogout, useSignup } from '@/hooks/use-auth';
-import { UserProfile } from '@/types';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
+import { useUser, useLogin, useLogout, useSignup } from "@/hooks/use-auth";
+import { UserProfile } from "@/types";
 
 type AuthContextType = {
   user: UserProfile | null;
@@ -24,8 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check if we have a token on initial load
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('auth_token');
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("auth_token");
       if (token) {
         refetch();
       }
@@ -44,53 +50,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signupMutation.mutateAsync({ email, password, name });
   };
 
-  const value = useMemo(
-    () => {
-      const now = new Date().toISOString();
-      
-      // Create a properly typed user object with all required fields
-      const userWithDefaults: UserProfile | null = user ? {
-        // Required fields
-        id: user.id,
-        email: user.email,
-        name: user.name ?? null,
-        avatar_url: user.avatar_url ?? null,
-        bio: 'bio' in user ? (user as any).bio ?? null : null,
-        website: 'website' in user ? (user as any).website ?? null : null,
-        location: 'location' in user ? (user as any).location ?? null : null,
-        role: 'role' in user ? (user as any).role : 'user',
-        total_requests: user.total_requests ?? 0,
-        total_tokens_used: user.total_tokens_used ?? 0,
-        total_carbon_footprint_kg: user.total_carbon_footprint_kg ?? 0,
-        carbon_saved_kg: user.carbon_saved_kg ?? 0,
-        created_at: user.created_at || now,
-        updated_at: 'updated_at' in user ? (user as any).updated_at : now,
-        // Handle preferences with type safety
-        preferences: user.preferences ?? {
-          id: '',
-          user_id: user.id,
-          created_at: now,
-          updated_at: now,
-          theme: 'system' as const,
-          email_notifications: true,
-          push_notifications: true,
-          marketing_emails: false,
-          security_alerts: true,
-          carbon_aware: true,
-        },
-      } : null;
+  const value = useMemo(() => {
+    const now = new Date().toISOString();
 
-      return {
-        user: userWithDefaults,
-        isLoading: isLoading || loginMutation.isPending || signupMutation.isPending,
-        isAuthenticated: !!user,
-        login,
-        logout,
-        signup,
-      };
-    },
-    [user, isLoading, loginMutation.isPending, signupMutation.isPending, login, logout, signup]
-  );
+    // Create a properly typed user object with all required fields
+    const userWithDefaults: UserProfile | null = user
+      ? {
+          // Required fields
+          id: user.id,
+          email: user.email,
+          name: user.name ?? null,
+          avatar_url: user.avatar_url ?? null,
+          bio: "bio" in user ? ((user as any).bio ?? null) : null,
+          website: "website" in user ? ((user as any).website ?? null) : null,
+          location:
+            "location" in user ? ((user as any).location ?? null) : null,
+          role: "role" in user ? (user as any).role : "user",
+          total_requests: user.total_requests ?? 0,
+          total_tokens_used: user.total_tokens_used ?? 0,
+          total_carbon_footprint_kg: user.total_carbon_footprint_kg ?? 0,
+          carbon_saved_kg: user.carbon_saved_kg ?? 0,
+          created_at: user.created_at || now,
+          updated_at: "updated_at" in user ? (user as any).updated_at : now,
+          // Handle preferences with type safety
+          preferences: user.preferences ?? {
+            id: "",
+            user_id: user.id,
+            created_at: now,
+            updated_at: now,
+            theme: "system" as const,
+            email_notifications: true,
+            push_notifications: true,
+            marketing_emails: false,
+            security_alerts: true,
+            carbon_aware: true,
+          },
+        }
+      : null;
+
+    return {
+      user: userWithDefaults,
+      isLoading:
+        isLoading || loginMutation.isPending || signupMutation.isPending,
+      isAuthenticated: !!user,
+      login,
+      logout,
+      signup,
+    };
+  }, [
+    user,
+    isLoading,
+    loginMutation.isPending,
+    signupMutation.isPending,
+    login,
+    logout,
+    signup,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -98,14 +113,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
 // Higher Order Component for protecting routes
 export const withAuth = <P extends object>(
-  WrappedComponent: React.ComponentType<P>
+  WrappedComponent: React.ComponentType<P>,
 ) => {
   const WithAuth: React.FC<P> = (props) => {
     const { isAuthenticated, isLoading } = useAuth();
@@ -114,7 +129,7 @@ export const withAuth = <P extends object>(
     useEffect(() => {
       if (!isLoading && !isAuthenticated) {
         // Redirect to login if not authenticated
-        router.push('/login');
+        router.push("/login");
       }
     }, [isAuthenticated, isLoading, router]);
 

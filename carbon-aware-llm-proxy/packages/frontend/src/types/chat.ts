@@ -1,7 +1,7 @@
 export enum MessageRole {
-  User = 'user',
-  Assistant = 'assistant',
-  System = 'system',
+  User = "user",
+  Assistant = "assistant",
+  System = "system",
 }
 
 export interface Message {

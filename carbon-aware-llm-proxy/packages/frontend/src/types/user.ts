@@ -22,7 +22,7 @@ export interface UserProfile {
 }
 
 export interface UserPreferences {
-  theme?: 'light' | 'dark' | 'system';
+  theme?: "light" | "dark" | "system";
   emailNotifications?: boolean;
   pushNotifications?: boolean;
   marketingEmails?: boolean;
