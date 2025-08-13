@@ -58,7 +58,7 @@ COPY --from=builder /app/dist ./dist
 # Copy migration files (needed for runtime)
 COPY src/migrations ./src/migrations
 
-# Copy scripts (needed for RunPod CLI)
+# Copy scripts (CLI utilities)
 COPY scripts/ ./scripts/
 
 # Change ownership to app user

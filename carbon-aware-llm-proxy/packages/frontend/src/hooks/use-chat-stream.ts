@@ -23,6 +23,12 @@ export function useChatStream(conversationId?: string) {
     if (!isInitialized || !isConnected || !socket) return;
 
     const handleChunk = (data: any) => {
+      // Safety check to ensure data exists
+      if (!data) {
+        console.warn("Received undefined data in handleChunk");
+        return;
+      }
+      
       if (data.conversationId !== conversationId) return;
 
       const { content, done, error } = data;

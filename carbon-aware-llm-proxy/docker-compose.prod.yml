@@ -74,6 +74,12 @@ services:
       WATT_TIME_EMAIL: ${WATT_TIME_EMAIL}
       WATT_TIME_API_KEY: ${WATT_TIME_API_KEY}
       ELECTRICITY_MAP_API_KEY: ${ELECTRICITY_MAP_API_KEY}
+      # Modal Configuration
+      LLM_PROVIDER: ${LLM_PROVIDER:-modal}
+      MODAL_ENDPOINT_URL: ${MODAL_ENDPOINT_URL}
+      MODAL_API_KEY: ${MODAL_API_KEY}
+      # HuggingFace Configuration
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
     networks:
       - carbon-aware-network
     depends_on:

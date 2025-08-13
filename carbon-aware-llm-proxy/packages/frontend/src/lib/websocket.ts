@@ -80,13 +80,16 @@ class WebSocketService {
   private handleMessage = (event: MessageEvent) => {
     try {
       const data = JSON.parse(event.data);
-      const { type, payload } = data;
+      const { type, payload, data: messageData } = data;
+
+      // Use either payload or data, with data taking precedence (backend sends data)
+      const actualPayload = messageData || payload;
 
       // Trigger callbacks for this message type
-      this.trigger(type, payload);
+      this.trigger(type, actualPayload);
 
       // Also trigger a generic 'message' event
-      this.trigger("message", { type, payload });
+      this.trigger("message", { type, payload: actualPayload });
     } catch (error) {
       console.error("Error parsing WebSocket message:", error);
     }

@@ -14,6 +14,7 @@ healthCheckRouter.get("/", (req, res) => {
     memoryUsage: process.memoryUsage(),
     nodeVersion: process.version,
     platform: process.platform,
+    provider: process.env.LLM_PROVIDER || "modal",
   };
 
   res.status(200).json(healthCheck);

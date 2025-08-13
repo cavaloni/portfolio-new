@@ -7,6 +7,24 @@ services:
     # Override environment variables
     environment:
       LOG_LEVEL: debug
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-carbon_aware_llm}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      WATT_TIME_EMAIL: ${WATT_TIME_EMAIL}
+      WATT_TIME_API_KEY: ${WATT_TIME_API_KEY}
+      ELECTRICITY_MAP_API_KEY: ${ELECTRICITY_MAP_API_KEY}
+      # Modal Configuration
+      LLM_PROVIDER: ${LLM_PROVIDER:-modal}
+      MODAL_ENDPOINT_URL: ${MODAL_ENDPOINT_URL}
+      MODAL_API_KEY: ${MODAL_API_KEY}
+      # HuggingFace Configuration
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
       # Add your custom environment variables here
     
     # Add additional volumes for development

@@ -1,6 +1,6 @@
 # Endpoint Discovery and Routing Flow
 
-This diagram shows how the carbon-aware LLM proxy discovers, manages, and routes requests to RunPod endpoints.
+This diagram shows how the carbon-aware LLM proxy routes requests to a single Modal-hosted endpoint.
 
 ## Deployment Flow
 
@@ -179,33 +179,38 @@ graph TD
 
 ```mermaid
 erDiagram
-    RunPodDeployment {
+    %% Novita entities removed
         uuid id PK
         string modelId
         string region
         string gpuType
         enum status
+        enum deploymentType
         int minReplicas
         int maxReplicas
         int currentReplicas
         boolean autoScaling
         string endpointUrl
-        string runpodEndpointId
+        string novitaDeploymentId
+        string novitaModelId
         jsonb configuration
         timestamp lastHealthCheck
         string healthStatus
         decimal carbonIntensity
         decimal deploymentCostPerHour
+        bigint totalRequests
+        bigint totalTokens
+        decimal successRate
         timestamp createdAt
         timestamp updatedAt
     }
-    
-    RunPodInstance {
+
+    %% Novita entities removed
         uuid id PK
         uuid deploymentId FK
-        string runpodPodId
+        string novitaInstanceId
         enum status
-        string podName
+        string instanceName
         int gpuCount
         int vcpuCount
         int memoryGb
@@ -233,8 +238,7 @@ erDiagram
         timestamp updatedAt
     }
     
-    RunPodDeployment ||--o{ RunPodInstance : "has instances"
-    RunPodDeployment }o--|| ModelInfo : "deploys model"
+    %% Legacy RunPod entities removed; Modal does not track deployments in DB
 ```
 
 ## System Architecture Overview
@@ -243,7 +247,7 @@ erDiagram
 graph TB
     %% External Systems
     subgraph "External Services"
-        RP[RunPod API]
+        MODAL[Modal Web Endpoint]
         CF[Carbon Footprint APIs]
     end
     
@@ -257,15 +261,12 @@ graph TB
     %% API Gateway
     subgraph "API Gateway"
         CR[Chat Router]
-        RR[RunPod Router]
         MR[Models Router]
     end
     
     %% Service Layer
     subgraph "Service Layer"
-        RPS[RunPod Service]
-        RPP[RunPod Provider Service]
-        RS[Routing Service]
+        MPP[Modal Provider Service]
         CS[Carbon Service]
     end
     
@@ -276,10 +277,8 @@ graph TB
     end
     
     %% RunPod Infrastructure
-    subgraph "RunPod Infrastructure"
-        EP1[Endpoint 1<br/>US-OR-1]
-        EP2[Endpoint 2<br/>EU-SE-1]
-        EP3[Endpoint 3<br/>EU-NO-1]
+    subgraph "Modal Infrastructure"
+        EP[Modal App /v1/chat/completions]
     end
     
     %% Connections
@@ -287,9 +286,7 @@ graph TB
     CLI --> RR
     API --> CR
     
-    CR --> RPP
-    RR --> RPS
-    MR --> RS
+    CR --> MPP
     
     RPS --> RP
     RPP --> EP1

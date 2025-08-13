@@ -18,26 +18,26 @@ dev: ## Start development environment
 
 dev-up: ## Start development services (docker compose up)
 	@echo "🚀 Starting development services..."
-	@docker compose up -d
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
 
 dev-down: ## Stop development services
 	@echo "🛑 Stopping development services..."
-	@docker compose down
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml down
 
 dev-restart: ## Restart development services
 	@echo "🔄 Restarting development services..."
-	@docker compose restart
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml restart
 
 dev-logs: ## Show development logs
-	@docker compose logs -f
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f
 
 dev-build: ## Build development images
 	@echo "🔨 Building development images..."
-	@docker compose build
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml build
 
 dev-rebuild: ## Rebuild development images without cache
 	@echo "🔨 Rebuilding development images..."
-	@docker compose build --no-cache
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml build --no-cache
 
 # Production commands
 prod: ## Deploy to production
@@ -67,10 +67,32 @@ prod-rebuild: ## Rebuild production images without cache
 	@echo "🔨 Rebuilding production images..."
 	@docker compose -f docker-compose.prod.yml build --no-cache
 
+# Development Tools Commands
+adminer: ## Start adminer database admin tool
+	@echo "🗄️ Starting adminer..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d adminer
+	@echo "✅ Adminer available at http://localhost:8080"
+
+redis-admin: ## Start Redis Commander admin tool
+	@echo "📊 Starting Redis Commander..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d redis-commander
+	@echo "✅ Redis Commander available at http://localhost:8081 (admin/admin123)"
+
+dev-tools: ## Start all development tools (adminer, redis-commander)
+	@echo "🛠️ Starting development tools..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d adminer redis-commander
+	@echo "✅ Development tools started:"
+	@echo "   - Adminer: http://localhost:8080"
+	@echo "   - Redis Commander: http://localhost:8081 (admin/admin123)"
+
+dev-tools-down: ## Stop development tools
+	@echo "🛑 Stopping development tools..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml stop adminer redis-commander
+
 # Database commands
 migrate: ## Run database migrations (development)
 	@echo "🗄️ Running database migrations..."
-	@docker compose exec backend npm run migration:run
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run migration:run
 
 migrate-prod: ## Run database migrations (production)
 	@echo "🗄️ Running database migrations (production)..."
@@ -78,17 +100,17 @@ migrate-prod: ## Run database migrations (production)
 
 migrate-generate: ## Generate new migration
 	@echo "📝 Generating new migration..."
-	@docker compose exec backend npm run migration:generate
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run migration:generate
 
 migrate-revert: ## Revert last migration
 	@echo "⏪ Reverting last migration..."
-	@docker compose exec backend npm run migration:revert
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run migration:revert
 
 # Backup and restore
 backup: ## Create database backup
 	@echo "💾 Creating database backup..."
 	@mkdir -p backups
-	@docker compose exec postgres pg_dump -U postgres carbon_aware_llm > backups/backup_$(shell date +%Y%m%d_%H%M%S).sql
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec postgres pg_dump -U postgres carbon_aware_llm > backups/backup_$(shell date +%Y%m%d_%H%M%S).sql
 	@echo "✅ Backup created in backups/ directory"
 
 backup-prod: ## Create production database backup
@@ -103,26 +125,26 @@ restore: ## Restore database from backup (requires BACKUP_FILE variable)
 		exit 1; \
 	fi
 	@echo "🔄 Restoring database from $(BACKUP_FILE)..."
-	@docker compose exec -T postgres psql -U postgres carbon_aware_llm < $(BACKUP_FILE)
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec -T postgres psql -U postgres carbon_aware_llm < $(BACKUP_FILE)
 	@echo "✅ Database restored successfully"
 
 # Testing commands
 test: ## Run tests in development environment
 	@echo "🧪 Running tests..."
-	@docker compose exec backend npm test
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm test
 
 test-backend: ## Run backend tests
 	@echo "🧪 Running backend tests..."
-	@docker compose exec backend npm test
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm test
 
 test-frontend: ## Run frontend tests
 	@echo "🧪 Running frontend tests..."
-	@docker compose exec frontend npm test
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec frontend npm test
 
 # Utility commands
 status: ## Show service status
 	@echo "📊 Service Status:"
-	@docker compose ps
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml ps
 
 status-prod: ## Show production service status
 	@echo "📊 Production Service Status:"
@@ -137,40 +159,46 @@ health: ## Check service health
 	@curl -s http://localhost:3000/api/health | jq . || echo "❌ Frontend health check failed"
 
 logs-backend: ## Show backend logs
-	@docker compose logs -f backend
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f backend
 
 logs-frontend: ## Show frontend logs
-	@docker compose logs -f frontend
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f frontend
 
 logs-db: ## Show database logs
-	@docker compose logs -f postgres
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f postgres
 
 logs-redis: ## Show Redis logs
-	@docker compose logs -f redis
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f redis
+
+logs-adminer: ## Show adminer logs
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f adminer
+
+logs-redis-commander: ## Show Redis Commander logs
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f redis-commander
 
 # Shell access
 shell-backend: ## Access backend container shell
-	@docker compose exec backend sh
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend sh
 
 shell-frontend: ## Access frontend container shell
-	@docker compose exec frontend sh
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec frontend sh
 
 shell-db: ## Access database container shell
-	@docker compose exec postgres psql -U postgres carbon_aware_llm
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec postgres psql -U postgres carbon_aware_llm
 
 shell-redis: ## Access Redis container shell
-	@docker compose exec redis redis-cli
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec redis redis-cli
 
 # Cleanup commands
 clean: ## Clean up containers, networks, and volumes
 	@echo "🧹 Cleaning up Docker resources..."
-	@docker compose down -v
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml down -v
 	@docker system prune -f
 	@echo "✅ Cleanup completed"
 
 clean-all: ## Clean up everything including images
 	@echo "🧹 Cleaning up all Docker resources..."
-	@docker compose down -v
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml down -v
 	@docker system prune -a -f
 	@echo "✅ Complete cleanup finished"
 
@@ -183,9 +211,9 @@ troubleshoot-auto: ## Run automated troubleshooting
 
 fix-build: ## Fix common build issues and rebuild
 	@echo "🔧 Fixing build issues..."
-	@docker compose down
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml down
 	@docker system prune -f
-	@docker compose build --no-cache
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml build --no-cache
 	@echo "✅ Build fix completed"
 
 # Setup commands
@@ -216,8 +244,8 @@ info: ## Show system information
 update: ## Update and restart development environment
 	@echo "🔄 Updating development environment..."
 	@git pull origin main
-	@docker compose build --no-cache
-	@docker compose up -d
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml build --no-cache
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
 	@make migrate
 	@echo "✅ Development environment updated"
 
@@ -229,67 +257,9 @@ update-prod: ## Update and restart production environment
 	@make migrate-prod
 	@echo "✅ Production environment updated"
 
-# RunPod Management Commands
-runpod-info: ## Show available RunPod models, regions, and GPU types
-	@echo "📋 Showing RunPod configuration..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts info
-
-runpod-list: ## List all RunPod deployments
-	@echo "📋 Listing RunPod deployments..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts list
-
-runpod-deploy: ## Deploy model to RunPod (usage: make runpod-deploy MODEL=llama-3-8b-instruct REGIONS=US-OR-1)
-	@if [ -z "$(MODEL)" ]; then \
-		echo "❌ Error: MODEL is required. Usage: make runpod-deploy MODEL=llama-3-8b-instruct REGIONS=US-OR-1"; \
-		exit 1; \
-	fi
-	@if [ -z "$(REGIONS)" ]; then \
-		echo "❌ Error: REGIONS is required. Usage: make runpod-deploy MODEL=llama-3-8b-instruct REGIONS=US-OR-1"; \
-		exit 1; \
-	fi
-	@echo "🚀 Deploying $(MODEL) to $(REGIONS)..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts deploy -m $(MODEL) -r $(REGIONS)
-
-runpod-deploy-dry: ## Dry run deployment (usage: make runpod-deploy-dry MODEL=llama-3-8b-instruct REGIONS=US-OR-1)
-	@if [ -z "$(MODEL)" ]; then \
-		echo "❌ Error: MODEL is required. Usage: make runpod-deploy-dry MODEL=llama-3-8b-instruct REGIONS=US-OR-1"; \
-		exit 1; \
-	fi
-	@if [ -z "$(REGIONS)" ]; then \
-		echo "❌ Error: REGIONS is required. Usage: make runpod-deploy-dry MODEL=llama-3-8b-instruct REGIONS=US-OR-1"; \
-		exit 1; \
-	fi
-	@echo "🧪 Dry run: Deploying $(MODEL) to $(REGIONS)..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts deploy -m $(MODEL) -r $(REGIONS) --dry-run
-
-runpod-status: ## Get detailed status of a deployment (usage: make runpod-status ID=deployment-id)
-	@if [ -z "$(ID)" ]; then \
-		echo "❌ Error: ID is required. Usage: make runpod-status ID=deployment-id"; \
-		exit 1; \
-	fi
-	@echo "📊 Getting status for deployment $(ID)..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts status $(ID)
-
-runpod-health: ## Perform health checks on all RunPod deployments
-	@echo "🏥 Performing health checks..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts health-check
-
-runpod-test-api: ## Test RunPod API connection and list existing endpoints
-	@echo "🧪 Testing RunPod API connection..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/test-runpod-api.ts
-
-runpod-api-status: ## Check RunPod endpoints directly from API
-	@echo "🔍 Checking RunPod endpoints from API..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts runpod-status
-
-runpod-update-urls: ## Update endpoint URLs for deployments that don't have them
-	@echo "🔗 Updating endpoint URLs..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts update-urls
-
-runpod-stop: ## Stop a RunPod deployment (usage: make runpod-stop ID=deployment-id)
-	@if [ -z "$(ID)" ]; then \
-		echo "❌ Error: ID is required. Usage: make runpod-stop ID=deployment-id"; \
-		exit 1; \
-	fi
-	@echo "🛑 Stopping deployment $(ID)..."
-	@docker exec -it carbon-aware-backend-dev npx ts-node scripts/deploy-runpod.ts stop $(ID)
+## Modal setup info
+modal-info: ## Show Modal setup info
+	@echo "🪄 Modal setup:"
+	@echo "  1) Install Python deps and Modal CLI in modal/: pip install -r requirements.txt"
+	@echo "  2) Deploy: modal deploy modal/app.py"
+	@echo "  3) Set MODAL_ENDPOINT_URL in .env to the deployed URL"

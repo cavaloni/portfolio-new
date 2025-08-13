@@ -4,7 +4,6 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/providers/query-provider";
 import { AuthProvider } from "@/contexts/auth-context";
-import { ChatProvider } from "@/contexts/chat-context";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -55,15 +54,13 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
               enableSystem
               disableTransitionOnChange
             >
-              <ChatProvider>
-                <div className="flex flex-col min-h-screen">
-                  <SiteHeader />
-                  <main className="flex-1 container py-6">{children}</main>
-                  <SiteFooter className="border-t" />
-                </div>
-                <TailwindIndicator />
-                <Toaster />
-              </ChatProvider>
+              <div className="flex flex-col min-h-screen">
+                <SiteHeader />
+                <main className="flex-1 container py-6">{children}</main>
+                <SiteFooter className="border-t" />
+              </div>
+              <TailwindIndicator />
+              <Toaster />
             </ThemeProvider>
           </AuthProvider>
         </QueryProvider>

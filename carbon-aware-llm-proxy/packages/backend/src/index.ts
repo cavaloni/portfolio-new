@@ -12,6 +12,7 @@ import { v1Router } from "./routes/v1";
 import { databaseService } from "./services/database.service";
 import { webSocketService } from "./services/websocket.service";
 import { redisService } from "./services/redis.service";
+// Removed RunPod integration and scheduler
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -62,12 +63,16 @@ const startServer = async () => {
       logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
     });
 
-    // Initialize WebSocket service after server is listening
+  // Initialize WebSocket service after server is listening
     webSocketService.initialize(server);
+
+    // RunPod scheduler removed; no background provider schedulers in Modal setup
 
     // Graceful shutdown
     const shutdown = async () => {
       logger.info("Shutting down server...");
+
+      // No background provider schedulers to stop
 
       // Close WebSocket service
       webSocketService.shutdown();

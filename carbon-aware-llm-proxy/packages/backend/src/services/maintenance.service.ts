@@ -1,8 +1,8 @@
 import { logger } from "../utils/logger";
-import { runPodService } from "./runpod.service";
+// Removed RunPod maintenance integration
 
 export class MaintenanceService {
-  private runPodService = runPodService;
+  // No provider maintenance required in Modal MVP
   private maintenanceInterval?: NodeJS.Timeout;
   private isRunning = false;
 
@@ -13,36 +13,25 @@ export class MaintenanceService {
   /**
    * Start scheduled maintenance
    */
-  startScheduledMaintenance(options: {
+  startScheduledMaintenance(_options: {
     intervalHours?: number;
     cleanupFailedOlderThanHours?: number;
     syncWithRunPod?: boolean;
   } = {}): void {
-    const {
-      intervalHours = 6, // Run every 6 hours by default
-      cleanupFailedOlderThanHours = 24,
-      syncWithRunPod = true,
-    } = options;
-
     if (this.maintenanceInterval) {
       logger.warn("Maintenance service is already running");
       return;
     }
 
+    const { intervalHours = 6 } = (_options || {}) as { intervalHours?: number };
     logger.info(`🔧 Starting scheduled maintenance (every ${intervalHours} hours)`);
 
     // Run initial maintenance
-    this.performMaintenance({
-      cleanupFailedOlderThanHours,
-      syncWithRunPod,
-    });
+    this.performMaintenance({});
 
     // Schedule recurring maintenance
     this.maintenanceInterval = setInterval(() => {
-      this.performMaintenance({
-        cleanupFailedOlderThanHours,
-        syncWithRunPod,
-      });
+      this.performMaintenance({});
     }, intervalHours * 60 * 60 * 1000);
 
     logger.info("✅ Scheduled maintenance started");
@@ -62,7 +51,7 @@ export class MaintenanceService {
   /**
    * Perform maintenance operations
    */
-  private async performMaintenance(options: {
+  private async performMaintenance(_options: {
     cleanupFailedOlderThanHours?: number;
     syncWithRunPod?: boolean;
   }): Promise<void> {
@@ -77,27 +66,9 @@ export class MaintenanceService {
     try {
       logger.info("🔧 Starting maintenance operations...");
 
-      const result = await this.runPodService.performMaintenance(options);
-
+      // No-op for now; placeholder for future provider maintenance
       const duration = Date.now() - startTime;
-      logger.info(`✅ Maintenance completed in ${duration}ms`);
-
-      // Log summary
-      if (result.cleanup.cleaned > 0) {
-        logger.info(`🧹 Cleaned up ${result.cleanup.cleaned} failed deployments`);
-      }
-
-      if (result.sync.synced > 0) {
-        logger.info(`🔄 Synced ${result.sync.synced} deployments with RunPod`);
-      }
-
-      if (result.sync.missingInRunPod.length > 0) {
-        logger.warn(`⚠️  Found ${result.sync.missingInRunPod.length} deployments missing in RunPod`);
-      }
-
-      if (result.sync.orphanedInRunPod.length > 0) {
-        logger.warn(`⚠️  Found ${result.sync.orphanedInRunPod.length} orphaned RunPod endpoints`);
-      }
+      logger.info(`✅ Maintenance placeholder completed in ${duration}ms`);
 
     } catch (error) {
       logger.error("❌ Maintenance failed:", error);

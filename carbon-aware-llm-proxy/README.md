@@ -218,7 +218,11 @@ make troubleshoot     # Interactive troubleshooting
 
 ### Environment Variables
 
-See `.env.example` for all available configuration options.
+See `.env.example` for all available configuration options. For provider configuration, we now use a simple Modal setup:
+
+- `LLM_PROVIDER=modal`
+- `MODAL_ENDPOINT_URL=https://<your-modal-app>.modal.run`
+- `MODAL_API_KEY=<optional-shared-secret>`
 
 ### Database Migrations
 

@@ -111,7 +111,7 @@ export const chatService = {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/v1/chat/completions`,
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/v1/chat/completions`,
         {
           method: "POST",
           headers: {

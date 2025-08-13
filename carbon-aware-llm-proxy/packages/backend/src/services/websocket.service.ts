@@ -2,8 +2,8 @@ import { WebSocket as WS, WebSocketServer, RawData, OPEN } from "ws";
 import { Server } from "http";
 import { logger } from "../utils/logger";
 import { v4 as uuidv4 } from "uuid";
+import { modalProviderService } from "./modal.provider";
 import { carbonService } from "./carbon.service";
-import { redisService } from "./redis.service";
 
 // Define our custom WebSocket type with additional properties
 interface CustomWebSocket extends WS {
@@ -13,7 +13,8 @@ interface CustomWebSocket extends WS {
 // Types for WebSocket messages
 type WebSocketMessage = {
   type: string;
-  data: any;
+  data?: any;
+  payload?: any;
   timestamp: number;
 };
 
@@ -102,7 +103,11 @@ class WebSocketService {
       this.clients.set(clientId, subscription);
 
       // Set up message handler
-      ws.on("message", (data) => this.handleMessage(clientId, data));
+      const messageHandler = (data: RawData) => {
+        this.handleMessage(clientId, data);
+      };
+      
+      ws.on("message", messageHandler);
 
       // Set up close handler
       ws.on("close", () => this.handleClose(clientId));
@@ -123,8 +128,15 @@ class WebSocketService {
 
   // Handle incoming WebSocket messages
   private async handleMessage(clientId: string, data: RawData) {
+
+
     const client = this.clients.get(clientId);
-    if (!client) return;
+    if (!client) {
+      logger.warn("Client not found for clientId:", clientId);
+      return;
+    }
+
+    let message: WebSocketMessage | null = null;
 
     try {
       // Handle different types of incoming data (Buffer, ArrayBuffer, or Buffer[])
@@ -139,20 +151,32 @@ class WebSocketService {
         throw new Error("Unsupported WebSocket message format");
       }
 
-      const message: WebSocketMessage = JSON.parse(messageStr);
+      message = JSON.parse(messageStr);
+
+      logger.info("handleMessage parsed message:", JSON.stringify(message, null, 2));
+
+      if (!message) {
+        throw new Error("Failed to parse message");
+      }
 
       switch (message.type) {
         case "subscribe":
-          this.handleSubscribe(clientId, message.data);
+          this.handleSubscribe(clientId, message.data || message.payload);
           break;
         case "unsubscribe":
-          this.handleUnsubscribe(clientId, message.data);
+          this.handleUnsubscribe(clientId, message.data || message.payload);
           break;
         case "ping":
           this.send(clientId, {
             type: "pong",
             data: { timestamp: Date.now() },
           });
+          break;
+        case "chat.message":
+          await this.handleChatMessage(clientId, message.data || message.payload);
+          break;
+        case "chat.stop":
+          this.handleChatStop(clientId, message.data || message.payload);
           break;
         default:
           logger.warn(`Unknown message type: ${message.type}`);
@@ -162,7 +186,10 @@ class WebSocketService {
           });
       }
     } catch (error) {
-      logger.error("Error handling WebSocket message:", error);
+      logger.error("Error handling WebSocket message - Error:", error instanceof Error ? error.message : String(error));
+      logger.error("Error handling WebSocket message - Stack:", error instanceof Error ? error.stack : "No stack trace");
+      logger.error("Error handling WebSocket message - Client ID:", clientId);
+      logger.error("Error handling WebSocket message - Message:", message ? JSON.stringify(message, null, 2) : "No message");
       this.send(clientId, {
         type: "error",
         data: { message: "Invalid message format" },
@@ -220,6 +247,202 @@ class WebSocketService {
       if (EVENT_TYPES.includes(event as EventType)) {
         this.unsubscribe(clientId, event as EventType);
       }
+    });
+  }
+
+  // Handle chat message requests
+  private async handleChatMessage(clientId: string, data: any) {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    try {
+      const {
+        messageId,
+        conversationId,
+        content,
+        model,
+        temperature = 0.7,
+        maxTokens = 1000,
+        systemPrompt,
+        parentMessageId,
+        carbonAware = true,
+      } = data;
+
+      logger.info("Processing chat message via Modal", {
+        messageId,
+        conversationId,
+        model,
+        carbonAware,
+      });
+
+      // Send initial acknowledgment
+      this.send(clientId, {
+        type: "chat.chunk",
+        data: {
+          messageId,
+          conversationId,
+          content: "",
+          done: false,
+          model,
+        },
+      });
+
+      const provider = (process.env.LLM_PROVIDER || "modal").toLowerCase();
+      if (provider !== "modal") {
+        // Fallback to mock response if Modal is disabled
+        const fallbackMessage = "Modal provider is disabled. This is a fallback response.";
+        const chunks = fallbackMessage.split(" ");
+        
+        for (const [index, chunk] of chunks.entries()) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
+          this.send(clientId, {
+            type: "chat.chunk",
+            data: {
+              messageId,
+              conversationId,
+              content: chunk + " ",
+              done: index === chunks.length - 1,
+              model,
+              carbonFootprint: {
+                emissions: 0.001,
+                energy: 0.002,
+                region: "mock",
+              },
+              tokens: fallbackMessage.length,
+            },
+          });
+        }
+        return;
+      }
+
+      // Prepare messages array for provider
+      const messages = [];
+      
+      // Add system prompt if provided
+      if (systemPrompt) {
+        messages.push({
+          role: "system" as const,
+          content: systemPrompt,
+        });
+      }
+      
+      // Add user message
+      messages.push({
+        role: "user" as const,
+        content: content,
+      });
+
+      // Call Modal Provider Service
+      try {
+        const response = await modalProviderService.sendChatCompletion({
+          model,
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+          stream: false, // We'll handle streaming on our end
+        });
+
+        logger.info("Modal chat completion successful", {
+          model: response.model,
+          tokens: response.usage.total_tokens,
+        });
+
+        // Get the assistant response content
+        const assistantContent = response.choices[0]?.message?.content || "";
+        
+        // Stream the response in chunks for better UX
+        const chunks = assistantContent.split(" ");
+        
+        for (const [index, chunk] of chunks.entries()) {
+          // Small delay to simulate streaming
+          await new Promise(resolve => setTimeout(resolve, 30));
+          
+          const isLast = index === chunks.length - 1;
+          
+          this.send(clientId, {
+            type: "chat.chunk",
+            data: {
+              messageId,
+              conversationId,
+              content: chunk + (isLast ? "" : " "),
+              done: isLast,
+              model: response.model,
+              tokens: response.usage.total_tokens,
+              usage: response.usage,
+            },
+          });
+        }
+
+      } catch (modalError) {
+        logger.error("Modal chat completion failed:", modalError);
+        
+        // Send fallback response if Modal fails
+        const errorMessage = "I'm having trouble connecting to the AI service. Please try again in a moment.";
+        
+        this.send(clientId, {
+          type: "chat.chunk",
+          data: {
+            messageId,
+            conversationId,
+            content: errorMessage,
+            done: true,
+            model,
+              error: {
+                message: "Modal service temporarily unavailable",
+                type: "service_error",
+              },
+          },
+        });
+      }
+
+    } catch (error) {
+      logger.error("Error handling chat message - Error type:", typeof error);
+      logger.error("Error handling chat message - Error:", error instanceof Error ? error.message : String(error));
+      if (error instanceof Error && error.stack) {
+        logger.error("Error handling chat message - Stack:", error.stack);
+      } else {
+        logger.error("Error handling chat message - No stack trace available");
+      }
+      logger.error("Error handling chat message - Client ID:", clientId);
+      try {
+        logger.error("Error handling chat message - Data:", JSON.stringify(data, null, 2));
+      } catch (stringifyError) {
+        logger.error("Error handling chat message - Data (stringify failed):", data);
+      }
+      logger.error("Error handling chat message - Full error object:", String(error));
+      
+      this.send(clientId, {
+        type: "chat.chunk",
+        data: {
+          messageId: data?.messageId,
+          conversationId: data?.conversationId,
+          error: {
+            message: "Failed to process chat message",
+            type: "internal_error",
+          },
+          done: true,
+        },
+      });
+    }
+  }
+
+  // Handle chat stop requests
+  private handleChatStop(clientId: string, data: any) {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    const { conversationId } = data;
+
+    logger.info("Stopping chat stream", { conversationId });
+
+    // Send acknowledgment that the stream has been stopped
+    this.send(clientId, {
+      type: "chat.stopped",
+      data: {
+        conversationId,
+        message: "Chat stream stopped",
+      },
     });
   }
 

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { logger } from "../../utils/logger";
 import { ApiError } from "../../middleware/errorHandler";
-import { runPodProviderService } from "../../services/runpod-provider.service";
+import { modalProviderService } from "../../services/modal.provider";
 
 // Define Zod schemas for request validation
 const chatCompletionSchema = z
@@ -49,13 +49,11 @@ chatRouter.post("/completions", async (req, res, next) => {
       stream,
     });
 
-    // Check if RunPod integration is enabled
-    const runPodEnabled = process.env.ENABLE_RUNPOD_INTEGRATION === "true";
-
-    if (runPodEnabled) {
+    // Prefer Modal provider when configured
+    const provider = (process.env.LLM_PROVIDER || "modal").toLowerCase();
+    if (provider === "modal") {
       try {
-        // Use RunPod provider service for chat completion
-        const response = await runPodProviderService.sendChatCompletion({
+        const response = await modalProviderService.sendChatCompletion({
           model,
           messages,
           temperature,
@@ -63,30 +61,19 @@ chatRouter.post("/completions", async (req, res, next) => {
           stream,
         });
 
-        logger.info("RunPod chat completion successful", {
-          model: response.model,
-          tokens: response.usage.total_tokens,
-          carbonFootprint: response.carbon_footprint,
-        });
-
         if (stream) {
-          // For streaming, we'll need to implement streaming support in RunPod provider
-          // For now, return the complete response as a single chunk
           res.setHeader("Content-Type", "text/event-stream");
           res.setHeader("Cache-Control", "no-cache");
           res.setHeader("Connection", "keep-alive");
-
           res.write(`data: ${JSON.stringify(response)}\n\n`);
           res.write("data: [DONE]\n\n");
           res.end();
           return;
         }
-
         res.json(response);
         return;
       } catch (error) {
-        logger.error("RunPod chat completion failed:", error);
-        // Fall back to mock response if RunPod fails
+        logger.error("Modal chat completion failed:", error);
       }
     }
 
@@ -100,9 +87,9 @@ chatRouter.post("/completions", async (req, res, next) => {
         {
           message: {
             role: "assistant",
-            content: runPodEnabled
-              ? "RunPod service is temporarily unavailable. This is a fallback response."
-              : "This is a mock response. RunPod integration is disabled.",
+            content: provider === "modal"
+              ? "Modal service is temporarily unavailable. This is a fallback response."
+              : "This is a mock response. No provider configured.",
           },
           finish_reason: "stop",
           index: 0,

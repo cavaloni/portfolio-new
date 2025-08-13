@@ -6,8 +6,7 @@ import { Conversation } from "../entities/Conversation";
 import { Message } from "../entities/Message";
 import { ModelInfo } from "../entities/ModelInfo";
 import { CarbonFootprint } from "../entities/CarbonFootprint";
-import { RunPodDeployment } from "../entities/RunPodDeployment";
-import { RunPodInstance } from "../entities/RunPodInstance";
+// Removed RunPod and Novita entities
 
 dotenv.config();
 
@@ -18,7 +17,7 @@ export const dbConfig: DataSourceOptions = {
   username: process.env.DB_USERNAME || "postgres",
   password: process.env.DB_PASSWORD || "postgres",
   database: process.env.DB_NAME || "carbon_aware_llm",
-  synchronize: process.env.NODE_ENV !== "production",
+  synchronize: false, // Use migrations instead of auto-sync
   logging: process.env.NODE_ENV !== "production",
   entities: [
     User,
@@ -27,8 +26,6 @@ export const dbConfig: DataSourceOptions = {
     Message,
     ModelInfo,
     CarbonFootprint,
-    RunPodDeployment,
-    RunPodInstance,
   ],
   migrations: ["src/migrations/*.ts"],
   subscribers: [],
