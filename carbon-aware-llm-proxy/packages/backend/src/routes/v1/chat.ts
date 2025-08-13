@@ -1,4 +1,5 @@
 import { Router } from "express";
+import type { Request, Response } from "express";
 import { z } from "zod";
 import { logger } from "../../utils/logger";
 import { ApiError } from "../../middleware/errorHandler";
@@ -27,7 +28,7 @@ const chatCompletionSchema = z
 export const chatRouter = Router();
 
 // POST /v1/chat/completions
-chatRouter.post("/completions", async (req, res, next) => {
+chatRouter.post("/completions", async (req: Request, res: Response, next) => {
   try {
     // Validate request body
     const validatedBody = chatCompletionSchema.safeParse(req.body);
@@ -53,25 +54,39 @@ chatRouter.post("/completions", async (req, res, next) => {
     const provider = (process.env.LLM_PROVIDER || "modal").toLowerCase();
     if (provider === "modal") {
       try {
-        const response = await modalProviderService.sendChatCompletion({
-          model,
-          messages,
-          temperature,
-          max_tokens,
-          stream,
-        });
-
         if (stream) {
+          const upstream = await modalProviderService.sendChatCompletionStream({
+            model,
+            messages,
+            temperature,
+            max_tokens,
+            stream: true,
+          });
           res.setHeader("Content-Type", "text/event-stream");
           res.setHeader("Cache-Control", "no-cache");
           res.setHeader("Connection", "keep-alive");
-          res.write(`data: ${JSON.stringify(response)}\n\n`);
-          res.write("data: [DONE]\n\n");
-          res.end();
+          upstream.data.on("data", (chunk: Buffer) => {
+            res.write(chunk);
+          });
+          upstream.data.on("end", () => {
+            res.end();
+          });
+          upstream.data.on("error", (err: any) => {
+            logger.error("Upstream stream error", err);
+            res.end();
+          });
+          return;
+        } else {
+          const response = await modalProviderService.sendChatCompletion({
+            model,
+            messages,
+            temperature,
+            max_tokens,
+            stream: false,
+          });
+          res.json(response);
           return;
         }
-        res.json(response);
-        return;
       } catch (error) {
         logger.error("Modal chat completion failed:", error);
       }

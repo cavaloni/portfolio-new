@@ -1,4 +1,6 @@
 import axios, { AxiosInstance } from "axios";
+import type { AxiosResponse } from "axios";
+import type { IncomingMessage } from "http";
 import { logger } from "../utils/logger";
 
 export interface ChatMessage {
@@ -100,6 +102,50 @@ class ModalProviderService {
           `Modal endpoint error (${error.response.status}): ${
             details?.message || error.response.statusText || "Unknown error"
           }`
+        );
+      }
+      if (error.code === "ECONNABORTED") {
+        throw new Error("Modal request timeout");
+      }
+      throw new Error(`Modal network error: ${error.message}`);
+    }
+  }
+
+  async sendChatCompletionStream(
+    request: ChatCompletionRequest,
+  ): Promise<AxiosResponse<IncomingMessage>> {
+    if (!this.endpointUrl) {
+      throw new Error("MODAL_ENDPOINT_URL is not configured");
+    }
+
+    try {
+      const response = await this.client.post<IncomingMessage>(
+        "/v1/chat/completions",
+        {
+          model: request.model,
+          messages: request.messages,
+          temperature: request.temperature,
+          max_tokens: request.max_tokens,
+          stream: true,
+          top_p: request.top_p,
+          frequency_penalty: request.frequency_penalty,
+          presence_penalty: request.presence_penalty,
+          stop: request.stop,
+        },
+        {
+          responseType: "stream",
+          headers: { Accept: "text/event-stream" },
+        },
+      );
+      return response;
+    } catch (error: any) {
+      if (error.response) {
+        const details = error.response.data?.error || error.response.data;
+        logger.error("Modal provider stream error:", { status: error.response.status, details });
+        throw new Error(
+          `Modal endpoint stream error (${error.response.status}): ${
+            details?.message || error.response.statusText || "Unknown error"
+          }`,
         );
       }
       if (error.code === "ECONNABORTED") {
