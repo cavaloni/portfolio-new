@@ -227,9 +227,11 @@ export default function ChatPage() {
                 />
               ))
             )}
-            {isStreaming && currentMessage && (
-              <ChatMessage message={currentMessage} isCurrentUser={false} />
-            )}
+            {isStreaming &&
+              currentMessage &&
+              !messages.some((m) => m.id === currentMessage.id) && (
+                <ChatMessage message={currentMessage} isCurrentUser={false} />
+              )}
           </div>
         </div>
       </main>
