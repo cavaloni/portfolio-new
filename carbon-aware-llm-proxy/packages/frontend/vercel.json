@@ -7,11 +7,13 @@
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://routly-backend.fly.dev"
+    "NEXT_PUBLIC_API_URL": "https://routly-backend.fly.dev",
+    "NEXT_PUBLIC_WS_URL": "routly-backend.fly.dev"
   },
   "build": {
     "env": {
-      "NEXT_PUBLIC_API_URL": "https://routly-backend.fly.dev"
+      "NEXT_PUBLIC_API_URL": "https://routly-backend.fly.dev",
+      "NEXT_PUBLIC_WS_URL": "routly-backend.fly.dev"
     }
   },
   "regions": ["iad1"],
