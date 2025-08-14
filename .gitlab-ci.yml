@@ -25,7 +25,7 @@ deploy_production:
       set -e
       tmpfile="$(mktemp)"
       for v in DB_HOST DB_PORT DB_USERNAME DB_PASSWORD DB_NAME REDIS_URL JWT_SECRET CORS_ORIGINS MODAL_ENDPOINT_URL MODAL_API_KEY NODE_ENV LOG_LEVEL; do
-        val="$(printenv "$v")"
+        val="$(printenv "$v" 2>/dev/null || true)"
         if [ -n "$val" ]; then
           printf "%s=%s\n" "$v" "$val" >> "$tmpfile"
         fi
