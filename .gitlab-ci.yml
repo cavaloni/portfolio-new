@@ -6,9 +6,9 @@ debug_ci:
   stage: test
   script:
     - echo "CI/CD is working!"
-    - echo "Current branch: $CI_COMMIT_BRANCH"
-    - echo "Commit SHA: $CI_COMMIT_SHA"
-    - echo "Project: $CI_PROJECT_NAME"
+    - echo "Current branch $CI_COMMIT_BRANCH"
+    - echo "Commit SHA $CI_COMMIT_SHA"
+    - echo "Project $CI_PROJECT_NAME"
   rules:
     - when: always
 
