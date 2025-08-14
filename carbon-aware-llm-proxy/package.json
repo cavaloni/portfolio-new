@@ -30,7 +30,6 @@
     "node": ">=18.0.0"
   },
   "packageManager": "yarn@4.9.2",
-  "yarnPath": ".yarn/releases/yarn-3.6.1.cjs",
   "dependencies": {
     "commander": "^14.0.0",
     "react": "^18.2.0",
