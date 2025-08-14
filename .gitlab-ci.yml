@@ -15,9 +15,9 @@ deploy_production:
       curl -L https://fly.io/install.sh | sh
       export FLYCTL_INSTALL="$HOME/.fly"
       export PATH="$FLYCTL_INSTALL/bin:$PATH"
+      export FLY_ACCESS_TOKEN="$FLY_API_TOKEN"
     - flyctl version
     - test -n "$FLY_API_TOKEN"
-    - flyctl auth login --access-token "$FLY_API_TOKEN"
   script:
     - cd carbon-aware-llm-proxy/packages/backend
     - flyctl apps create "$FLY_APP_NAME" || true
