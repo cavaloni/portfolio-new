@@ -1,0 +1,39 @@
+stages:
+  - deploy
+
+deploy_production:
+  stage: deploy
+  when: manual
+  only:
+    - main
+  image: alpine:3.19
+  variables:
+    FLY_REGION: "iad"
+  before_script:
+    - apk add --no-cache curl bash ca-certificates
+    - curl -L https://fly.io/install.sh | sh
+    - export FLYCTL_INSTALL="$HOME/.fly"
+    - export PATH="$FLYCTL_INSTALL/bin:$PATH"
+    - fly version
+    - test -n "$FLY_API_TOKEN"
+    - fly auth login --access-token "$FLY_API_TOKEN"
+  script:
+    - cd carbon-aware-llm-proxy/packages/backend
+    - fly apps create "$FLY_APP_NAME" || true
+    - |
+      set -e
+      tmpfile="$(mktemp)"
+      for v in DB_HOST DB_PORT DB_USERNAME DB_PASSWORD DB_NAME REDIS_HOST REDIS_PORT JWT_SECRET CORS_ORIGINS MODAL_ENDPOINT_URL MODAL_API_KEY NODE_ENV LOG_LEVEL; do
+        if [ -n "${!v}" ]; then
+          echo "$v=${!v}" >> "$tmpfile"
+        fi
+      done
+      if [ -s "$tmpfile" ]; then
+        fly secrets import --app "$FLY_APP_NAME" < "$tmpfile"
+      else
+        echo "No secrets to import"
+      fi
+      rm -f "$tmpfile"
+    - fly deploy --remote-only --app "$FLY_APP_NAME" --config fly.toml --region "${FLY_REGION:-iad}"
+
+
