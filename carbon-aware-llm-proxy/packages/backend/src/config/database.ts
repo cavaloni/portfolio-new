@@ -11,6 +11,7 @@ import { CarbonFootprint } from "../entities/CarbonFootprint";
 dotenv.config();
 
 export const dbConfig: DataSourceOptions = {
+  
   type: "postgres",
   // Prefer a single DATABASE_URL if provided (e.g., from Fly Postgres attach)
   // Fallback to individual settings for local/dev environments
