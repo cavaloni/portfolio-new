@@ -13,11 +13,11 @@
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "@production_api_url"
+    "NEXT_PUBLIC_API_URL": "https://routly-backend.fly.dev"
   },
   "build": {
     "env": {
-      "NEXT_PUBLIC_API_URL": "@production_api_url"
+      "NEXT_PUBLIC_API_URL": "https://routly-backend.fly.dev"
     }
   },
   "regions": ["iad1"],
