@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable standalone output for Docker deployment
-  output: "standalone",
+  // output: "standalone", // Commented out for Vercel deployment
 
   // Disable telemetry
   telemetry: false,
