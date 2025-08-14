@@ -27,7 +27,7 @@ export const errorHandler = (
 ) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
 
-  logger.error({
+  logger.error("Request error", {
     message: err.message,
     stack: process.env.NODE_ENV === "production" ? "🥞" : err.stack,
     path: req.path,

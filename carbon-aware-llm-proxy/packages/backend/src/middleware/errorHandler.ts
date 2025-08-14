@@ -28,7 +28,7 @@ export const errorHandler = (
   const details = "details" in err ? err.details : undefined;
 
   // Log the error for debugging
-  logger.error({
+  logger.error("Request error", {
     message: err.message,
     stack: err.stack,
     statusCode,
