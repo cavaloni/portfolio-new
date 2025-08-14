@@ -15,13 +15,12 @@ deploy_production:
       curl -L https://fly.io/install.sh | sh
       export FLYCTL_INSTALL="$HOME/.fly"
       export PATH="$FLYCTL_INSTALL/bin:$PATH"
-      echo "PATH=$PATH" >> $BASH_ENV
-    - fly version
+    - flyctl version
     - test -n "$FLY_API_TOKEN"
-    - fly auth login --access-token "$FLY_API_TOKEN"
+    - flyctl auth login --access-token "$FLY_API_TOKEN"
   script:
     - cd carbon-aware-llm-proxy/packages/backend
-    - fly apps create "$FLY_APP_NAME" || true
+    - flyctl apps create "$FLY_APP_NAME" || true
     - |
       set -e
       tmpfile="$(mktemp)"
@@ -31,11 +30,11 @@ deploy_production:
         fi
       done
       if [ -s "$tmpfile" ]; then
-        fly secrets import --app "$FLY_APP_NAME" < "$tmpfile"
+        flyctl secrets import --app "$FLY_APP_NAME" < "$tmpfile"
       else
         echo "No secrets to import"
       fi
       rm -f "$tmpfile"
-    - fly deploy --remote-only --app "$FLY_APP_NAME" --config fly.toml --region "${FLY_REGION:-iad}"
+    - flyctl deploy --remote-only --app "$FLY_APP_NAME" --config fly.toml --region "${FLY_REGION:-iad}"
 
 
