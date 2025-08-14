@@ -4,8 +4,8 @@ import { Request, Response } from "express";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Create a logger instance
-const logger = pino({
+// Base pino instance
+const baseLogger = pino({
   level: process.env.LOG_LEVEL || "info",
   transport: isProduction
     ? undefined
@@ -19,9 +19,63 @@ const logger = pino({
       },
 });
 
-// HTTP request logger middleware
+function normalizeMeta(meta?: unknown, rest: unknown[] = []) {
+  if (meta === undefined && rest.length === 0) return undefined as unknown;
+  const extra = rest.length ? { args: rest } : {};
+  if (meta instanceof Error) {
+    return {
+      err: {
+        name: meta.name,
+        message: meta.message,
+        stack: meta.stack,
+        cause: (meta as any)?.cause,
+      },
+      ...extra,
+    };
+  }
+  if (typeof meta === "object" && meta !== null) {
+    return { ...(meta as Record<string, unknown>), ...extra };
+  }
+  return { value: String(meta), ...extra };
+}
+
+type LogMethod = (message: string, meta?: unknown, ...rest: unknown[]) => void;
+
+const logger: {
+  info: LogMethod;
+  warn: LogMethod;
+  error: LogMethod;
+  debug: LogMethod;
+} = {
+  info: (message, meta, ...rest) => {
+    const obj = normalizeMeta(meta, rest);
+    obj === (undefined as unknown)
+      ? baseLogger.info(message)
+      : baseLogger.info(obj as any, message);
+  },
+  warn: (message, meta, ...rest) => {
+    const obj = normalizeMeta(meta, rest);
+    obj === (undefined as unknown)
+      ? baseLogger.warn(message)
+      : baseLogger.warn(obj as any, message);
+  },
+  error: (message, meta, ...rest) => {
+    const obj = normalizeMeta(meta, rest);
+    obj === (undefined as unknown)
+      ? baseLogger.error(message)
+      : baseLogger.error(obj as any, message);
+  },
+  debug: (message, meta, ...rest) => {
+    const obj = normalizeMeta(meta, rest);
+    obj === (undefined as unknown)
+      ? baseLogger.debug(message)
+      : baseLogger.debug(obj as any, message);
+  },
+};
+
+// HTTP request logger middleware (use baseLogger as required by pino-http)
 const httpLogger = pinoHttp({
-  logger,
+  logger: baseLogger,
   customLogLevel: (res: Response, err: Error) => {
     if (res.statusCode >= 500 || err) {
       return "error";
@@ -40,7 +94,6 @@ const httpLogger = pinoHttp({
         "user-agent": req.headers["user-agent"],
         "x-request-id": req.headers["x-request-id"],
       },
-      // Don't log the entire body as it might contain sensitive data
       body: req.body ? "[REDACTED]" : undefined,
     }),
     res: (res: Response) => ({
