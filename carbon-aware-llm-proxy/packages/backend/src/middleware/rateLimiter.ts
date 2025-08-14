@@ -8,17 +8,42 @@ const redisHost = process.env.REDIS_HOST || "localhost";
 const redisPort = process.env.REDIS_PORT || "6379";
 const redisUrl = process.env.REDIS_URL || `redis://${redisHost}:${redisPort}`;
 
+// Check if we're connecting to an external service that requires TLS
+const isExternalRedis = redisUrl.includes("upstash.io") || 
+                       redisUrl.includes("redis.cloud") || 
+                       redisUrl.includes("amazonaws.com") ||
+                       process.env.NODE_ENV === "production";
+
 const redisClient = new Redis(redisUrl, {
   enableOfflineQueue: false,
   retryStrategy: (times) => {
     const delay = Math.min(times * 1000, 5000);
     return delay;
   },
+  tls: isExternalRedis ? {
+    rejectUnauthorized: false, // Accept self-signed certificates for some services
+  } : undefined,
+  connectTimeout: 30000, // 30 second timeout
+  lazyConnect: true, // Don't connect immediately
 });
 
-// Handle Redis connection errors
+// Handle Redis connection events
 redisClient.on("error", (err: Error) => {
-  logger.error("Redis error:", err);
+  const sanitizedUrl = redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@');
+  logger.error(`Rate limiter Redis error connecting to ${sanitizedUrl}:`, err);
+});
+
+redisClient.on("connect", () => {
+  const sanitizedUrl = redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@');
+  logger.info(`Rate limiter Redis connected to ${sanitizedUrl}`);
+});
+
+redisClient.on("ready", () => {
+  logger.info("Rate limiter Redis ready for commands");
+});
+
+redisClient.on("reconnecting", () => {
+  logger.info("Rate limiter Redis reconnecting...");
 });
 
 // Rate limiting options

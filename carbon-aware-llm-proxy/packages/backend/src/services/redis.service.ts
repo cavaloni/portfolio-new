@@ -11,9 +11,17 @@ class RedisService {
     const redisUrl =
       process.env.REDIS_URL || `redis://${redisHost}:${redisPort}`;
 
+    // Check if we're connecting to an external service that requires TLS
+    const isExternalRedis = redisUrl.includes("upstash.io") || 
+                           redisUrl.includes("redis.cloud") || 
+                           redisUrl.includes("amazonaws.com") ||
+                           process.env.NODE_ENV === "production";
+
     this.client = createClient({
       url: redisUrl,
       socket: {
+        tls: isExternalRedis,
+        rejectUnauthorized: false, // Accept self-signed certificates for some services
         reconnectStrategy: (retries) => {
           if (retries > 5) {
             logger.error("Max Redis reconnection attempts reached");
@@ -21,6 +29,7 @@ class RedisService {
           }
           return Math.min(retries * 100, 5000); // Exponential backoff up to 5s
         },
+        connectTimeout: 30000, // 30 second timeout
       },
     });
 
@@ -29,12 +38,14 @@ class RedisService {
 
   private setupEventListeners() {
     this.client.on("connect", () => {
-      logger.info("Redis client connected");
+      const redisUrl = process.env.REDIS_URL || "localhost:6379";
+      logger.info(`Redis client connected to ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@')}`);
       this.isConnected = true;
     });
 
     this.client.on("error", (error) => {
-      logger.error("Redis error:", error);
+      const redisUrl = process.env.REDIS_URL || "localhost:6379";
+      logger.error(`Redis error connecting to ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@')}:`, error);
       this.isConnected = false;
     });
 
@@ -45,6 +56,10 @@ class RedisService {
     this.client.on("end", () => {
       logger.warn("Redis client connection closed");
       this.isConnected = false;
+    });
+
+    this.client.on("ready", () => {
+      logger.info("Redis client ready for commands");
     });
   }
 
