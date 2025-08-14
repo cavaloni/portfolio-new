@@ -1,11 +1,26 @@
 stages:
+  - test
   - deploy
+
+debug_ci:
+  stage: test
+  script:
+    - echo "CI/CD is working!"
+    - echo "Current branch: $CI_COMMIT_BRANCH"
+    - echo "Commit SHA: $CI_COMMIT_SHA"
+    - echo "Project: $CI_PROJECT_NAME"
+  rules:
+    - when: always
 
 deploy_production:
   stage: deploy
   when: manual
-  only:
-    - main
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+      allow_failure: false
+    - if: $CI_COMMIT_BRANCH != "main"
+      when: never
   image: ubuntu:22.04
   variables:
     FLY_REGION: "iad"
