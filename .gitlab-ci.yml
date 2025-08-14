@@ -36,6 +36,6 @@ deploy_production:
         echo "No secrets to import"
       fi
       rm -f "$tmpfile"
-    - flyctl deploy --remote-only --app "$FLY_APP_NAME" --config fly.toml --region "${FLY_REGION:-iad}"
+    - flyctl deploy --remote-only --app "$FLY_APP_NAME" --config fly.toml --primary-region "${FLY_REGION:-iad}" -y
 
 
