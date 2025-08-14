@@ -6,36 +6,57 @@ deploy_production:
   when: manual
   only:
     - main
-  image: alpine:3.19
+  image: ubuntu:22.04
   variables:
     FLY_REGION: "iad"
   before_script:
-    - apk add --no-cache curl bash ca-certificates
+    - apt-get update && apt-get install -y curl wget ca-certificates
     - |
+      # Install Fly.io CLI using the official method
       curl -L https://fly.io/install.sh | sh
       export FLYCTL_INSTALL="$HOME/.fly"
       export PATH="$FLYCTL_INSTALL/bin:$PATH"
       export FLY_ACCESS_TOKEN="$FLY_API_TOKEN"
+      # Verify installation
+      if [ -f "$FLYCTL_INSTALL/bin/flyctl" ]; then
+        echo "Fly.io CLI installed successfully at $FLYCTL_INSTALL/bin/flyctl"
+        export PATH="$FLYCTL_INSTALL/bin:$PATH"
+      else
+        echo "Fly.io CLI installation failed, trying direct download"
+        # Direct download method
+        wget -O flyctl https://github.com/superfly/flyctl/releases/latest/download/flyctl_linux_x86_64
+        chmod +x flyctl
+        export PATH="$PWD:$PATH"
+      fi
     - flyctl version
     - test -n "$FLY_API_TOKEN"
   script:
     - cd carbon-aware-llm-proxy/packages/backend
+    - echo "Deploying to Fly.io app: $FLY_APP_NAME"
     - flyctl apps create "$FLY_APP_NAME" || true
     - |
       set -e
       tmpfile="$(mktemp)"
+      echo "Setting up environment variables..."
       for v in DB_HOST DB_PORT DB_USERNAME DB_PASSWORD DB_NAME REDIS_URL JWT_SECRET CORS_ORIGINS MODAL_ENDPOINT_URL MODAL_API_KEY NODE_ENV LOG_LEVEL; do
         val="$(printenv "$v" 2>/dev/null || true)"
         if [ -n "$val" ]; then
+          echo "Setting $v (value hidden for security)"
           printf "%s=%s\n" "$v" "$val" >> "$tmpfile"
+        else
+          echo "Warning: $v is not set"
         fi
       done
       if [ -s "$tmpfile" ]; then
+        echo "Importing secrets to Fly.io..."
         flyctl secrets import --app "$FLY_APP_NAME" < "$tmpfile"
+        echo "Secrets imported successfully"
       else
         echo "No secrets to import"
       fi
       rm -f "$tmpfile"
+    - echo "Deploying application..."
     - flyctl deploy --remote-only --depot=false --app "$FLY_APP_NAME" --config fly.toml --primary-region "${FLY_REGION:-iad}" -y
+    - echo "Deployment completed successfully"
 
 
