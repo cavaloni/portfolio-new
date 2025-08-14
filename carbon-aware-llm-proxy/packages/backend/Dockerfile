@@ -56,7 +56,7 @@ RUN npm config set fund false && \
 COPY --from=builder /app/dist ./dist
 
 # Copy migration files (needed for runtime)
-COPY src/migrations ./src/migrations
+COPY --from=builder /app/dist/migrations ./src/migrations
 
 # Copy scripts (CLI utilities)
 COPY scripts/ ./scripts/
