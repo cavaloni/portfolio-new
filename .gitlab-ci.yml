@@ -44,7 +44,7 @@ deploy_production:
     - test -n "$FLY_API_TOKEN"
   script:
     - cd carbon-aware-llm-proxy/packages/backend
-    - echo "Deploying to Fly.io app: $FLY_APP_NAME"
+    - echo "Deploying to Fly.io app $FLY_APP_NAME"
     - flyctl apps create "$FLY_APP_NAME" || true
     - |
       set -e
