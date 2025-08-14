@@ -14,13 +14,10 @@ debug_ci:
 
 deploy_production:
   stage: deploy
-  when: manual
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: '$CI_COMMIT_REF_NAME == "main"'
       when: manual
       allow_failure: false
-    - if: $CI_COMMIT_BRANCH != "main"
-      when: never
   image: ubuntu:22.04
   variables:
     FLY_REGION: "iad"
