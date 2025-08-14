@@ -8,11 +8,14 @@ const redisHost = process.env.REDIS_HOST || "localhost";
 const redisPort = process.env.REDIS_PORT || "6379";
 const redisUrl = process.env.REDIS_URL || `redis://${redisHost}:${redisPort}`;
 
-// Check if we're connecting to an external service that requires TLS
-const isExternalRedis = redisUrl.includes("upstash.io") || 
-                       redisUrl.includes("redis.cloud") || 
-                       redisUrl.includes("amazonaws.com") ||
-                       process.env.NODE_ENV === "production";
+// Check if we need TLS based on the URL scheme and port
+const urlObj = new URL(redisUrl);
+const needsTls = urlObj.protocol === "rediss:" || 
+                (urlObj.hostname.includes("upstash.io") && urlObj.port === "6380") ||
+                urlObj.hostname.includes("redis.cloud") ||
+                urlObj.hostname.includes("amazonaws.com");
+
+logger.info(`Rate limiter Redis config - URL: ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@')}, TLS: ${needsTls}`);
 
 const redisClient = new Redis(redisUrl, {
   enableOfflineQueue: false,
@@ -20,7 +23,7 @@ const redisClient = new Redis(redisUrl, {
     const delay = Math.min(times * 1000, 5000);
     return delay;
   },
-  tls: isExternalRedis ? {
+  tls: needsTls ? {
     rejectUnauthorized: false, // Accept self-signed certificates for some services
   } : undefined,
   connectTimeout: 30000, // 30 second timeout

@@ -11,17 +11,29 @@ class RedisService {
     const redisUrl =
       process.env.REDIS_URL || `redis://${redisHost}:${redisPort}`;
 
-    // Check if we're connecting to an external service that requires TLS
-    const isExternalRedis = redisUrl.includes("upstash.io") || 
-                           redisUrl.includes("redis.cloud") || 
-                           redisUrl.includes("amazonaws.com") ||
-                           process.env.NODE_ENV === "production";
+    // Check if we need TLS based on the URL scheme and port
+    const urlObj = new URL(redisUrl);
+    const needsTls = urlObj.protocol === "rediss:" || 
+                    (urlObj.hostname.includes("upstash.io") && urlObj.port === "6380") ||
+                    urlObj.hostname.includes("redis.cloud") ||
+                    urlObj.hostname.includes("amazonaws.com");
+
+    logger.info(`Redis connection config - URL: ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@')}, TLS: ${needsTls}`);
 
     this.client = createClient({
       url: redisUrl,
-      socket: {
-        tls: isExternalRedis,
+      socket: needsTls ? {
+        tls: true,
         rejectUnauthorized: false, // Accept self-signed certificates for some services
+        reconnectStrategy: (retries) => {
+          if (retries > 5) {
+            logger.error("Max Redis reconnection attempts reached");
+            return new Error("Max reconnection attempts reached");
+          }
+          return Math.min(retries * 100, 5000); // Exponential backoff up to 5s
+        },
+        connectTimeout: 30000, // 30 second timeout
+      } : {
         reconnectStrategy: (retries) => {
           if (retries > 5) {
             logger.error("Max Redis reconnection attempts reached");

@@ -68,9 +68,9 @@ const startServer = async () => {
       await databaseService.runMigrations();
     }
 
-    // Start the HTTP server
-    server.listen(PORT, () => {
-      logger.info(`Server is running on port ${PORT}`);
+    // Start the HTTP server - bind to 0.0.0.0 for Fly.io compatibility
+    server.listen(Number(PORT), "0.0.0.0", () => {
+      logger.info(`Server is running on 0.0.0.0:${PORT}`);
       logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
     });
 
