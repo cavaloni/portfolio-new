@@ -50,7 +50,7 @@ deploy_production:
       set -e
       tmpfile="$(mktemp)"
       echo "Setting up environment variables..."
-      for v in DB_HOST DB_PORT DB_USERNAME DB_PASSWORD DB_NAME REDIS_URL JWT_SECRET CORS_ORIGINS MODAL_ENDPOINT_URL MODAL_API_KEY NODE_ENV LOG_LEVEL; do
+      for v in DATABASE_URL DB_SSL DB_HOST DB_PORT DB_USERNAME DB_PASSWORD DB_NAME REDIS_URL JWT_SECRET CORS_ORIGINS MODAL_ENDPOINT_URL MODAL_API_KEY NODE_ENV LOG_LEVEL; do
         val="$(printenv "$v" 2>/dev/null || true)"
         if [ -n "$val" ]; then
           echo "Setting $v (value hidden for security)"
