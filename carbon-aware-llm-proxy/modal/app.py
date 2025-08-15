@@ -136,7 +136,7 @@ def _build_sampling_params(body: Dict[str, Any]):
     )
 
 
-async def _stream_chat_sse(
+def _stream_chat_sse(
     request_id: str,
     model_id: str,
     prompt: str,
@@ -161,29 +161,39 @@ async def _stream_chat_sse(
     # Send an immediate SSE comment to keep some proxies from buffering/closing
     yield b": keep-alive\n\n"
 
+    # Generate the complete response first (vLLM doesn't support streaming in generate method)
+    outputs = _llm.generate([prompt], sampling_params=sampling_params)
+    if not outputs or not outputs[0].outputs:
+        return
+    
+    full_text = outputs[0].outputs[0].text or ""
+    
+    # Simulate streaming by sending chunks of the complete response
+    # This provides a better user experience than sending all at once
+    chunk_size = 4  # Send 4 characters at a time
     previous_text = ""
-    async for output in _llm.generate(prompt, sampling_params):
-        if not output.outputs:
-            continue
-            
-        full_text = output.outputs[0].text or ""
-        if len(full_text) > len(previous_text):
-            delta_text = full_text[len(previous_text):]
-            previous_text = full_text
-            chunk = {
-                "id": request_id,
-                "object": "chat.completion.chunk",
-                "created": created,
-                "model": model_id,
-                "choices": [
-                    {
-                        "index": 0,
-                        "delta": {"content": delta_text},
-                        "finish_reason": None,
-                    }
-                ],
-            }
-            yield f"data: {json.dumps(chunk)}\n\n".encode("utf-8")
+    
+    for i in range(0, len(full_text), chunk_size):
+        chunk_text = full_text[i:i+chunk_size]
+        previous_text += chunk_text
+        
+        chunk = {
+            "id": request_id,
+            "object": "chat.completion.chunk",
+            "created": created,
+            "model": model_id,
+            "choices": [
+                {
+                    "index": 0,
+                    "delta": {"content": chunk_text},
+                    "finish_reason": None,
+                }
+            ],
+        }
+        yield f"data: {json.dumps(chunk)}\n\n".encode("utf-8")
+        
+        # Add a small delay to simulate streaming
+        time.sleep(0.01)  # 10ms delay between chunks
 
     # Final stop
     final_chunk = {
