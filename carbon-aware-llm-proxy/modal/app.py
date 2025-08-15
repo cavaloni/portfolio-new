@@ -158,6 +158,8 @@ async def _stream_chat_sse(
         ],
     }
     yield f"data: {json.dumps(first_event)}\n\n".encode("utf-8")
+    # Send an immediate SSE comment to keep some proxies from buffering/closing
+    yield b": keep-alive\n\n"
 
     previous_text = ""
     async for output in _llm.generate(prompt, sampling_params):
@@ -256,6 +258,12 @@ async def chat_completions(request: Request):
                 sampling_params=sampling_params,
             ),
             media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache, no-transform",
+                "Connection": "keep-alive",
+                # Helps some reverse proxies (e.g., Nginx) avoid buffering SSE
+                "X-Accel-Buffering": "no",
+            },
         )
 
     # Non-streaming path using synchronous generate

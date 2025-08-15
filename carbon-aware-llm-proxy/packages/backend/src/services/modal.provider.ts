@@ -1,6 +1,9 @@
 import axios, { AxiosInstance } from "axios";
 import type { AxiosResponse } from "axios";
 import type { IncomingMessage } from "http";
+import { Agent as HttpAgent } from "http";
+import { Agent as HttpsAgent } from "https";
+import dns from "dns";
 import { logger } from "../utils/logger";
 
 export interface ChatMessage {
@@ -48,6 +51,8 @@ class ModalProviderService {
   private client: AxiosInstance;
   private endpointUrl: string;
   private apiKey?: string;
+  private httpAgent: HttpAgent;
+  private httpsAgent: HttpsAgent;
 
   constructor() {
     this.endpointUrl = process.env.MODAL_ENDPOINT_URL || "";
@@ -57,6 +62,17 @@ class ModalProviderService {
       logger.warn("MODAL_ENDPOINT_URL not set; Modal provider will fail until configured");
     }
 
+    // Prefer IPv4 to avoid occasional IPv6 connectivity issues in some hosts
+    const preferIPv4Lookup: any = (
+      hostname: string,
+      options: any,
+      callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void,
+    ) => dns.lookup(hostname, { family: 4, all: false }, callback as any);
+
+    // Create keep-alive agents once and reuse
+    this.httpAgent = new HttpAgent({ keepAlive: true, lookup: preferIPv4Lookup });
+    this.httpsAgent = new HttpsAgent({ keepAlive: true, lookup: preferIPv4Lookup });
+
     this.client = axios.create({
       baseURL: this.endpointUrl,
       timeout: parseInt(process.env.MODAL_TIMEOUT_MS || "30000"),
@@ -64,6 +80,10 @@ class ModalProviderService {
         "Content-Type": "application/json",
         ...(this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {}),
       },
+      httpAgent: this.httpAgent,
+      httpsAgent: this.httpsAgent,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
     });
   }
 
@@ -135,6 +155,11 @@ class ModalProviderService {
         {
           responseType: "stream",
           headers: { Accept: "text/event-stream" },
+          // Disable timeout so long-lived SSE streams aren't aborted by Axios
+          timeout: 0,
+          httpAgent: this.httpAgent,
+          httpsAgent: this.httpsAgent,
+          decompress: false,
         },
       );
       return response;
