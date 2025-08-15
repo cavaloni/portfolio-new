@@ -199,6 +199,16 @@ export default function ChatPage() {
         </div>
       </header>
 
+      {/* Fixed Joystick below nav, top-left */}
+      <div className="fixed top-16 left-4 z-40">
+        <QuadrantJoystick
+          onChange={handleChange}
+          defaultPosition={{ x: 0, y: 0 }}
+          size={160}
+          showCoordinates={true}
+        />
+      </div>
+
       <main className="flex-1 overflow-hidden">
         <div
           ref={messagesContainerRef}
@@ -238,11 +248,6 @@ export default function ChatPage() {
 
       <footer className="fixed bottom-0 left-0 right-0 border-t bg-background/80 backdrop-blur-sm p-4">
         <div className="max-w-3xl mx-auto">
-          <QuadrantJoystick
-            onChange={handleChange}
-            defaultPosition={{ x: 0, y: 0 }}
-            showCoordinates={true}
-          />
           <ChatInput
             onSendMessage={handleSendMessage}
             disabled={isLoading || isStreaming}
