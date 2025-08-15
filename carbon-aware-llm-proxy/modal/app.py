@@ -75,7 +75,7 @@ async def _startup() -> None:
             trust_remote_code=True,
         )
 
-        # Create vLLM LLM (sync API). We use stream=True in generate for SSE.
+        # Create vLLM LLM with async support
         _llm = LLM(
             model=_configured_model_id,
             tokenizer=_configured_model_id,
@@ -85,6 +85,7 @@ async def _startup() -> None:
             # Disable torch.compile for faster cold starts; set to 0 later for max throughput
             enforce_eager=bool(int(os.environ.get("VLLM_ENFORCE_EAGER", "1"))),
             trust_remote_code=True,
+            enable_prefix_caching=True,  # Better for streaming
         )
         _init_error = None
     except Exception as e:
@@ -135,7 +136,7 @@ def _build_sampling_params(body: Dict[str, Any]):
     )
 
 
-def _stream_chat_sse(
+async def _stream_chat_sse(
     request_id: str,
     model_id: str,
     prompt: str,
@@ -159,12 +160,13 @@ def _stream_chat_sse(
     yield f"data: {json.dumps(first_event)}\n\n".encode("utf-8")
 
     previous_text = ""
-    for req_output in _llm.generate([prompt], sampling_params=sampling_params, stream=True):
-        if not req_output.outputs:
+    async for output in _llm.generate(prompt, sampling_params):
+        if not output.outputs:
             continue
-        full_text = req_output.outputs[0].text or ""
+            
+        full_text = output.outputs[0].text or ""
         if len(full_text) > len(previous_text):
-            delta_text = full_text[len(previous_text) :]
+            delta_text = full_text[len(previous_text):]
             previous_text = full_text
             chunk = {
                 "id": request_id,
@@ -245,7 +247,7 @@ async def chat_completions(request: Request):
     request_id = f"chatcmpl-{uuid.uuid4()}"
 
     if stream:
-        # Stream tokens using sync generator; FastAPI will iterate and flush
+        # Use async generator for streaming
         return StreamingResponse(
             _stream_chat_sse(
                 request_id=request_id,
