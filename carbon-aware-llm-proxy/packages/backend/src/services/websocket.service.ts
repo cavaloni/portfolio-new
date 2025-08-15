@@ -333,46 +333,113 @@ class WebSocketService {
         content: content,
       });
 
-      // Call Modal Provider Service
+      // Call Modal Provider Service with real-time streaming
       try {
-        const response = await modalProviderService.sendChatCompletion({
+        const axiosResponse = await modalProviderService.sendChatCompletionStream({
           model,
           messages,
           temperature,
           max_tokens: maxTokens,
-          stream: false, // We'll handle streaming on our end
+          stream: true,
         });
 
-        logger.info("Modal chat completion successful", {
-          model: response.model,
-          tokens: response.usage.total_tokens,
+        const stream = axiosResponse.data as NodeJS.ReadableStream;
+        let buffer = "";
+        let doneSent = false;
+
+        const sendDoneIfNeeded = () => {
+          if (!doneSent) {
+            this.send(clientId, {
+              type: "chat.chunk",
+              data: {
+                messageId,
+                conversationId,
+                content: "",
+                done: true,
+                model,
+              },
+            });
+            doneSent = true;
+          }
+        };
+
+        stream.on("data", (chunk: Buffer) => {
+          try {
+            buffer += chunk.toString("utf8");
+            const parts = buffer.split("\n\n");
+            buffer = parts.pop() || "";
+
+            for (const part of parts) {
+              // Each SSE event may contain multiple lines; we care about data: lines
+              const lines = part.split("\n");
+              for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith("data:")) continue;
+                const dataPayload = trimmed.slice(5).trim();
+                if (!dataPayload) continue;
+
+                if (dataPayload === "[DONE]") {
+                  sendDoneIfNeeded();
+                  continue;
+                }
+
+                try {
+                  const json = JSON.parse(dataPayload);
+                  const delta = json?.choices?.[0]?.delta || {};
+                  const token: string = typeof delta.content === "string" ? delta.content : "";
+                  const finishReason = json?.choices?.[0]?.finish_reason;
+
+                  if (token) {
+                    this.send(clientId, {
+                      type: "chat.chunk",
+                      data: {
+                        messageId,
+                        conversationId,
+                        content: token,
+                        done: false,
+                        model: json?.model || model,
+                      },
+                    });
+                  }
+
+                  if (finishReason) {
+                    sendDoneIfNeeded();
+                  }
+                } catch (parseErr) {
+                  logger.warn("Failed to parse Modal SSE data chunk", { error: parseErr });
+                }
+              }
+            }
+          } catch (err) {
+            logger.error("Error processing Modal SSE stream chunk:", err);
+          }
         });
 
-        // Get the assistant response content
-        const assistantContent = response.choices[0]?.message?.content || "";
-        
-        // Stream the response in chunks for better UX
-        const chunks = assistantContent.split(" ");
-        
-        for (const [index, chunk] of chunks.entries()) {
-          // Small delay to simulate streaming
-          await new Promise(resolve => setTimeout(resolve, 30));
-          
-          const isLast = index === chunks.length - 1;
-          
-          this.send(clientId, {
-            type: "chat.chunk",
-            data: {
-              messageId,
-              conversationId,
-              content: chunk + (isLast ? "" : " "),
-              done: isLast,
-              model: response.model,
-              tokens: response.usage.total_tokens,
-              usage: response.usage,
-            },
-          });
-        }
+        stream.on("end", () => {
+          sendDoneIfNeeded();
+          logger.info("Modal SSE stream ended", { messageId, conversationId });
+        });
+
+        stream.on("error", (err: unknown) => {
+          logger.error("Modal SSE stream error:", err);
+          if (!doneSent) {
+            this.send(clientId, {
+              type: "chat.chunk",
+              data: {
+                messageId,
+                conversationId,
+                content: "",
+                done: true,
+                model,
+                error: {
+                  message: "Streaming error from Modal",
+                  type: "service_error",
+                },
+              },
+            });
+            doneSent = true;
+          }
+        });
 
       } catch (modalError) {
         logger.error("Modal chat completion failed:", modalError);
