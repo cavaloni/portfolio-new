@@ -20,6 +20,11 @@ dev-up: ## Start development services (docker compose up)
 	@echo "🚀 Starting development services..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
 
+dev-up-mock: ## Start development services in mock routing mode
+	@echo "🎭 Starting development services (routing mock enabled)..."
+	@ROUTING_MOCK_ENABLED=true docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
+	@echo "✅ Mock mode active: backend will report mocked model/region and route to the always-warm deployment"
+
 dev-down: ## Stop development services
 	@echo "🛑 Stopping development services..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml down
@@ -27,6 +32,12 @@ dev-down: ## Stop development services
 dev-restart: ## Restart development services
 	@echo "🔄 Restarting development services..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml restart
+
+dev-restart-mock: ## Restart development services with mock routing enabled
+	@echo "🔄 Restarting development services (routing mock enabled)..."
+	@ROUTING_MOCK_ENABLED=true docker compose -f docker-compose.yml -f docker-compose.override.yml down
+	@ROUTING_MOCK_ENABLED=true docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
+	@echo "✅ Mock mode active"
 
 dev-logs: ## Show development logs
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f

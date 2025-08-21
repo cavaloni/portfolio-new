@@ -105,81 +105,134 @@ export const chatService = {
     });
 
     try {
-      const response = await apiPost<ChatCompletionResponse>(
-        "/v1/chat/completions",
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/v1/chat/completions`,
         {
-          deploymentId: routing.chosen.id,
-          fallbackIds,
-          timeoutStrategy: routing.timeoutStrategy,
-          expectedDelay: routing.expectedDelay,
-          greenWeight,
-          messages: messages.map(({ role, content }) => ({ role, content })),
-          temperature,
-          max_tokens: maxTokens,
-          stream: false,
-        },
-        { 
-          headers: withAuth(),
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...withAuth(),
+          },
+          body: JSON.stringify({
+            deploymentId: routing.chosen.id,
+            fallbackIds,
+            timeoutStrategy: routing.timeoutStrategy,
+            expectedDelay: routing.expectedDelay,
+            greenWeight,
+            messages: messages.map(({ role, content }) => ({ role, content })),
+            temperature,
+            max_tokens: maxTokens,
+            stream: true,
+          }),
           // Use custom timeout if provided, otherwise let backend handle it
-          ...(timeoutOverride && { timeout: timeoutOverride }),
+          ...(timeoutOverride && { signal: AbortSignal.timeout(timeoutOverride) }),
         },
       );
 
-      if (response.error) {
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
         onProgress?.({
           status: 'error',
-          message: response.error.message,
+          message: error.message || "Failed to stream response",
         });
-        throw new Error(response.error.message);
+        throw new Error(error.message || "Failed to stream response");
       }
 
-      const assistantMessage = response.data?.choices?.[0]?.message;
-      if (!assistantMessage) {
-        throw new Error("No response from the model");
+      if (!response.body) {
+        throw new Error("No response body");
       }
 
-      // Check if fallback was used
-      const usedFallback = response.headers?.['x-routly-fallback-used'] === 'true';
-      const fallbackIndex = response.headers?.['x-routly-fallback-index'] 
-        ? parseInt(response.headers['x-routly-fallback-index']) 
-        : undefined;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let content = "";
+      let done = false;
+      let usedFallback = false;
+      let fallbackIndex: number | undefined = undefined;
+      let actualModel = routing.chosen.modelId;
+      let actualRegion = routing.chosen.region;
+      let actualCo2 = routing.chosen.co2_g_per_kwh;
+      let messageId = `msg_${Date.now()}`;
 
-      // Get actual deployment info from headers
-      const actualModel = response.headers?.['x-routly-model'] || routing.chosen.modelId;
-      const actualRegion = response.headers?.['x-routly-region'] || routing.chosen.region;
-      const actualCo2 = response.headers?.['x-routly-co2'] 
-        ? parseFloat(response.headers['x-routly-co2']) 
-        : routing.chosen.co2_g_per_kwh;
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
 
-      // Notify progress of completion
-      onProgress?.({
-        status: 'ready',
-        message: usedFallback 
-          ? `Used faster alternative: ${actualModel} in ${actualRegion}`
-          : `Response from ${actualModel} in ${actualRegion}`,
-        deployment: {
-          id: usedFallback && fallbackIndex !== undefined 
-            ? fallbackIds[fallbackIndex - 1] || routing.chosen.id
-            : routing.chosen.id,
-          modelId: actualModel,
-          region: actualRegion,
-          co2_g_per_kwh: actualCo2,
-        },
-        usedFallback,
-        fallbackIndex,
-      });
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n").filter((line) => line.trim() !== "");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            if (line === "data: [DONE]") {
+              done = true;
+              break;
+            }
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.type === 'metadata') {
+                usedFallback = data.usedFallback;
+                fallbackIndex = data.fallbackIndex;
+                actualModel = data.model;
+                actualRegion = data.region;
+                actualCo2 = parseFloat(data.co2);
+
+                onProgress?.({
+                  status: 'ready',
+                  message: `Connected to ${actualModel} in ${actualRegion}.`,
+                  deployment: {
+                    id: usedFallback && fallbackIndex !== undefined
+                      ? fallbackIds[fallbackIndex - 1] || routing.chosen.id
+                      : routing.chosen.id,
+                    modelId: actualModel,
+                    region: actualRegion,
+                    co2_g_per_kwh: actualCo2,
+                  },
+                  usedFallback,
+                  fallbackIndex,
+                });
+              } else {
+                const chunk = data.choices?.[0]?.delta?.content || "";
+
+                if (chunk) {
+                  content += chunk;
+                  onProgress?.({
+                    status: 'ready',
+                    message: content,
+                    deployment: {
+                      id: usedFallback && fallbackIndex !== undefined
+                        ? fallbackIds[fallbackIndex - 1] || routing.chosen.id
+                        : routing.chosen.id,
+                      modelId: actualModel,
+                      region: actualRegion,
+                      co2_g_per_kwh: actualCo2,
+                    },
+                    usedFallback,
+                    fallbackIndex,
+                  });
+                }
+              }
+            } catch (e) {
+              console.error("Error parsing chunk:", e);
+            }
+          }
+        }
+      }
+
+      const assistantMessage: Message = {
+        id: messageId,
+        role: "assistant",
+        content: content,
+        model: actualModel,
+        timestamp: new Date().toISOString(),
+        carbonFootprint: undefined, // Not available in stream
+        energyUsage: undefined, // Not available in stream
+        tokenCount: undefined, // Not available in stream
+      };
 
       return {
-        message: {
-          id: assistantMessage.id || `msg_${Date.now()}`,
-          role: "assistant",
-          content: assistantMessage.content,
-          model: actualModel,
-          timestamp: new Date().toISOString(),
-          carbonFootprint: response.data?.carbon_footprint?.emissions_gco2e,
-          energyUsage: response.data?.carbon_footprint?.energy_consumed_kwh,
-          tokenCount: response.data?.usage?.total_tokens,
-        },
+        message: assistantMessage,
         metadata: {
           usedFallback,
           fallbackIndex,
@@ -188,8 +241,7 @@ export const chatService = {
     } catch (error: any) {
       console.error("Error sending message with routing:", error);
       
-      // Determine if this was a timeout
-      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.status === 408;
+      const isTimeout = error.name === 'TimeoutError' || error.message?.includes('timeout') || error.status === 408;
       
       onProgress?.({
         status: 'error',
@@ -198,53 +250,6 @@ export const chatService = {
           : error.message || "Failed to send message",
       });
       
-      throw error;
-    }
-  },
-  async sendMessage(
-    messages: Message[],
-    deploymentId: string, // Changed from modelId to deploymentId
-    options: {
-      temperature?: number;
-      maxTokens?: number;
-    } = {},
-  ): Promise<Message | null> {
-    const { temperature = 0.7, maxTokens = 1000 } = options;
-
-    try {
-      const response = await apiPost<ChatCompletionResponse>(
-        "/v1/chat/completions",
-        {
-          deploymentId,
-          messages: messages.map(({ role, content }) => ({ role, content })),
-          temperature,
-          max_tokens: maxTokens,
-          stream: false,
-        },
-        { headers: withAuth() },
-      );
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      const assistantMessage = response.data?.choices?.[0]?.message;
-      if (!assistantMessage) {
-        throw new Error("No response from the model");
-      }
-
-      return {
-        id: assistantMessage.id || `msg_${Date.now()}`,
-        role: "assistant",
-        content: assistantMessage.content,
-        model: response.data?.model,
-        timestamp: new Date().toISOString(),
-        carbonFootprint: response.data?.carbon_footprint?.emissions_gco2e,
-        energyUsage: response.data?.carbon_footprint?.energy_consumed_kwh,
-        tokenCount: response.data?.usage?.total_tokens,
-      };
-    } catch (error) {
-      console.error("Error sending message:", error);
       throw error;
     }
   },

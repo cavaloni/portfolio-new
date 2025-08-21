@@ -17,32 +17,7 @@ export function useChatHistory() {
   });
 }
 
-export function useSendMessage() {
-  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async ({
-      messages,
-      modelId,
-      temperature = 0.7,
-      maxTokens = 1000,
-    }: {
-      messages: Message[];
-      modelId: string;
-      temperature?: number;
-      maxTokens?: number;
-    }) => {
-      return chatService.sendMessage(messages, modelId, {
-        temperature,
-        maxTokens,
-      });
-    },
-    onSuccess: (data, variables) => {
-      // In a real app, you might want to update the chat history
-      // or invalidate relevant queries here
-    },
-  });
-}
 
 export function useStreamMessage() {
   const queryClient = useQueryClient();

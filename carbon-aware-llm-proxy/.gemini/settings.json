@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "serena": {
+      "command": "/home/cavalon/.local/bin/uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide-assistant"
+      ]
+    },
+    "ref-tools-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@ref-tools/ref-tools-mcp",
+        "--key",
+        "480491ab-9c6e-4e82-ab0c-ad63fc5c1a1e",
+        "--profile",
+        "olympic-antelope-k0gKvv"
+      ]
+		},
+    "exa": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.exa.ai/mcp?exaApiKey=32b1773f-4b37-4d6e-9875-207582bbcbf7"
+      ]
+    }    
+  }
+}

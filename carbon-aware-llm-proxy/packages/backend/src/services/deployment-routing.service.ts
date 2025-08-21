@@ -4,6 +4,8 @@ import { databaseService } from "./database.service";
 import { redisService } from "./redis.service";
 import { ModelDeployment } from "../entities/ModelDeployment";
 import { carbonService } from "./carbon.service";
+import fs from "fs";
+import path from "path";
 
 export type Joystick = { x: number; y: number };
 export type Weights = {
@@ -99,6 +101,9 @@ export async function selectDeploymentAndWarm(input: {
   region?: string;
   strictRegion?: boolean;
 }): Promise<EnhancedRouteResponse | { error: string; message: string }> {
+  if (process.env.ROUTING_MOCK_ENABLED === "true") {
+    return await selectMockDeploymentAndWarm(input);
+  }
   const ds: DataSource = databaseService.getDataSource();
   const repo = ds.getRepository(ModelDeployment);
   const deployments = await repo.find({ where: { status: "deployed" } as any });
@@ -303,6 +308,182 @@ export async function selectDeploymentAndWarm(input: {
     // NEW: Enhanced fallback support
     fallbackOptions: fallbackOptions.slice(0, 3), // Limit to top 3 fallbacks
     expectedDelay: !idealIsWarm ? estimatedColdDelayMs : 0,
+    timeoutStrategy,
+    maxToleratedDelay: maxToleratedDelayMs,
+  };
+}
+
+// ----------------------------
+// Mock overlay implementation
+// ----------------------------
+type MockModel = {
+  modelId: string;
+  scoreQuality: number;
+  scoreCost: number;
+  scoreSpeed: number;
+  scoreGreen: number;
+};
+
+let _mockModelsCache: MockModel[] | null = null;
+
+function loadMockModels(): MockModel[] {
+  if (_mockModelsCache) return _mockModelsCache;
+  const file = path.resolve(__dirname, "../mocks/mock-models.json");
+  try {
+    const raw = fs.readFileSync(file, "utf-8");
+    _mockModelsCache = JSON.parse(raw);
+    return _mockModelsCache!;
+  } catch (e) {
+    _mockModelsCache = [];
+    return _mockModelsCache;
+  }
+}
+
+async function findAlwaysWarmQwenDeployment(): Promise<ModelDeployment | null> {
+  const ds: DataSource = databaseService.getDataSource();
+  const repo = ds.getRepository(ModelDeployment);
+  const all = await repo.find({ where: { status: "deployed", alwaysWarm: true } as any });
+  if (!all.length) return null;
+  const qwen = all.find((d) => /qwen/i.test(d.modelId));
+  return qwen || all[0];
+}
+
+function dominantPreferenceFromWeights(w: Weights): "green" | "speed" | "quality" | "cost" {
+  const entries: [keyof Weights, number][] = [
+    ["green", w.green],
+    ["speed", w.speed],
+    ["quality", w.quality],
+    ["cost", w.cost],
+  ];
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries[0][0] as any;
+}
+
+async function selectMockDeploymentAndWarm(input: {
+  joystick?: Joystick;
+  weights?: Weights;
+  region?: string;
+  strictRegion?: boolean;
+}): Promise<EnhancedRouteResponse | { error: string; message: string }> {
+  const mockModels = loadMockModels();
+  if (!mockModels.length) {
+    return {
+      error: "no_mock_models",
+      message: "Mock routing enabled but no mock models are available.",
+    } as any;
+  }
+
+  const realDeployment = await findAlwaysWarmQwenDeployment();
+  if (!realDeployment || !realDeployment.ingressUrl) {
+    return {
+      error: "no_available_deployments",
+      message: "No always-warm deployment available for dispatch.",
+    } as any;
+  }
+
+  const w =
+    input.weights ??
+    joystickToWeights(input.joystick?.x ?? 0, input.joystick?.y ?? 0);
+
+  // Debug logging for mock routing
+  console.log("🎮 MOCK ROUTING DEBUG:", {
+    joystick: input.joystick,
+    weights: w,
+    dominantPreference: dominantPreferenceFromWeights(w)
+  });
+
+  const regions = ["us-east", "us-west", "eu-west", "ca-toronto-1"];
+
+  type Candidate = MockModel & { region: string };
+  let candidates: Candidate[] = [];
+  for (const m of mockModels) {
+    for (const r of regions) {
+      candidates.push({ ...m, region: r });
+    }
+  }
+
+  if (input.strictRegion && input.region) {
+    candidates = candidates.filter((c) => c.region === input.region);
+  }
+  if (!candidates.length) {
+    return {
+      error: "no_suitable_deployments",
+      message: "No mock deployments available for the specified region constraints.",
+    } as any;
+  }
+
+  const baseScore = (c: Candidate) =>
+    (c.scoreCost / 100) * w.cost +
+    (c.scoreSpeed / 100) * w.speed +
+    (c.scoreQuality / 100) * w.quality +
+    (c.scoreGreen / 100) * w.green;
+
+  let ideal = candidates[0];
+  let idealScore = -Infinity;
+  for (const c of candidates) {
+    const score = baseScore(c) + (input.region && c.region === input.region ? 0.05 : 0);
+    if (score > idealScore) {
+      ideal = c;
+      idealScore = score;
+    }
+  }
+
+  const chosen = ideal;
+  const fallbackUsed = false;
+  const warmingStarted = false;
+
+  // Debug logging for selected model
+  console.log("🎯 SELECTED MODEL:", {
+    modelId: chosen.modelId,
+    region: chosen.region,
+    score: idealScore,
+    weights: w
+  });
+
+  const chosenCo2 = await carbonService.getCarbonIntensity(chosen.region || "us-east");
+  const idealCo2 = await carbonService.getCarbonIntensity(ideal.region || "us-east");
+
+  const greenWeight = w.green;
+  const speedWeight = w.speed;
+  let timeoutStrategy: TimeoutStrategy;
+  if (speedWeight > 0.5) {
+    timeoutStrategy = 'quick';
+  } else if (greenWeight > 0.3) {
+    timeoutStrategy = 'patient';
+  } else {
+    timeoutStrategy = 'fallback';
+  }
+
+  const maxToleratedDelayMs = 10000 + w.green * 20000;
+  const dominant = dominantPreferenceFromWeights(w);
+  const message = `Routing to ${dominant} in ${ideal.region || "global"}.`;
+
+  // Create unique mock deployment IDs that encode the selected model and region
+  const chosenMockId = `mock-${chosen.modelId.replace(/[^a-zA-Z0-9]/g, '-')}-${chosen.region}`;
+  const idealMockId = `mock-${ideal.modelId.replace(/[^a-zA-Z0-9]/g, '-')}-${ideal.region}`;
+
+  return {
+    chosen: {
+      id: chosenMockId,
+      appName: `mock-${chosen.modelId}`,
+      modelId: chosen.modelId,
+      region: chosen.region,
+      ingressUrl: realDeployment.ingressUrl,
+      co2_g_per_kwh: chosenCo2,
+    },
+    ideal: {
+      id: idealMockId,
+      appName: `mock-${ideal.modelId}`,
+      modelId: ideal.modelId,
+      region: ideal.region,
+      ingressUrl: realDeployment.ingressUrl,
+      co2_g_per_kwh: idealCo2,
+    },
+    fallbackUsed,
+    warmingStarted,
+    message,
+    fallbackOptions: [],
+    expectedDelay: 0,
     timeoutStrategy,
     maxToleratedDelay: maxToleratedDelayMs,
   };

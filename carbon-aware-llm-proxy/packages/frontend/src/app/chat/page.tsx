@@ -116,6 +116,8 @@ export default function ChatPage() {
     return result;
   }, [joystickPosition]);
 
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
+
   // Enhanced send message with timeout handling and fallbacks
   const handleSendMessage = useCallback(
     async (content: string) => {
@@ -131,6 +133,17 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
       setChatProgress(null);
+
+      const assistantMessageId = `assistant_${Date.now()}`;
+      const assistantMessagePlaceholder: Message = {
+        id: assistantMessageId,
+        role: MessageRole.Assistant,
+        content: "",
+        timestamp: new Date().toISOString(),
+        isStreaming: true,
+      };
+      setMessages((prev) => [...prev, assistantMessagePlaceholder]);
+      setStreamingMessageId(assistantMessageId);
 
       try {
         // Step 1: Get routing decision
@@ -180,6 +193,16 @@ export default function ChatPage() {
                   co2_g_per_kwh: progress.deployment.co2_g_per_kwh,
                 });
               }
+
+              if (progress.status === 'ready' && progress.message) {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: progress.message || "" }
+                      : msg
+                  )
+                );
+              }
             },
           }
         );
@@ -187,7 +210,7 @@ export default function ChatPage() {
         if (result.message) {
           // Convert ChatServiceMessage to Message format
           const assistantMessage: Message = {
-            id: result.message.id || `assistant_${Date.now()}`,
+            id: result.message.id || assistantMessageId,
             role: MessageRole.Assistant,
             content: result.message.content,
             timestamp: result.message.timestamp || new Date().toISOString(),
@@ -200,8 +223,13 @@ export default function ChatPage() {
                 }
               : undefined,
             tokens: result.message.tokenCount,
+            isStreaming: false,
           };
-          setMessages((prev) => [...prev, assistantMessage]);
+          setMessages((prev) => 
+            prev.map((msg) => 
+              msg.id === assistantMessageId ? assistantMessage : msg
+            )
+          );
         }
       } catch (error: any) {
         console.error("Chat error:", error);
@@ -216,6 +244,10 @@ export default function ChatPage() {
           return; // Don't add error message yet, let user choose
         }
         
+        setMessages((prev) =>
+          prev.filter((msg) => msg.id !== assistantMessageId)
+        );
+
         setMessages((prev) => [
           ...prev,
           {
@@ -231,6 +263,7 @@ export default function ChatPage() {
         setIsLoading(false);
         setRoutingStatus({ isRouting: false });
         setTimeoutState(prev => ({ ...prev, isWaiting: false }));
+        setStreamingMessageId(null);
       }
     },
     [isLoading, getRouting, joystickPosition, currentRouting],

@@ -1,0 +1,18 @@
+[
+  { "modelId": "databricks/dbrx-instruct", "scoreQuality": 100, "scoreCost": 75, "scoreSpeed": 90, "scoreGreen": 85 },
+  { "modelId": "mistralai/Mixtral-8x7B-Instruct-v0.1", "scoreQuality": 97, "scoreCost": 95, "scoreSpeed": 100, "scoreGreen": 95 },
+  { "modelId": "tiiuae/falcon-180B-chat", "scoreQuality": 94, "scoreCost": 10, "scoreSpeed": 20, "scoreGreen": 30 },
+  { "modelId": "xai-org/grok-1", "scoreQuality": 95, "scoreCost": 15, "scoreSpeed": 25, "scoreGreen": 40 },
+  { "modelId": "Xwin-LM/Xwin-LM-70B-V0.1", "scoreQuality": 92, "scoreCost": 20, "scoreSpeed": 30, "scoreGreen": 30 },
+  { "modelId": "WizardLM/WizardLM-70B-V1.0", "scoreQuality": 90, "scoreCost": 20, "scoreSpeed": 30, "scoreGreen": 30 },
+  { "modelId": "internlm/internlm-chat-20b", "scoreQuality": 88, "scoreCost": 80, "scoreSpeed": 70, "scoreGreen": 75 },
+  { "modelId": "Qwen/Qwen-14B-Chat", "scoreQuality": 87, "scoreCost": 90, "scoreSpeed": 85, "scoreGreen": 80 },
+  { "modelId": "TigerResearch/tigerbot-70b-chat", "scoreQuality": 85, "scoreCost": 20, "scoreSpeed": 30, "scoreGreen": 35 },
+  { "modelId": "meta-llama/Llama-2-70b-chat-hf", "scoreQuality": 84, "scoreCost": 25, "scoreSpeed": 30, "scoreGreen": 30 },
+  { "modelId": "tiiuae/falcon-40b-instruct", "scoreQuality": 80, "scoreCost": 50, "scoreSpeed": 50, "scoreGreen": 50 },
+  { "modelId": "baichuan-inc/Baichuan2-13B-Chat", "scoreQuality": 78, "scoreCost": 85, "scoreSpeed": 90, "scoreGreen": 80 },
+  { "modelId": "meta-llama/Llama-2-13b-chat-hf", "scoreQuality": 70, "scoreCost": 90, "scoreSpeed": 90, "scoreGreen": 75 },
+  { "modelId": "mistralai/ministral-8b", "scoreQuality": 85, "scoreCost": 95, "scoreSpeed": 95, "scoreGreen": 90 },
+  { "modelId": "mistralai/Mistral-7B-Instruct-v0.3", "scoreQuality": 68, "scoreCost": 100, "scoreSpeed": 100, "scoreGreen": 100 },
+  { "modelId": "lmsys/vicuna-33b-v1.5", "scoreQuality": 65, "scoreCost": 60, "scoreSpeed": 60, "scoreGreen": 55 }
+]

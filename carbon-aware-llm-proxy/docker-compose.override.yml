@@ -27,6 +27,9 @@ services:
       MODAL_API_KEY: ${MODAL_API_KEY}
       # HuggingFace Configuration
       HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
+      # Mock routing flag (optional). Enable by running:
+      #   ROUTING_MOCK_ENABLED=true docker compose ... up -d
+      ROUTING_MOCK_ENABLED: ${ROUTING_MOCK_ENABLED}
       # Add your custom environment variables here
     
     # Add additional volumes for development
