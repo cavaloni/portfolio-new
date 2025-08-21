@@ -1,5 +1,6 @@
 stages:
   - test
+  - migrate
   - deploy
 
 debug_ci:
@@ -11,6 +12,49 @@ debug_ci:
     - echo "Project $CI_PROJECT_NAME"
   rules:
     - when: always
+
+migrate_production:
+  stage: migrate
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+      allow_failure: false
+  image: node:18
+  variables:
+    NODE_ENV: production
+  before_script:
+    - cd carbon-aware-llm-proxy/packages/backend
+    - npm ci --omit=dev
+  script:
+    - echo "Running production database migrations..."
+    - test -n "$DATABASE_URL" || (echo "❌ DATABASE_URL not set" && exit 1)
+    - npm run migration:run
+    - echo "✅ Migrations completed successfully"
+
+deploy_modal_production:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+      allow_failure: false
+  image: python:3.10
+  variables:
+    NODE_ENV: production
+  before_script:
+    - apt-get update && apt-get install -y curl
+    - curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    - apt-get install -y nodejs
+    - pip install modal
+    - cd carbon-aware-llm-proxy/packages/backend
+    - npm ci --omit=dev
+  script:
+    - echo "Deploying Modal workers to production..."
+    - test -n "$DATABASE_URL" || (echo "❌ DATABASE_URL not set" && exit 1)
+    - test -n "$MODAL_API_KEY" || (echo "❌ MODAL_API_KEY not set" && exit 1)
+    - npm run deploy:modal
+    - echo "✅ Modal deployment completed successfully"
+  needs:
+    - migrate_production
 
 deploy_production:
   stage: deploy

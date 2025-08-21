@@ -13,26 +13,35 @@ export class MaintenanceService {
   /**
    * Start scheduled maintenance
    */
-  startScheduledMaintenance(_options: {
-    intervalHours?: number;
-    cleanupFailedOlderThanHours?: number;
-    syncWithRunPod?: boolean;
-  } = {}): void {
+  startScheduledMaintenance(
+    _options: {
+      intervalHours?: number;
+      cleanupFailedOlderThanHours?: number;
+      syncWithRunPod?: boolean;
+    } = {},
+  ): void {
     if (this.maintenanceInterval) {
       logger.warn("Maintenance service is already running");
       return;
     }
 
-    const { intervalHours = 6 } = (_options || {}) as { intervalHours?: number };
-    logger.info(`🔧 Starting scheduled maintenance (every ${intervalHours} hours)`);
+    const { intervalHours = 6 } = (_options || {}) as {
+      intervalHours?: number;
+    };
+    logger.info(
+      `🔧 Starting scheduled maintenance (every ${intervalHours} hours)`,
+    );
 
     // Run initial maintenance
     this.performMaintenance({});
 
     // Schedule recurring maintenance
-    this.maintenanceInterval = setInterval(() => {
-      this.performMaintenance({});
-    }, intervalHours * 60 * 60 * 1000);
+    this.maintenanceInterval = setInterval(
+      () => {
+        this.performMaintenance({});
+      },
+      intervalHours * 60 * 60 * 1000,
+    );
 
     logger.info("✅ Scheduled maintenance started");
   }
@@ -69,7 +78,6 @@ export class MaintenanceService {
       // No-op for now; placeholder for future provider maintenance
       const duration = Date.now() - startTime;
       logger.info(`✅ Maintenance placeholder completed in ${duration}ms`);
-
     } catch (error) {
       logger.error("❌ Maintenance failed:", error);
     } finally {
@@ -90,4 +98,4 @@ export class MaintenanceService {
       hasScheduledMaintenance: !!this.maintenanceInterval,
     };
   }
-} 
+}

@@ -19,6 +19,8 @@ services:
       WATT_TIME_EMAIL: ${WATT_TIME_EMAIL}
       WATT_TIME_API_KEY: ${WATT_TIME_API_KEY}
       ELECTRICITY_MAP_API_KEY: ${ELECTRICITY_MAP_API_KEY}
+      MODAL_TOKEN_ID: ${MODAL_TOKEN_ID}
+      MODAL_TOKEN_SECRET: ${MODAL_TOKEN_SECRET} 
       # Modal Configuration
       LLM_PROVIDER: ${LLM_PROVIDER:-modal}
       MODAL_ENDPOINT_URL: ${MODAL_ENDPOINT_URL}
@@ -30,8 +32,11 @@ services:
     # Add additional volumes for development
     volumes:
       - ./packages/backend/src:/app/src:ro
+      - ./packages/backend/scripts:/app/scripts:ro
       - ./packages/backend/package.json:/app/package.json:ro
       - ./packages/backend/tsconfig.json:/app/tsconfig.json:ro
+      - ./modal:/app/modal:ro
+      - ${HOME}/.modal.toml:/root/.modal.toml:ro
       # Add more volumes as needed
     
     # Override ports if needed

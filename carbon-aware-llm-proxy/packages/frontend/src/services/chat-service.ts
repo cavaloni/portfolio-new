@@ -13,15 +13,19 @@ export interface Message {
 }
 
 export interface ChatCompletionRequest {
+  deploymentId: string; // Primary deployment
+  fallbackIds?: string[]; // NEW: Fallback deployment IDs
+  timeoutStrategy?: 'quick' | 'patient' | 'fallback'; // NEW: Timeout strategy
+  expectedDelay?: number; // NEW: Expected cold start delay
+  greenWeight?: number; // NEW: For timeout calculation
   messages: Array<{
     role: "user" | "assistant" | "system";
     content: string;
   }>;
-  model: string;
+  model?: string; // Optional since derived from deployment
   temperature?: number;
   max_tokens?: number;
   stream?: boolean;
-  carbon_aware?: boolean;
 }
 
 export interface ChatCompletionResponse {
@@ -45,27 +49,176 @@ export interface ChatCompletionResponse {
   };
 }
 
+// NEW: Interface for tracking chat progress
+export interface ChatProgress {
+  status: 'routing' | 'deploying' | 'fallback' | 'ready' | 'error';
+  message: string;
+  deployment?: {
+    id: string;
+    modelId: string;
+    region: string | null;
+    co2_g_per_kwh: number;
+  };
+  estimatedWait?: number;
+  usedFallback?: boolean;
+  fallbackIndex?: number;
+}
+
+// NEW: Enhanced options for chat service
+export interface EnhancedChatOptions {
+  temperature?: number;
+  maxTokens?: number;
+  onProgress?: (progress: ChatProgress) => void;
+  timeoutOverride?: number;
+}
+
 export const chatService = {
-  async sendMessage(
+  // NEW: Enhanced method that works with routing service and fallback chains
+  async sendMessageWithRouting(
     messages: Message[],
-    modelId: string,
-    options: {
-      temperature?: number;
-      maxTokens?: number;
-      carbonAware?: boolean;
-    } = {},
-  ): Promise<Message | null> {
-    const { temperature = 0.7, maxTokens = 1000, carbonAware = true } = options;
+    routing: {
+      chosen: { id: string; modelId: string; region: string | null; co2_g_per_kwh: number };
+      fallbackOptions: Array<{ id: string; modelId: string; region: string | null; co2_g_per_kwh: number }>;
+      timeoutStrategy: 'quick' | 'patient' | 'fallback';
+      expectedDelay: number;
+      maxToleratedDelay: number;
+    },
+    joystickPosition: { x: number; y: number },
+    options: EnhancedChatOptions = {}
+  ): Promise<{ message: Message | null; metadata: { usedFallback: boolean; fallbackIndex?: number } }> {
+    const { temperature = 0.7, maxTokens = 1000, onProgress, timeoutOverride } = options;
+
+    // Calculate green weight from joystick position
+    const greenWeight = Math.max(0, -joystickPosition.x);
+
+    // Prepare fallback chain
+    const fallbackIds = routing.fallbackOptions.slice(0, 3).map(f => f.id); // Limit to top 3
+
+    // Notify progress
+    onProgress?.({
+      status: 'deploying',
+      message: routing.expectedDelay > 30000 
+        ? `Preparing ${routing.chosen.modelId} deployment. This may take up to ${Math.round(routing.expectedDelay / 1000)}s...`
+        : `Connecting to ${routing.chosen.modelId}...`,
+      deployment: routing.chosen,
+      estimatedWait: routing.expectedDelay,
+    });
 
     try {
       const response = await apiPost<ChatCompletionResponse>(
         "/v1/chat/completions",
         {
+          deploymentId: routing.chosen.id,
+          fallbackIds,
+          timeoutStrategy: routing.timeoutStrategy,
+          expectedDelay: routing.expectedDelay,
+          greenWeight,
           messages: messages.map(({ role, content }) => ({ role, content })),
-          model: modelId,
           temperature,
           max_tokens: maxTokens,
-          carbon_aware: carbonAware,
+          stream: false,
+        },
+        { 
+          headers: withAuth(),
+          // Use custom timeout if provided, otherwise let backend handle it
+          ...(timeoutOverride && { timeout: timeoutOverride }),
+        },
+      );
+
+      if (response.error) {
+        onProgress?.({
+          status: 'error',
+          message: response.error.message,
+        });
+        throw new Error(response.error.message);
+      }
+
+      const assistantMessage = response.data?.choices?.[0]?.message;
+      if (!assistantMessage) {
+        throw new Error("No response from the model");
+      }
+
+      // Check if fallback was used
+      const usedFallback = response.headers?.['x-routly-fallback-used'] === 'true';
+      const fallbackIndex = response.headers?.['x-routly-fallback-index'] 
+        ? parseInt(response.headers['x-routly-fallback-index']) 
+        : undefined;
+
+      // Get actual deployment info from headers
+      const actualModel = response.headers?.['x-routly-model'] || routing.chosen.modelId;
+      const actualRegion = response.headers?.['x-routly-region'] || routing.chosen.region;
+      const actualCo2 = response.headers?.['x-routly-co2'] 
+        ? parseFloat(response.headers['x-routly-co2']) 
+        : routing.chosen.co2_g_per_kwh;
+
+      // Notify progress of completion
+      onProgress?.({
+        status: 'ready',
+        message: usedFallback 
+          ? `Used faster alternative: ${actualModel} in ${actualRegion}`
+          : `Response from ${actualModel} in ${actualRegion}`,
+        deployment: {
+          id: usedFallback && fallbackIndex !== undefined 
+            ? fallbackIds[fallbackIndex - 1] || routing.chosen.id
+            : routing.chosen.id,
+          modelId: actualModel,
+          region: actualRegion,
+          co2_g_per_kwh: actualCo2,
+        },
+        usedFallback,
+        fallbackIndex,
+      });
+
+      return {
+        message: {
+          id: assistantMessage.id || `msg_${Date.now()}`,
+          role: "assistant",
+          content: assistantMessage.content,
+          model: actualModel,
+          timestamp: new Date().toISOString(),
+          carbonFootprint: response.data?.carbon_footprint?.emissions_gco2e,
+          energyUsage: response.data?.carbon_footprint?.energy_consumed_kwh,
+          tokenCount: response.data?.usage?.total_tokens,
+        },
+        metadata: {
+          usedFallback,
+          fallbackIndex,
+        },
+      };
+    } catch (error: any) {
+      console.error("Error sending message with routing:", error);
+      
+      // Determine if this was a timeout
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout') || error.status === 408;
+      
+      onProgress?.({
+        status: 'error',
+        message: isTimeout 
+          ? "Request timed out. All deployments may be experiencing delays."
+          : error.message || "Failed to send message",
+      });
+      
+      throw error;
+    }
+  },
+  async sendMessage(
+    messages: Message[],
+    deploymentId: string, // Changed from modelId to deploymentId
+    options: {
+      temperature?: number;
+      maxTokens?: number;
+    } = {},
+  ): Promise<Message | null> {
+    const { temperature = 0.7, maxTokens = 1000 } = options;
+
+    try {
+      const response = await apiPost<ChatCompletionResponse>(
+        "/v1/chat/completions",
+        {
+          deploymentId,
+          messages: messages.map(({ role, content }) => ({ role, content })),
+          temperature,
+          max_tokens: maxTokens,
           stream: false,
         },
         { headers: withAuth() },
@@ -84,7 +237,7 @@ export const chatService = {
         id: assistantMessage.id || `msg_${Date.now()}`,
         role: "assistant",
         content: assistantMessage.content,
-        model: modelId,
+        model: response.data?.model,
         timestamp: new Date().toISOString(),
         carbonFootprint: response.data?.carbon_footprint?.emissions_gco2e,
         energyUsage: response.data?.carbon_footprint?.energy_consumed_kwh,
@@ -98,15 +251,14 @@ export const chatService = {
 
   async streamMessage(
     messages: Message[],
-    modelId: string,
+    deploymentId: string, // Changed from modelId to deploymentId
     onChunk: (chunk: string) => void,
     options: {
       temperature?: number;
       maxTokens?: number;
-      carbonAware?: boolean;
     } = {},
   ): Promise<Message> {
-    const { temperature = 0.7, maxTokens = 1000, carbonAware = true } = options;
+    const { temperature = 0.7, maxTokens = 1000 } = options;
     const messageId = `msg_${Date.now()}`;
 
     try {
@@ -119,11 +271,10 @@ export const chatService = {
             ...withAuth(),
           },
           body: JSON.stringify({
+            deploymentId,
             messages: messages.map(({ role, content }) => ({ role, content })),
-            model: modelId,
             temperature,
             max_tokens: maxTokens,
-            carbon_aware: carbonAware,
             stream: true,
           }),
         },
@@ -179,7 +330,7 @@ export const chatService = {
         id: messageId,
         role: "assistant",
         content,
-        model: modelId,
+        model: deploymentId, // Use deploymentId as model identifier for now
         timestamp: new Date().toISOString(),
         // Note: For streaming, we don't get carbon/energy data in the response
         // You might want to make a separate API call to get this data

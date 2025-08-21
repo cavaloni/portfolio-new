@@ -8,41 +8,49 @@ class RedisService {
   constructor() {
     const redisHost = process.env.REDIS_HOST || "localhost";
     const redisPort = process.env.REDIS_PORT || "6379";
+    const redisPassword = process.env.REDIS_PASSWORD;
     const redisUrl =
       process.env.REDIS_URL || `redis://${redisHost}:${redisPort}`;
 
     // Check if we need TLS based on the URL scheme and port
     const urlObj = new URL(redisUrl);
-    const needsTls = urlObj.protocol === "rediss:" || 
-                    (urlObj.hostname.includes("upstash.io") && urlObj.port === "6380") ||
-                    urlObj.hostname.includes("redis.cloud") ||
-                    urlObj.hostname.includes("amazonaws.com");
+    const needsTls =
+      urlObj.protocol === "rediss:" ||
+      (urlObj.hostname.includes("upstash.io") && urlObj.port === "6380") ||
+      urlObj.hostname.includes("redis.cloud") ||
+      urlObj.hostname.includes("amazonaws.com") ||
+      urlObj.hostname.includes("fly.io");
 
-    logger.info(`Redis connection config - URL: ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@')}, TLS: ${needsTls}`);
+    logger.info(
+      `Redis connection config - URL: ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, "//[CREDENTIALS]@")}, TLS: ${needsTls}, Auth: ${!!redisPassword}`,
+    );
 
     this.client = createClient({
       url: redisUrl,
-      socket: needsTls ? {
-        tls: true,
-        rejectUnauthorized: false, // Accept self-signed certificates for some services
-        reconnectStrategy: (retries) => {
-          if (retries > 5) {
-            logger.error("Max Redis reconnection attempts reached");
-            return new Error("Max reconnection attempts reached");
+      password: redisPassword,
+      socket: needsTls
+        ? {
+            tls: true,
+            rejectUnauthorized: false, // Accept self-signed certificates for some services
+            reconnectStrategy: (retries) => {
+              if (retries > 5) {
+                logger.error("Max Redis reconnection attempts reached");
+                return new Error("Max reconnection attempts reached");
+              }
+              return Math.min(retries * 100, 5000); // Exponential backoff up to 5s
+            },
+            connectTimeout: 30000, // 30 second timeout
           }
-          return Math.min(retries * 100, 5000); // Exponential backoff up to 5s
-        },
-        connectTimeout: 30000, // 30 second timeout
-      } : {
-        reconnectStrategy: (retries) => {
-          if (retries > 5) {
-            logger.error("Max Redis reconnection attempts reached");
-            return new Error("Max reconnection attempts reached");
-          }
-          return Math.min(retries * 100, 5000); // Exponential backoff up to 5s
-        },
-        connectTimeout: 30000, // 30 second timeout
-      },
+        : {
+            reconnectStrategy: (retries) => {
+              if (retries > 5) {
+                logger.error("Max Redis reconnection attempts reached");
+                return new Error("Max reconnection attempts reached");
+              }
+              return Math.min(retries * 100, 5000); // Exponential backoff up to 5s
+            },
+            connectTimeout: 30000, // 30 second timeout
+          },
     });
 
     this.setupEventListeners();
@@ -51,13 +59,18 @@ class RedisService {
   private setupEventListeners() {
     this.client.on("connect", () => {
       const redisUrl = process.env.REDIS_URL || "localhost:6379";
-      logger.info(`Redis client connected to ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@')}`);
+      logger.info(
+        `Redis client connected to ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, "//[CREDENTIALS]@")}`,
+      );
       this.isConnected = true;
     });
 
     this.client.on("error", (error) => {
       const redisUrl = process.env.REDIS_URL || "localhost:6379";
-      logger.error(`Redis error connecting to ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@')}:`, error);
+      logger.error(
+        `Redis error connecting to ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, "//[CREDENTIALS]@")}:`,
+        error,
+      );
       this.isConnected = false;
     });
 

@@ -11,6 +11,8 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      MODAL_TOKEN_ID: ${MODAL_TOKEN_ID}
+      MODAL_TOKEN_SECRET: ${MODAL_TOKEN_SECRET}
     ports:
       - "5432:5432"
     volumes:
@@ -66,6 +68,8 @@ services:
       LLM_PROVIDER: ${LLM_PROVIDER:-modal}
       MODAL_ENDPOINT_URL: ${MODAL_ENDPOINT_URL:-https://cavaloni--carbon-aware-modal-app-asgi-app.modal.run}
       MODAL_API_KEY: ${MODAL_API_KEY}
+      MODAL_TOKEN_ID: ${MODAL_TOKEN_ID}
+      MODAL_TOKEN_SECRET: ${MODAL_TOKEN_SECRET}
     ports:
       - "3001:3001"
     volumes:
@@ -73,6 +77,9 @@ services:
       - ./packages/backend/scripts:/app/scripts:ro
       - ./packages/backend/package.json:/app/package.json:ro
       - ./packages/backend/tsconfig.json:/app/tsconfig.json:ro
+      - ./modal:/app/modal:ro
+
+      - ${HOME}/.modal.toml:/root/.modal.toml:ro
     networks:
       - carbon-aware-network
     depends_on:

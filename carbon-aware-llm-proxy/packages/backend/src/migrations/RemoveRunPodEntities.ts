@@ -1,7 +1,4 @@
-import {
-  MigrationInterface,
-  QueryRunner,
-} from "typeorm";
+import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class RemoveRunPodEntities1700000000003 implements MigrationInterface {
   name = "RemoveRunPodEntities1700000000003";

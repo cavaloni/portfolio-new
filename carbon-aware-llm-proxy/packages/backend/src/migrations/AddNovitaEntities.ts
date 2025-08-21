@@ -191,7 +191,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
           },
         ],
       }),
-      true
+      true,
     );
 
     // Create novita_instances table
@@ -384,7 +384,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
           },
         ],
       }),
-      true
+      true,
     );
 
     // Create indexes for novita_deployments
@@ -393,7 +393,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
       new TableIndex({
         name: "IDX_novita_deployments_model_id_region",
         columnNames: ["model_id", "region"],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -401,7 +401,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
       new TableIndex({
         name: "IDX_novita_deployments_status",
         columnNames: ["status"],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -409,7 +409,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
       new TableIndex({
         name: "IDX_novita_deployments_deployment_type",
         columnNames: ["deployment_type"],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -417,7 +417,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
       new TableIndex({
         name: "IDX_novita_deployments_health_status",
         columnNames: ["health_status"],
-      })
+      }),
     );
 
     // Create indexes for novita_instances
@@ -426,7 +426,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
       new TableIndex({
         name: "IDX_novita_instances_deployment_id",
         columnNames: ["deployment_id"],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -434,7 +434,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
       new TableIndex({
         name: "IDX_novita_instances_novita_instance_id",
         columnNames: ["novita_instance_id"],
-      })
+      }),
     );
 
     await queryRunner.createIndex(
@@ -442,7 +442,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
       new TableIndex({
         name: "IDX_novita_instances_status",
         columnNames: ["status"],
-      })
+      }),
     );
 
     // Create foreign key relationship
@@ -454,7 +454,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
         referencedTableName: "novita_deployments",
         onDelete: "CASCADE",
         onUpdate: "CASCADE",
-      })
+      }),
     );
   }
 
@@ -463,7 +463,7 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
     const table = await queryRunner.getTable("novita_instances");
     if (table) {
       const foreignKey = table.foreignKeys.find(
-        (fk) => fk.columnNames.indexOf("deployment_id") !== -1
+        (fk) => fk.columnNames.indexOf("deployment_id") !== -1,
       );
       if (foreignKey) {
         await queryRunner.dropForeignKey("novita_instances", foreignKey);
@@ -473,31 +473,31 @@ export class AddNovitaEntities1700000000002 implements MigrationInterface {
     // Drop indexes
     await queryRunner.dropIndex(
       "novita_instances",
-      "IDX_novita_instances_status"
+      "IDX_novita_instances_status",
     );
     await queryRunner.dropIndex(
       "novita_instances",
-      "IDX_novita_instances_novita_instance_id"
+      "IDX_novita_instances_novita_instance_id",
     );
     await queryRunner.dropIndex(
       "novita_instances",
-      "IDX_novita_instances_deployment_id"
+      "IDX_novita_instances_deployment_id",
     );
     await queryRunner.dropIndex(
       "novita_deployments",
-      "IDX_novita_deployments_health_status"
+      "IDX_novita_deployments_health_status",
     );
     await queryRunner.dropIndex(
       "novita_deployments",
-      "IDX_novita_deployments_deployment_type"
+      "IDX_novita_deployments_deployment_type",
     );
     await queryRunner.dropIndex(
       "novita_deployments",
-      "IDX_novita_deployments_status"
+      "IDX_novita_deployments_status",
     );
     await queryRunner.dropIndex(
       "novita_deployments",
-      "IDX_novita_deployments_model_id_region"
+      "IDX_novita_deployments_model_id_region",
     );
 
     // Drop tables

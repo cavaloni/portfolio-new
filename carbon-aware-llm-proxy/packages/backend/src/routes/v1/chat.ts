@@ -1,14 +1,25 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { z } from "zod";
+import axios from "axios";
+import crypto from "crypto";
 import { logger } from "../../utils/logger";
 import { ApiError } from "../../middleware/errorHandler";
 import { modalProviderService } from "../../services/modal.provider";
+import { databaseService } from "../../services/database.service";
+import { carbonService } from "../../services/carbon.service";
+import { ModelDeployment } from "../../entities/ModelDeployment";
+import { calculateTimeoutMs, TimeoutStrategy } from "../../services/deployment-routing.service";
 
 // Define Zod schemas for request validation
 const chatCompletionSchema = z
   .object({
-    model: z.string().min(1, "Model is required"),
+    deploymentId: z.string().min(1, "Deployment ID is required"), // Primary deployment
+    fallbackIds: z.array(z.string()).optional(), // NEW: Fallback deployment IDs
+    timeoutStrategy: z.enum(["quick", "patient", "fallback"]).optional(), // NEW: Timeout strategy
+    expectedDelay: z.number().optional(), // NEW: Expected cold start delay
+    greenWeight: z.number().min(0).max(1).optional(), // NEW: For timeout calculation
+    model: z.string().min(1, "Model is required").optional(), // Make optional since we get it from deployment
     messages: z
       .array(
         z.object({
@@ -25,6 +36,111 @@ const chatCompletionSchema = z
   })
   .strict();
 
+function createSignature(
+  body: string,
+  timestamp: string,
+  secret: string,
+): string {
+  const message = body + timestamp;
+  return crypto.createHmac("sha256", secret).update(message).digest("hex");
+}
+
+// Helper function to attempt request with timeout
+async function attemptRequest(
+  deployment: ModelDeployment,
+  workerBody: any,
+  timeout: number,
+  isStreaming: boolean = false
+): Promise<any> {
+  const bodyJson = JSON.stringify(workerBody);
+  const timestamp = Date.now().toString();
+  const signature = createSignature(bodyJson, timestamp, deployment.secret);
+
+  const config = {
+    headers: {
+      "Content-Type": "application/json",
+      "x-signature": signature,
+      "x-timestamp": timestamp,
+    },
+    timeout,
+    ...(isStreaming && { responseType: "stream" as const }),
+  };
+
+  return await axios.post(
+    `${deployment.ingressUrl}/v1/chat/completions`,
+    workerBody,
+    config
+  );
+}
+
+// Enhanced function to try deployment chain with fallbacks
+async function tryDeploymentChain(
+  deploymentIds: string[],
+  workerBody: any,
+  timeoutStrategy: TimeoutStrategy = 'fallback',
+  expectedDelay: number = 0,
+  greenWeight: number = 0,
+  isStreaming: boolean = false
+): Promise<{ response: any; usedFallback: boolean; fallbackIndex: number }> {
+  const ds = databaseService.getDataSource();
+  const repo = ds.getRepository(ModelDeployment);
+  
+  let lastError: any;
+  
+  for (const [index, deploymentId] of deploymentIds.entries()) {
+    try {
+      const deployment = await repo.findOne({
+        where: { id: deploymentId, status: "deployed" },
+      });
+
+      if (!deployment || !deployment.ingressUrl) {
+        logger.warn(`Deployment ${deploymentId} not found or unavailable`);
+        continue;
+      }
+
+      // Calculate timeout based on strategy and position in chain
+      let timeout: number;
+      if (index === 0) {
+        // Primary deployment uses full timeout calculation
+        timeout = calculateTimeoutMs(timeoutStrategy, greenWeight, expectedDelay);
+      } else {
+        // Fallbacks get shorter, fixed timeout
+        timeout = 15000;
+      }
+
+      logger.info(`Attempting deployment ${deploymentId} with ${timeout}ms timeout (attempt ${index + 1}/${deploymentIds.length})`);
+      
+      const response = await attemptRequest(deployment, workerBody, timeout, isStreaming);
+      
+      return {
+        response,
+        usedFallback: index > 0,
+        fallbackIndex: index,
+      };
+      
+    } catch (error: any) {
+      lastError = error;
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+      
+      logger.warn(`Deployment ${deploymentId} failed:`, {
+        error: error.message,
+        isTimeout,
+        attempt: index + 1,
+        totalAttempts: deploymentIds.length,
+      });
+      
+      // If this isn't the last attempt and it's a timeout, try the next fallback
+      if (index < deploymentIds.length - 1 && isTimeout) {
+        logger.info(`Timeout on deployment ${deploymentId}, trying fallback...`);
+        continue;
+      }
+    }
+  }
+  
+  // All attempts failed
+  throw lastError || new Error('All deployment attempts failed');
+}
+
 export const chatRouter = Router();
 
 // POST /v1/chat/completions
@@ -39,72 +155,131 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
       });
     }
 
-    const { model, messages, temperature, max_tokens, stream } =
-      validatedBody.data;
+    const { 
+      deploymentId, 
+      fallbackIds = [], 
+      timeoutStrategy = 'fallback',
+      expectedDelay = 0,
+      greenWeight = 0,
+      model, 
+      messages, 
+      temperature, 
+      max_tokens, 
+      stream 
+    } = validatedBody.data;
 
-    logger.info("Chat completion request", {
-      model,
+    // Build deployment chain (primary + fallbacks)
+    const deploymentChain = [deploymentId, ...fallbackIds];
+    
+    // Get primary deployment for model info
+    const ds = databaseService.getDataSource();
+    const repo = ds.getRepository(ModelDeployment);
+    const primaryDeployment = await repo.findOne({
+      where: { id: deploymentId, status: "deployed" },
+    });
+
+    if (!primaryDeployment || !primaryDeployment.ingressUrl) {
+      throw new ApiError(400, "Invalid or unavailable primary deployment", true);
+    }
+
+    // Use model from deployment if not provided
+    const effectiveModel = model || primaryDeployment.modelId;
+
+    logger.info("Chat completion request with fallback chain", {
+      primaryDeploymentId: deploymentId,
+      fallbackIds,
+      model: effectiveModel,
       messageCount: messages.length,
       temperature,
       max_tokens,
       stream,
+      timeoutStrategy,
+      expectedDelay,
     });
 
-    // Prefer Modal provider when configured
-    const provider = (process.env.LLM_PROVIDER || "modal").toLowerCase();
-    if (provider === "modal") {
-      try {
-        if (stream) {
-          const upstream = await modalProviderService.sendChatCompletionStream({
-            model,
-            messages,
-            temperature,
-            max_tokens,
-            stream: true,
-          });
-          res.setHeader("Content-Type", "text/event-stream");
-          res.setHeader("Cache-Control", "no-cache");
-          res.setHeader("Connection", "keep-alive");
-          upstream.data.on("data", (chunk: Buffer) => {
-            res.write(chunk);
-          });
-          upstream.data.on("end", () => {
-            res.end();
-          });
-          upstream.data.on("error", (err: any) => {
-            logger.error("Upstream stream error", err);
-            res.end();
-          });
-          return;
-        } else {
-          const response = await modalProviderService.sendChatCompletion({
-            model,
-            messages,
-            temperature,
-            max_tokens,
-            stream: false,
-          });
-          res.json(response);
-          return;
-        }
-      } catch (error) {
-        logger.error("Modal chat completion failed:", error);
+    // Prepare request for worker
+    const workerBody = {
+      model: effectiveModel,
+      messages,
+      temperature,
+      max_tokens,
+      stream,
+    };
+
+    try {
+      // Attempt request with fallback chain
+      const { response, usedFallback, fallbackIndex } = await tryDeploymentChain(
+        deploymentChain,
+        workerBody,
+        timeoutStrategy,
+        expectedDelay,
+        greenWeight,
+        !!stream
+      );
+
+      // Get the deployment that was actually used for metadata
+      const usedDeploymentId = deploymentChain[fallbackIndex];
+      const usedDeployment = await repo.findOne({
+        where: { id: usedDeploymentId, status: "deployed" },
+      });
+
+      if (!usedDeployment) {
+        throw new ApiError(500, "Used deployment not found", true);
       }
+
+      // Get CO2 data for the used deployment
+      const co2Intensity = await carbonService.getCarbonIntensity(
+        usedDeployment.region || "us-east",
+      );
+
+      // Set metadata headers
+      res.setHeader("x-routly-model", usedDeployment.modelId);
+      res.setHeader("x-routly-region", usedDeployment.region || "global");
+      res.setHeader("x-routly-co2", co2Intensity.toString());
+      
+      if (usedFallback) {
+        res.setHeader("x-routly-fallback-used", "true");
+        res.setHeader("x-routly-fallback-index", fallbackIndex.toString());
+        logger.info(`Used fallback deployment ${usedDeploymentId} (index ${fallbackIndex})`);
+      }
+
+      if (stream) {
+        // Stream proxy
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        
+        response.data.pipe(res);
+        return;
+      } else {
+        // Non-streaming proxy
+        res.json(response.data);
+        return;
+      }
+    } catch (error: any) {
+      logger.error("All deployment attempts failed:", error);
+      if (error.response?.status === 401) {
+        throw new ApiError(401, "Worker authentication failed", true);
+      }
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+      if (isTimeout) {
+        throw new ApiError(408, "Request timeout - all deployments unavailable", true);
+      }
+      throw new ApiError(502, "All deployment attempts failed", true);
     }
 
-    // Fallback mock response (for development or when RunPod is disabled)
+    // Fallback mock response (should not reach here with new routing)
     const response = {
       id: `chatcmpl-${Date.now()}`,
       object: "chat.completion",
       created: Math.floor(Date.now() / 1000),
-      model,
+      model: effectiveModel,
       choices: [
         {
           message: {
             role: "assistant",
-            content: provider === "modal"
-              ? "Modal service is temporarily unavailable. This is a fallback response."
-              : "This is a mock response. No provider configured.",
+            content:
+              "Service is temporarily unavailable. This is a fallback response.",
           },
           finish_reason: "stop",
           index: 0,
@@ -119,7 +294,7 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
         emissions_gco2e: 0.1, // Mock carbon footprint
         energy_consumed_kwh: 0.0001,
         region: "mock",
-        model_name: model,
+        model_name: effectiveModel,
       },
     };
 

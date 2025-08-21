@@ -27,13 +27,13 @@ class WebSocketService {
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsHost = process.env.NEXT_PUBLIC_WS_URL || "localhost:3001";
     this.url = `${wsProtocol}//${wsHost}/ws`;
-    
+
     // Debug logging
     console.log("WebSocket Configuration:", {
       wsProtocol,
       wsHost,
       fullUrl: this.url,
-      envVar: process.env.NEXT_PUBLIC_WS_URL
+      envVar: process.env.NEXT_PUBLIC_WS_URL,
     });
 
     // Get token from localStorage

@@ -22,12 +22,12 @@ app.use(helmet());
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.CORS_ORIGINS 
-    ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+  origin: process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
     : true, // Allow all origins if not specified
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 };
 app.use(cors(corsOptions));
 
@@ -74,7 +74,7 @@ const startServer = async () => {
       logger.info(`Environment: ${process.env.NODE_ENV || "development"}`);
     });
 
-  // Initialize WebSocket service after server is listening
+    // Initialize WebSocket service after server is listening
     webSocketService.initialize(server);
 
     // RunPod scheduler removed; no background provider schedulers in Modal setup

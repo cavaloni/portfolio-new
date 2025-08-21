@@ -26,18 +26,15 @@ export function useSendMessage() {
       modelId,
       temperature = 0.7,
       maxTokens = 1000,
-      carbonAware = true,
     }: {
       messages: Message[];
       modelId: string;
       temperature?: number;
       maxTokens?: number;
-      carbonAware?: boolean;
     }) => {
       return chatService.sendMessage(messages, modelId, {
         temperature,
         maxTokens,
-        carbonAware,
       });
     },
     onSuccess: (data, variables) => {
@@ -57,19 +54,16 @@ export function useStreamMessage() {
       onChunk,
       temperature = 0.7,
       maxTokens = 1000,
-      carbonAware = true,
     }: {
       messages: Message[];
       modelId: string;
       onChunk: (chunk: string) => void;
       temperature?: number;
       maxTokens?: number;
-      carbonAware?: boolean;
     }) => {
       return chatService.streamMessage(messages, modelId, onChunk, {
         temperature,
         maxTokens,
-        carbonAware,
       });
     },
     [],
@@ -81,7 +75,6 @@ interface CreateConversationParams {
   modelId?: string;
   temperature?: number;
   maxTokens?: number;
-  carbonAware?: boolean;
 }
 
 export function useCreateConversation() {
@@ -101,7 +94,6 @@ export function useCreateConversation() {
         modelId: params.modelId,
         temperature: params.temperature,
         maxTokens: params.maxTokens,
-        carbonAware: params.carbonAware,
       });
 
       return response;

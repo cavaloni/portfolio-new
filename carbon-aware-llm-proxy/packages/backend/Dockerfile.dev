@@ -8,8 +8,14 @@ WORKDIR /app
 
 # Install development dependencies with retry and memory optimization
 RUN apk update && \
-    apk add --no-cache python3 make g++ || \
-    (sleep 5 && apk update && apk add --no-cache python3 make g++)
+    apk add --no-cache python3 py3-pip make g++ || \
+    (sleep 5 && apk update && apk add --no-cache python3 py3-pip make g++)
+
+# Install Modal and required dependencies in a virtual environment
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install modal fastapi uvicorn pydantic
+
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy package files
 COPY package.json ./

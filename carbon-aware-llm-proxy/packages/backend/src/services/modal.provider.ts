@@ -53,25 +53,38 @@ class ModalProviderService {
   private apiKey?: string;
   private httpAgent: HttpAgent;
   private httpsAgent: HttpsAgent;
+  private lastWarmupAt: number = 0;
 
   constructor() {
     this.endpointUrl = process.env.MODAL_ENDPOINT_URL || "";
     this.apiKey = process.env.MODAL_API_KEY;
 
     if (!this.endpointUrl) {
-      logger.warn("MODAL_ENDPOINT_URL not set; Modal provider will fail until configured");
+      logger.warn(
+        "MODAL_ENDPOINT_URL not set; Modal provider will fail until configured",
+      );
     }
 
     // Prefer IPv4 to avoid occasional IPv6 connectivity issues in some hosts
     const preferIPv4Lookup: any = (
       hostname: string,
       options: any,
-      callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void,
+      callback: (
+        err: NodeJS.ErrnoException | null,
+        address: string,
+        family: number,
+      ) => void,
     ) => dns.lookup(hostname, { family: 4, all: false }, callback as any);
 
     // Create keep-alive agents once and reuse
-    this.httpAgent = new HttpAgent({ keepAlive: true, lookup: preferIPv4Lookup });
-    this.httpsAgent = new HttpsAgent({ keepAlive: true, lookup: preferIPv4Lookup });
+    this.httpAgent = new HttpAgent({
+      keepAlive: true,
+      lookup: preferIPv4Lookup,
+    });
+    this.httpsAgent = new HttpsAgent({
+      keepAlive: true,
+      lookup: preferIPv4Lookup,
+    });
 
     this.client = axios.create({
       baseURL: this.endpointUrl,
@@ -87,7 +100,59 @@ class ModalProviderService {
     });
   }
 
-  async sendChatCompletion(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
+  async health(): Promise<{
+    initialized: boolean;
+    model?: string;
+    error?: string | null;
+  } | null> {
+    if (!this.endpointUrl) return null;
+    try {
+      const resp = await this.client.get("/health", {
+        httpAgent: this.httpAgent,
+        httpsAgent: this.httpsAgent,
+        timeout: parseInt(process.env.MODAL_HEALTH_TIMEOUT_MS || "5000"),
+      });
+      const data = resp.data || {};
+      return {
+        initialized: Boolean(data.initialized),
+        model: data.model,
+        error: data.error,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async warmup(force: boolean = false): Promise<boolean> {
+    if (!this.endpointUrl) return false;
+    const now = Date.now();
+    const minWarmupIntervalMs = parseInt(
+      process.env.MODAL_WARMUP_MIN_INTERVAL_MS || "300000",
+    ); // 5m
+    if (!force && now - this.lastWarmupAt < minWarmupIntervalMs) {
+      return true;
+    }
+    try {
+      await this.client.post(
+        "/warmup",
+        {},
+        {
+          httpAgent: this.httpAgent,
+          httpsAgent: this.httpsAgent,
+          timeout: parseInt(process.env.MODAL_WARMUP_TIMEOUT_MS || "30000"),
+        },
+      );
+      this.lastWarmupAt = now;
+      return true;
+    } catch (e) {
+      // Don't throw; warmup is best-effort
+      return false;
+    }
+  }
+
+  async sendChatCompletion(
+    request: ChatCompletionRequest,
+  ): Promise<ChatCompletionResponse> {
     if (!this.endpointUrl) {
       throw new Error("MODAL_ENDPOINT_URL is not configured");
     }
@@ -105,7 +170,7 @@ class ModalProviderService {
           frequency_penalty: request.frequency_penalty,
           presence_penalty: request.presence_penalty,
           stop: request.stop,
-        }
+        },
       );
 
       if (!response.data) {
@@ -116,12 +181,16 @@ class ModalProviderService {
     } catch (error: any) {
       if (error.response) {
         const details = error.response.data?.error || error.response.data;
-        console.log(error.response)
-        logger.error("Modal provider error:", { status: error.response.status, details, error: error.response });
+        console.log(error.response);
+        logger.error("Modal provider error:", {
+          status: error.response.status,
+          details,
+          error: error.response,
+        });
         throw new Error(
           `Modal endpoint error (${error.response.status}): ${
             details?.message || error.response.statusText || "Unknown error"
-          }`
+          }`,
         );
       }
       if (error.code === "ECONNABORTED") {
@@ -166,7 +235,10 @@ class ModalProviderService {
     } catch (error: any) {
       if (error.response) {
         const details = error.response.data?.error || error.response.data;
-        logger.error("Modal provider stream error:", { status: error.response.status, details });
+        logger.error("Modal provider stream error:", {
+          status: error.response.status,
+          details,
+        });
         throw new Error(
           `Modal endpoint stream error (${error.response.status}): ${
             details?.message || error.response.statusText || "Unknown error"
@@ -182,5 +254,3 @@ class ModalProviderService {
 }
 
 export const modalProviderService = new ModalProviderService();
-
-

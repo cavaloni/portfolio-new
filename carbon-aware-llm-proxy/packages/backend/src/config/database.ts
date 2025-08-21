@@ -6,12 +6,12 @@ import { Conversation } from "../entities/Conversation";
 import { Message } from "../entities/Message";
 import { ModelInfo } from "../entities/ModelInfo";
 import { CarbonFootprint } from "../entities/CarbonFootprint";
+import { ModelDeployment } from "../entities/ModelDeployment";
 // Removed RunPod and Novita entities
 
 dotenv.config();
 
 export const dbConfig: DataSourceOptions = {
-  
   type: "postgres",
   // Prefer a single DATABASE_URL if provided (e.g., from Fly Postgres attach)
   // Fallback to individual settings for local/dev environments
@@ -38,6 +38,7 @@ export const dbConfig: DataSourceOptions = {
     Message,
     ModelInfo,
     CarbonFootprint,
+    ModelDeployment,
   ],
   migrations: ["src/migrations/*.ts"],
   subscribers: [],

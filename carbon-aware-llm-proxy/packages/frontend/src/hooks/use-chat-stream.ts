@@ -28,7 +28,7 @@ export function useChatStream(conversationId?: string) {
         console.warn("Received undefined data in handleChunk");
         return;
       }
-      
+
       if (data.conversationId !== conversationId) return;
 
       const { content, done, error } = data;
@@ -96,7 +96,6 @@ export function useChatStream(conversationId?: string) {
         maxTokens?: number;
         systemPrompt?: string;
         parentMessageId?: string;
-        carbonAware?: boolean;
       } = {},
     ): Promise<Message | null> => {
       if (isStreaming) {
@@ -142,7 +141,7 @@ export function useChatStream(conversationId?: string) {
             maxTokens: options.maxTokens,
             systemPrompt: options.systemPrompt,
             parentMessageId: options.parentMessageId,
-            carbonAware: options.carbonAware,
+
           });
         }
 

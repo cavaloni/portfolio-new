@@ -40,6 +40,8 @@ class WebSocketService {
   private eventSubscribers: Map<EventType, Set<string>> = new Map();
   private pingInterval: NodeJS.Timeout | null = null;
   private isInitialized = false;
+  private warmupInterval: NodeJS.Timeout | null = null;
+  private lastActivityAt: number = Date.now();
 
   // Initialize WebSocket server
   initialize(server: Server) {
@@ -52,6 +54,7 @@ class WebSocketService {
     this.setupEventHandlers();
     this.setupPingInterval();
     this.setupCarbonIntensityUpdates();
+    this.setupAdaptiveWarmup();
     this.isInitialized = true;
     logger.info("WebSocket server initialized");
   }
@@ -68,6 +71,11 @@ class WebSocketService {
         logger.info("WebSocket server closed");
       });
       this.wss = null;
+    }
+
+    if (this.warmupInterval) {
+      clearInterval(this.warmupInterval);
+      this.warmupInterval = null;
     }
 
     this.clients.clear();
@@ -104,9 +112,11 @@ class WebSocketService {
 
       // Set up message handler
       const messageHandler = (data: RawData) => {
+        // Any message from any client is activity
+        this.lastActivityAt = Date.now();
         this.handleMessage(clientId, data);
       };
-      
+
       ws.on("message", messageHandler);
 
       // Set up close handler
@@ -123,13 +133,18 @@ class WebSocketService {
         type: "connection_established",
         data: { clientId },
       });
+
+      // Opportunistic warmup on first connection
+      const warmOnConnect =
+        (process.env.MODAL_WARMUP_ON_CONNECT || "1") === "1";
+      if (warmOnConnect) {
+        void modalProviderService.warmup(false);
+      }
     });
   }
 
   // Handle incoming WebSocket messages
   private async handleMessage(clientId: string, data: RawData) {
-
-
     const client = this.clients.get(clientId);
     if (!client) {
       logger.warn("Client not found for clientId:", clientId);
@@ -153,7 +168,10 @@ class WebSocketService {
 
       message = JSON.parse(messageStr);
 
-      logger.info("handleMessage parsed message:", JSON.stringify(message, null, 2));
+      logger.info(
+        "handleMessage parsed message:",
+        JSON.stringify(message, null, 2),
+      );
 
       if (!message) {
         throw new Error("Failed to parse message");
@@ -173,7 +191,10 @@ class WebSocketService {
           });
           break;
         case "chat.message":
-          await this.handleChatMessage(clientId, message.data || message.payload);
+          await this.handleChatMessage(
+            clientId,
+            message.data || message.payload,
+          );
           break;
         case "chat.stop":
           this.handleChatStop(clientId, message.data || message.payload);
@@ -186,10 +207,19 @@ class WebSocketService {
           });
       }
     } catch (error) {
-      logger.error("Error handling WebSocket message - Error:", error instanceof Error ? error.message : String(error));
-      logger.error("Error handling WebSocket message - Stack:", error instanceof Error ? error.stack : "No stack trace");
+      logger.error(
+        "Error handling WebSocket message - Error:",
+        error instanceof Error ? error.message : String(error),
+      );
+      logger.error(
+        "Error handling WebSocket message - Stack:",
+        error instanceof Error ? error.stack : "No stack trace",
+      );
       logger.error("Error handling WebSocket message - Client ID:", clientId);
-      logger.error("Error handling WebSocket message - Message:", message ? JSON.stringify(message, null, 2) : "No message");
+      logger.error(
+        "Error handling WebSocket message - Message:",
+        message ? JSON.stringify(message, null, 2) : "No message",
+      );
       this.send(clientId, {
         type: "error",
         data: { message: "Invalid message format" },
@@ -290,12 +320,13 @@ class WebSocketService {
       const provider = (process.env.LLM_PROVIDER || "modal").toLowerCase();
       if (provider !== "modal") {
         // Fallback to mock response if Modal is disabled
-        const fallbackMessage = "Modal provider is disabled. This is a fallback response.";
+        const fallbackMessage =
+          "Modal provider is disabled. This is a fallback response.";
         const chunks = fallbackMessage.split(" ");
-        
+
         for (const [index, chunk] of chunks.entries()) {
-          await new Promise(resolve => setTimeout(resolve, 50));
-          
+          await new Promise((resolve) => setTimeout(resolve, 50));
+
           this.send(clientId, {
             type: "chat.chunk",
             data: {
@@ -318,7 +349,7 @@ class WebSocketService {
 
       // Prepare messages array for provider
       const messages = [];
-      
+
       // Add system prompt if provided
       if (systemPrompt) {
         messages.push({
@@ -326,7 +357,7 @@ class WebSocketService {
           content: systemPrompt,
         });
       }
-      
+
       // Add user message
       messages.push({
         role: "user" as const,
@@ -335,13 +366,14 @@ class WebSocketService {
 
       // Call Modal Provider Service with real-time streaming
       try {
-        const axiosResponse = await modalProviderService.sendChatCompletionStream({
-          model,
-          messages,
-          temperature,
-          max_tokens: maxTokens,
-          stream: true,
-        });
+        const axiosResponse =
+          await modalProviderService.sendChatCompletionStream({
+            model,
+            messages,
+            temperature,
+            max_tokens: maxTokens,
+            stream: true,
+          });
 
         const stream = axiosResponse.data as NodeJS.ReadableStream;
         let buffer = "";
@@ -386,7 +418,8 @@ class WebSocketService {
                 try {
                   const json = JSON.parse(dataPayload);
                   const delta = json?.choices?.[0]?.delta || {};
-                  const token: string = typeof delta.content === "string" ? delta.content : "";
+                  const token: string =
+                    typeof delta.content === "string" ? delta.content : "";
                   const finishReason = json?.choices?.[0]?.finish_reason;
 
                   if (token) {
@@ -406,7 +439,9 @@ class WebSocketService {
                     sendDoneIfNeeded();
                   }
                 } catch (parseErr) {
-                  logger.warn("Failed to parse Modal SSE data chunk", { error: parseErr });
+                  logger.warn("Failed to parse Modal SSE data chunk", {
+                    error: parseErr,
+                  });
                 }
               }
             }
@@ -440,13 +475,13 @@ class WebSocketService {
             doneSent = true;
           }
         });
-
       } catch (modalError) {
         logger.error("Modal chat completion failed:", modalError);
-        
+
         // Send fallback response if Modal fails
-        const errorMessage = "I'm having trouble connecting to the AI service. Please try again in a moment.";
-        
+        const errorMessage =
+          "I'm having trouble connecting to the AI service. Please try again in a moment.";
+
         this.send(clientId, {
           type: "chat.chunk",
           data: {
@@ -455,17 +490,19 @@ class WebSocketService {
             content: errorMessage,
             done: true,
             model,
-              error: {
-                message: "Modal service temporarily unavailable",
-                type: "service_error",
-              },
+            error: {
+              message: "Modal service temporarily unavailable",
+              type: "service_error",
+            },
           },
         });
       }
-
     } catch (error) {
       logger.error("Error handling chat message - Error type:", typeof error);
-      logger.error("Error handling chat message - Error:", error instanceof Error ? error.message : String(error));
+      logger.error(
+        "Error handling chat message - Error:",
+        error instanceof Error ? error.message : String(error),
+      );
       if (error instanceof Error && error.stack) {
         logger.error("Error handling chat message - Stack:", error.stack);
       } else {
@@ -473,12 +510,21 @@ class WebSocketService {
       }
       logger.error("Error handling chat message - Client ID:", clientId);
       try {
-        logger.error("Error handling chat message - Data:", JSON.stringify(data, null, 2));
+        logger.error(
+          "Error handling chat message - Data:",
+          JSON.stringify(data, null, 2),
+        );
       } catch (stringifyError) {
-        logger.error("Error handling chat message - Data (stringify failed):", data);
+        logger.error(
+          "Error handling chat message - Data (stringify failed):",
+          data,
+        );
       }
-      logger.error("Error handling chat message - Full error object:", String(error));
-      
+      logger.error(
+        "Error handling chat message - Full error object:",
+        String(error),
+      );
+
       this.send(clientId, {
         type: "chat.chunk",
         data: {
@@ -649,6 +695,39 @@ class WebSocketService {
       },
       5 * 60 * 1000,
     ); // Every 5 minutes
+  }
+
+  // Periodically keep Modal app warm when there is recent activity
+  private setupAdaptiveWarmup() {
+    const enabled = (process.env.MODAL_WARMUP_ENABLED || "1") === "1";
+    if (!enabled) return;
+
+    const checkIntervalMs = parseInt(
+      process.env.MODAL_WARMUP_CHECK_INTERVAL_MS || "60000",
+    ); // 1m
+    const activeWindowMs = parseInt(
+      process.env.MODAL_WARMUP_ACTIVE_WINDOW_MS || "900000",
+    ); // 15m
+
+    this.warmupInterval = setInterval(async () => {
+      try {
+        const now = Date.now();
+        const hasClients = this.clients.size > 0;
+        const recentActivity = now - this.lastActivityAt < activeWindowMs;
+
+        if (hasClients || recentActivity) {
+          // If health says not initialized, force warmup; else best-effort
+          const health = await modalProviderService.health();
+          if (!health || !health.initialized) {
+            await modalProviderService.warmup(true);
+          } else {
+            await modalProviderService.warmup(false);
+          }
+        }
+      } catch (e) {
+        // best-effort; ignore
+      }
+    }, checkIntervalMs);
   }
 
   // Get client count

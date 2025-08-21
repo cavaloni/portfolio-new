@@ -37,10 +37,8 @@ export const QuadrantJoystick: React.FC<QuadrantJoystickProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const knobRef = useRef<HTMLDivElement>(null);
 
-  // Update position when defaultPosition changes
-  useEffect(() => {
-    setPosition(defaultPosition);
-  }, [defaultPosition]);
+  // Note: defaultPosition is only used for initial state. Avoid syncing to it on
+  // prop changes to prevent unintended resets during parent re-renders.
 
   // Handle position change
   const handlePositionChange = useCallback(

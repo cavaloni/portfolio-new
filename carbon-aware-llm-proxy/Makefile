@@ -90,13 +90,23 @@ dev-tools-down: ## Stop development tools
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml stop adminer redis-commander
 
 # Database commands
-migrate: ## Run database migrations (development)
+migrate: ## Run database migrations (development - inside Docker)
 	@echo "🗄️ Running database migrations..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run migration:run
 
-migrate-prod: ## Run database migrations (production)
+migrate-local: ## Run database migrations against LOCAL DB from host
+	@echo "🗄️ Running database migrations (local DB from host)..."
+	@DB_USER=${DB_USERNAME:-postgres} \
+	DB_PASS=${DB_PASSWORD:-postgres} \
+	DB_PORT=${DB_PORT:-5433} \
+	DB_NAME=${DB_NAME:-postgres} \
+	DATABASE_URL=postgres://$$DB_USER:$$DB_PASS@127.0.0.1:$$DB_PORT/$$DB_NAME \
+	npm --prefix packages/backend run migration:run
+
+migrate-prod: ## Run database migrations (production - requires DATABASE_URL)
+	@if [ -z "$$DATABASE_URL" ]; then echo "❌ Please set DATABASE_URL for production migrations"; exit 1; fi
 	@echo "🗄️ Running database migrations (production)..."
-	@docker compose -f docker-compose.prod.yml exec backend npm run migration:run
+	@DATABASE_URL="$$DATABASE_URL" npm --prefix packages/backend run migration:run
 
 migrate-generate: ## Generate new migration
 	@echo "📝 Generating new migration..."
@@ -105,6 +115,66 @@ migrate-generate: ## Generate new migration
 migrate-revert: ## Revert last migration
 	@echo "⏪ Reverting last migration..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run migration:revert
+
+# Modal deployment
+# Local flow: make migrate-local && make deploy-modal-local
+# Prod flow: Set DATABASE_URL and MODAL_API_KEY, then make migrate-prod && make deploy-modal-prod
+deploy-modal-local: ## Deploy Modal workers against LOCAL DB (override DB_* to customize)
+	@echo "🪄 Deploying Modal workers (local DB)..."
+	@DB_USER=${DB_USERNAME:-postgres} \
+	DB_PASS=${DB_PASSWORD:-postgres} \
+	DB_PORT=${DB_PORT:-5433} \
+	DB_NAME=${DB_NAME:-postgres} \
+	DATABASE_URL=postgres://$$DB_USER:$$DB_PASS@127.0.0.1:$$DB_PORT/$$DB_NAME \
+	npm --prefix packages/backend run deploy:modal
+
+deploy-modal-local-force: ## Force redeploy Modal workers against LOCAL DB (ignores current deployment status)
+	@echo "🪄 Force deploying Modal workers (local DB)..."
+	@DB_USER=${DB_USERNAME:-postgres} \
+	DB_PASS=${DB_PASSWORD:-postgres} \
+	DB_PORT=${DB_PORT:-5433} \
+	DB_NAME=${DB_NAME:-postgres} \
+	DATABASE_URL=postgres://$$DB_USER:$$DB_PASS@127.0.0.1:$$DB_PORT/$$DB_NAME \
+	npm --prefix packages/backend run deploy:modal -- --force
+
+deploy-modal-prod: ## Deploy Modal workers against PROD DB (requires DATABASE_URL and MODAL_API_KEY)
+	@if [ -z "$$DATABASE_URL" ]; then echo "❌ Please set DATABASE_URL for production deployment"; exit 1; fi
+	@echo "🪄 Deploying Modal workers (prod DB)..."
+	@env -u DB_HOST -u DB_PORT -u DB_USERNAME -u DB_PASSWORD -u DB_NAME \
+	DATABASE_URL="$$DATABASE_URL" \
+	npm --prefix packages/backend run deploy:modal
+
+deploy-modal-prod-force: ## Force redeploy Modal workers against PROD DB (ignores current deployment status)
+	@if [ -z "$$DATABASE_URL" ]; then echo "❌ Please set DATABASE_URL for production deployment"; exit 1; fi
+	@echo "🪄 Force deploying Modal workers (prod DB)..."
+	@env -u DB_HOST -u DB_PORT -u DB_USERNAME -u DB_PASSWORD -u DB_NAME \
+	DATABASE_URL="$$DATABASE_URL" \
+	npm --prefix packages/backend run deploy:modal -- --force
+
+deploy-modal: ## Alias to deploy-modal-local (back-compat)
+	@$(MAKE) deploy-modal-local
+
+deploy-modal-docker: ## Deploy Modal workers inside backend container (requires Modal CLI in container)
+	@echo "🪄 Deploying Modal workers (docker exec)..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run deploy:modal
+
+deploy-modal-docker-force: ## Force redeploy Modal workers inside backend container (ignores current deployment status)
+	@echo "🪄 Force deploying Modal workers (docker exec)..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run deploy:modal -- --force
+
+sync-modal: ## Sync Modal deployments with database
+	@echo "🔄 Syncing Modal deployments with database..."
+	@DB_HOST=127.0.0.1 \
+	DB_PORT=${DB_PORT:-5432} \
+	DB_USERNAME=${DB_USERNAME:-postgres} \
+	DB_PASSWORD=${DB_PASSWORD:-postgres} \
+	DB_NAME=${DB_NAME:-postgres} \
+	DATABASE_URL=postgres://$${DB_USERNAME}:$${DB_PASSWORD}@$${DB_HOST}:$${DB_PORT}/$${DB_NAME} \
+	npm --prefix packages/backend run sync:modal
+
+sync-modal-docker: ## Sync Modal deployments with database (inside Docker)
+	@echo "🔄 Syncing Modal deployments with database (Docker)..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run sync:modal
 
 # Backup and restore
 backup: ## Create database backup
@@ -140,6 +210,34 @@ test-backend: ## Run backend tests
 test-frontend: ## Run frontend tests
 	@echo "🧪 Running frontend tests..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec frontend npm test
+
+# TypeScript commands
+type-check: ## Check TypeScript types across all packages
+	@echo "🔍 Checking TypeScript types..."
+	@yarn ts:check
+
+type-fix: ## Attempt to fix TypeScript errors automatically
+	@echo "🔧 Attempting to fix TypeScript errors..."
+	@echo "🎨 Running Prettier to fix formatting issues..."
+	@yarn prettier:fix
+	@echo "📦 Running ESLint with auto-fix on backend..."
+	@yarn workspace @carbon-aware-llm/backend lint --fix || true
+	@echo "📦 Running ESLint with auto-fix on frontend..."
+	@yarn workspace @carbon-aware-llm/frontend lint --fix || true
+	@echo "🔍 Final type check..."
+	@yarn ts:check || echo "⚠️  Some TypeScript errors may require manual intervention"
+	@echo "✅ Type fixing process completed"
+
+type-fix-docker: ## Fix TypeScript errors inside Docker containers
+	@echo "🔧 Fixing TypeScript errors (Docker)..."
+	@echo "📦 Backend: ESLint auto-fix..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run lint -- --fix || true
+	@echo "📦 Frontend: ESLint auto-fix..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec frontend npm run lint -- --fix || true
+	@echo "🎨 Formatting with Prettier..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run format || true
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec frontend npm run format || true
+	@echo "✅ Docker type fixing completed"
 
 # Utility commands
 status: ## Show service status

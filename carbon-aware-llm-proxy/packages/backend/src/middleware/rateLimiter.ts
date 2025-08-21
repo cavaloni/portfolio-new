@@ -10,12 +10,15 @@ const redisUrl = process.env.REDIS_URL || `redis://${redisHost}:${redisPort}`;
 
 // Check if we need TLS based on the URL scheme and port
 const urlObj = new URL(redisUrl);
-const needsTls = urlObj.protocol === "rediss:" || 
-                (urlObj.hostname.includes("upstash.io") && urlObj.port === "6380") ||
-                urlObj.hostname.includes("redis.cloud") ||
-                urlObj.hostname.includes("amazonaws.com");
+const needsTls =
+  urlObj.protocol === "rediss:" ||
+  (urlObj.hostname.includes("upstash.io") && urlObj.port === "6380") ||
+  urlObj.hostname.includes("redis.cloud") ||
+  urlObj.hostname.includes("amazonaws.com");
 
-logger.info(`Rate limiter Redis config - URL: ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@')}, TLS: ${needsTls}`);
+logger.info(
+  `Rate limiter Redis config - URL: ${redisUrl.replace(/\/\/[^:]*:[^@]*@/, "//[CREDENTIALS]@")}, TLS: ${needsTls}`,
+);
 
 const redisClient = new Redis(redisUrl, {
   enableOfflineQueue: false,
@@ -23,21 +26,23 @@ const redisClient = new Redis(redisUrl, {
     const delay = Math.min(times * 1000, 5000);
     return delay;
   },
-  tls: needsTls ? {
-    rejectUnauthorized: false, // Accept self-signed certificates for some services
-  } : undefined,
+  tls: needsTls
+    ? {
+        rejectUnauthorized: false, // Accept self-signed certificates for some services
+      }
+    : undefined,
   connectTimeout: 30000, // 30 second timeout
   lazyConnect: true, // Don't connect immediately
 });
 
 // Handle Redis connection events
 redisClient.on("error", (err: Error) => {
-  const sanitizedUrl = redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@');
+  const sanitizedUrl = redisUrl.replace(/\/\/[^:]*:[^@]*@/, "//[CREDENTIALS]@");
   logger.error(`Rate limiter Redis error connecting to ${sanitizedUrl}:`, err);
 });
 
 redisClient.on("connect", () => {
-  const sanitizedUrl = redisUrl.replace(/\/\/[^:]*:[^@]*@/, '//[CREDENTIALS]@');
+  const sanitizedUrl = redisUrl.replace(/\/\/[^:]*:[^@]*@/, "//[CREDENTIALS]@");
   logger.info(`Rate limiter Redis connected to ${sanitizedUrl}`);
 });
 

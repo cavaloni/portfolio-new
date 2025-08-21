@@ -110,7 +110,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             modelId: selectedModel.id,
             temperature: 0.7,
             maxTokens: 1000,
-            carbonAware: isCarbonAware,
+
           });
 
           if (response.error) {
