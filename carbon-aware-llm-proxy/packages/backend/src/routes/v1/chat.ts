@@ -190,24 +190,49 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
         // Handle mock deployment IDs
         let selectedModelForDisplay: string;
         let mockRegion: string;
+        let mockGreenWeight: number = greenWeight || 0; // Use the greenWeight from the request
         
         if (deploymentId.startsWith('mock-')) {
           // Parse mock deployment ID to extract model and region
-          const parts = deploymentId.split('-');
-          if (parts.length >= 3) {
+          // Format is: mock-<model-sanitized>-<region>
+          // Note: <region> itself can contain hyphens (e.g., "us-east", "ca-toronto-1")
+          const rest = deploymentId.replace(/^mock-/, '');
+          // Known mock regions used by the router
+          const knownRegions = [
+            'us-east',
+            'us-west',
+            'eu-west',
+            'ca-toronto-1',
+          ];
+          const matchedRegion = knownRegions.find(r => rest.endsWith(`-${r}`));
+          if (matchedRegion) {
+            mockRegion = matchedRegion;
+            const modelSanitized = rest.slice(0, rest.length - (matchedRegion.length + 1)); // strip "-<region>"
             // Reconstruct model ID (handle model IDs with slashes and dashes)
-            const modelParts = parts.slice(1, -1);
-            selectedModelForDisplay = modelParts.join('-').replace(/-/g, '/');
+            selectedModelForDisplay = modelSanitized.replace(/-/g, '/');
             // Fix common replacements
             selectedModelForDisplay = selectedModelForDisplay
               .replace(/mistralai\/mistral/g, 'mistralai/mistral')
               .replace(/databricks\/dbrx/g, 'databricks/dbrx')
               .replace(/meta\/llama/g, 'meta-llama')
               .replace(/tiiuae\/falcon/g, 'tiiuae/falcon');
-            mockRegion = parts[parts.length - 1];
           } else {
-            selectedModelForDisplay = model || "mistralai/ministral-8b";
-            mockRegion = "global";
+            // Fallback to legacy parsing (may be inaccurate for hyphenated regions)
+            const parts = rest.split('-');
+            if (parts.length >= 2) {
+              mockRegion = parts[parts.length - 1];
+              const modelSanitized = parts.slice(0, -1).join('-');
+              selectedModelForDisplay = modelSanitized.replace(/-/g, '/');
+            } else {
+              selectedModelForDisplay = model || 'mistralai/ministral-8b';
+              mockRegion = 'global';
+            }
+            // Apply the same fix-ups
+            selectedModelForDisplay = selectedModelForDisplay
+              .replace(/mistralai\/mistral/g, 'mistralai/mistral')
+              .replace(/databricks\/dbrx/g, 'databricks/dbrx')
+              .replace(/meta\/llama/g, 'meta-llama')
+              .replace(/tiiuae\/falcon/g, 'tiiuae/falcon');
           }
         } else {
           // Real deployment - get from database
@@ -271,8 +296,8 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
 
-        // Get realistic carbon intensity for the mock region
-        const carbonIntensity = await carbonService.getCarbonIntensity(mockRegion);
+        // Get preference-based carbon intensity for the mock region
+        const carbonIntensity = await carbonService.getCarbonIntensityWithPreferences(mockRegion, mockGreenWeight);
 
         // Send metadata as the first event (show the selected model for display)
         const metadata = {

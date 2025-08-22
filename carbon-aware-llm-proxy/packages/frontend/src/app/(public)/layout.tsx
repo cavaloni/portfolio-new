@@ -45,7 +45,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
       </head>
       <body
         className={cn(
-          "min-h-screen bg-background font-sans antialiased flex flex-col",
+          "glass-theme min-h-screen bg-background font-sans antialiased flex flex-col",
           inter.variable,
         )}
       >

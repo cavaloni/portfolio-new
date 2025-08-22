@@ -17,13 +17,20 @@ export function getQuadrantFromPosition(x: number, y: number): QuadrantName {
 }
 
 /**
- * Normalizes coordinates to ensure they stay within bounds [-1, 1]
+ * Normalizes coordinates to ensure they stay within circular bounds (radius = 1)
  */
 export function normalizeCoordinates(x: number, y: number): Position {
-  return {
-    x: Math.max(-1, Math.min(1, x)),
-    y: Math.max(-1, Math.min(1, y)),
-  };
+  const distance = Math.sqrt(x * x + y * y);
+  
+  // If outside the circle, project to the circle edge
+  if (distance > 1.2) {
+    return {
+      x: x / distance,
+      y: y / distance,
+    };
+  }
+  
+  return { x, y };
 }
 
 /**
@@ -47,33 +54,68 @@ export function screenToNormalized(
 /**
  * Gets quadrant configuration data
  */
+export const COMPASS_CONFIG = {
+  north: {
+    name: "north",
+    label: "Speed",
+    color: "text-blue-400",
+    position: "top-1 left-1/2 -translate-x-1/2",
+  },
+  east: {
+    name: "east", 
+    label: "Quality",
+    color: "text-purple-400",
+    position: "right-1 top-1/2 -translate-y-1/2 rotate-90",
+  },
+  south: {
+    name: "south",
+    label: "Cost", 
+    color: "text-orange-400",
+    position: "bottom-1 left-1/2 -translate-x-1/2",
+  },
+  west: {
+    name: "west",
+    label: "Green",
+    color: "text-green-400",
+    position: "left-1 top-1/2 -translate-y-1/2 -rotate-90",
+  },
+  center: {
+    name: "center",
+    label: "Balanced",
+    color: "text-gray-400",
+    position: "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+  },
+} as const;
+
+// Keep QUADRANT_CONFIG for backward compatibility but mark as deprecated
+/** @deprecated Use COMPASS_CONFIG instead */
 export const QUADRANT_CONFIG = {
   topLeft: {
     name: "topLeft",
-    label: "Trust",
-    color: "text-red-400",
-    gradient: "from-red-500/20 to-red-600/10",
+    label: "Speed",
+    color: "text-blue-400",
+    gradient: "from-blue-500/20 to-blue-600/10",
     position: { top: "top-2", left: "left-2" },
   },
   topRight: {
     name: "topRight",
-    label: "Performance",
+    label: "Quality",
     color: "text-purple-400",
     gradient: "from-purple-500/20 to-purple-600/10",
     position: { top: "top-2", right: "right-2" },
   },
   bottomLeft: {
     name: "bottomLeft",
-    label: "Efficiency",
+    label: "Green",
     color: "text-green-400",
     gradient: "from-green-500/20 to-green-600/10",
     position: { bottom: "bottom-2", left: "left-2" },
   },
   bottomRight: {
     name: "bottomRight",
-    label: "Simplicity",
-    color: "text-blue-400",
-    gradient: "from-blue-500/20 to-blue-600/10",
+    label: "Cost",
+    color: "text-orange-400",
+    gradient: "from-orange-500/20 to-orange-600/10",
     position: { bottom: "bottom-2", right: "right-2" },
   },
   center: {

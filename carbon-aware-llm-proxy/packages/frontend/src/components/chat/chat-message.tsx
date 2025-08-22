@@ -61,15 +61,15 @@ export function ChatMessage({
   const getAvatar = () => {
     if (isCurrentUser) {
       return (
-        <Avatar className="h-8 w-8">
-          <AvatarFallback>You</AvatarFallback>
+        <Avatar className="h-10 w-10 glass-glow">
+          <AvatarFallback className="glass text-primary font-semibold">You</AvatarFallback>
         </Avatar>
       );
     }
 
     return (
-      <Avatar className="h-8 w-8 bg-primary/10 text-primary">
-        <AvatarFallback>
+      <Avatar className="h-10 w-10 bg-primary/10 text-primary glass-glow">
+        <AvatarFallback className="glass-strong text-primary font-semibold">
           {message.role === MessageRole.Assistant ? "AI" : "Sys"}
         </AvatarFallback>
       </Avatar>
@@ -153,12 +153,12 @@ export function ChatMessage({
     if (!isHovered || isEditing) return null;
 
     return (
-      <div className="absolute -top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm rounded-full p-1 shadow-sm border">
+      <div className="absolute -top-2 right-3 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity glass-strong rounded-2xl p-2 shadow-lg">
         {!isCurrentUser && onRegenerate && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6"
+            className="h-7 w-7 glass-hover rounded-xl"
             onClick={onRegenerate}
             title="Regenerate response"
           >
@@ -169,7 +169,7 @@ export function ChatMessage({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6"
+            className="h-7 w-7 glass-hover rounded-xl"
             onClick={handleEdit}
             title="Edit message"
           >
@@ -180,7 +180,7 @@ export function ChatMessage({
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 text-destructive hover:text-destructive"
+            className="h-7 w-7 glass-hover rounded-xl text-destructive hover:text-destructive"
             onClick={onDelete}
             title="Delete message"
           >
@@ -194,8 +194,10 @@ export function ChatMessage({
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-4 py-4 px-4",
-        isCurrentUser ? "bg-muted/50" : "bg-background",
+        "group relative flex items-start gap-4 py-6 px-6 mx-4 my-3",
+        isCurrentUser 
+          ? "glass glass-hover glass-glow ml-8" 
+          : "glass-panel glass-hover mr-8",
         className,
       )}
       onMouseEnter={() => setIsHovered(true)}

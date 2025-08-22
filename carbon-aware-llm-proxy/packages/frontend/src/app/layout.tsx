@@ -27,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-background`}>
+      <body className={`${inter.className} glass-theme min-h-screen bg-background`}>
         <Providers
           attribute="class"
           defaultTheme="system"
@@ -43,7 +43,7 @@ export default function RootLayout({
                   Built with ❤️ for a greener AI future
                 </p>
                 <p className="text-center text-sm text-muted-foreground md:text-right">
-                  © {new Date().getFullYear()} Carbon-Aware LLM
+                  © {new Date().getFullYear()} Routly
                 </p>
               </div>
             </footer>

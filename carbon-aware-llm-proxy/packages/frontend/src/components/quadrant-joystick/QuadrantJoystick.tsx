@@ -159,6 +159,18 @@ export const QuadrantJoystick: React.FC<QuadrantJoystickProps> = ({
   const knobX = (position.x + 1) * 50;
   const knobY = (1 - position.y) * 50;
 
+  // Calculate which compass direction is most active for enhanced glow
+  const distance = Math.sqrt(position.x * position.x + position.y * position.y);
+  const normalizedDistance = Math.min(distance, 1);
+  const glowIntensity = normalizedDistance * 0.5; // Max 30% opacity
+  
+  const compassIntensity = {
+    north: Math.max(0, position.y) * glowIntensity,
+    east: Math.max(0, position.x) * glowIntensity,
+    south: Math.max(0, -position.y) * glowIntensity,
+    west: Math.max(0, -position.x) * glowIntensity,
+  };
+
   // Handle hover tooltips
   const handleMouseEnter = (quadrant: QuadrantName) => {
     if (disabled) return;
@@ -183,7 +195,7 @@ export const QuadrantJoystick: React.FC<QuadrantJoystickProps> = ({
       <div
         ref={containerRef}
         className={cn(
-          "relative rounded-lg border border-border bg-card",
+          "relative rounded-full border-2 border-border bg-card",
           "transition-all duration-300",
           disabled && "opacity-50 cursor-not-allowed",
           !disabled && "cursor-crosshair hover:shadow-lg",
@@ -192,36 +204,109 @@ export const QuadrantJoystick: React.FC<QuadrantJoystickProps> = ({
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
       >
-        {/* Grid Background */}
-        <div
-          className="absolute inset-0 rounded-lg opacity-30"
-          style={gridStyle}
+        {/* Circular Background with subtle pattern */}
+        <div 
+          className="absolute inset-1 rounded-full opacity-40"
+          style={{
+            background: 'radial-gradient(circle, rgba(148, 163, 184, 0.1) 0%, transparent 70%)'
+          }}
         />
 
-        {/* Quadrant Gradients */}
-        <div className="absolute inset-0 rounded-lg overflow-hidden">
-          <div className="absolute top-0 left-0 w-1/2 h-1/2 bg-gradient-to-br from-red-500/10 to-transparent" />
-          <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-gradient-to-bl from-purple-500/10 to-transparent" />
-          <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-gradient-to-tr from-green-500/10 to-transparent" />
-          <div className="absolute bottom-0 right-0 w-1/2 h-1/2 bg-gradient-to-tl from-blue-500/10 to-transparent" />
+        {/* Compass Gradients - Enhanced visibility */}
+        <div className="absolute inset-0 rounded-full overflow-hidden">
+          {/* North - Speed (Blue) */}
+          <div 
+            className="absolute w-full h-1/2 top-0"
+            style={{
+              background: 'radial-gradient(ellipse 80% 60% at 50% 100%, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.08) 40%, transparent 80%)',
+              clipPath: 'polygon(20% 100%, 80% 100%, 60% 0%, 40% 0%)'
+            }}
+          />
+          {/* East - Quality (Purple) */}
+          <div 
+            className="absolute w-1/2 h-full right-0"
+            style={{
+              background: 'radial-gradient(ellipse 60% 80% at 0% 50%, rgba(147, 51, 234, 0.15) 0%, rgba(147, 51, 234, 0.08) 40%, transparent 80%)',
+              clipPath: 'polygon(0% 20%, 0% 80%, 100% 60%, 100% 40%)'
+            }}
+          />
+          {/* South - Cost (Orange) */}
+          <div 
+            className="absolute w-full h-1/2 bottom-0"
+            style={{
+              background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0.08) 40%, transparent 80%)',
+              clipPath: 'polygon(40% 100%, 60% 100%, 80% 0%, 20% 0%)'
+            }}
+          />
+          {/* West - Green (Green) */}
+          <div 
+            className="absolute w-1/2 h-full left-0"
+            style={{
+              background: 'radial-gradient(ellipse 60% 80% at 100% 50%, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.08) 40%, transparent 80%)',
+              clipPath: 'polygon(100% 40%, 100% 60%, 0% 80%, 0% 20%)'
+            }}
+          />
         </div>
 
-        {/* Center Lines */}
-        <div className="absolute top-1/2 left-0 right-0 h-px bg-border -translate-y-1/2" />
-        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border -translate-x-1/2" />
+        {/* Dynamic glow effect that responds to knob position */}
+        <div className="absolute inset-0 rounded-full overflow-hidden">
+          {/* North glow */}
+          <div 
+            className="absolute top-0 left-1/2 w-20 h-10 -translate-x-1/2 rounded-full blur-md transition-opacity duration-300"
+            style={{
+              backgroundColor: `rgba(59, 130, 246, ${0.1 + compassIntensity.north})`,
+              transform: `translateX(-50%) scale(${1 + compassIntensity.north})`,
+            }}
+          />
+          {/* East glow */}
+          <div 
+            className="absolute right-0 top-1/2 w-10 h-20 -translate-y-1/2 rounded-full blur-md transition-opacity duration-300"
+            style={{
+              backgroundColor: `rgba(147, 51, 234, ${0.1 + compassIntensity.east})`,
+              transform: `translateY(-50%) scale(${1 + compassIntensity.east})`,
+            }}
+          />
+          {/* South glow */}
+          <div 
+            className="absolute bottom-0 left-1/2 w-20 h-10 -translate-x-1/2 rounded-full blur-md transition-opacity duration-300"
+            style={{
+              backgroundColor: `rgba(249, 115, 22, ${0.1 + compassIntensity.south})`,
+              transform: `translateX(-50%) scale(${1 + compassIntensity.south})`,
+            }}
+          />
+          {/* West glow */}
+          <div 
+            className="absolute left-0 top-1/2 w-10 h-20 -translate-y-1/2 rounded-full blur-md transition-opacity duration-300"
+            style={{
+              backgroundColor: `rgba(34, 197, 94, ${0.1 + compassIntensity.west})`,
+              transform: `translateY(-50%) scale(${1 + compassIntensity.west})`,
+            }}
+          />
+        </div>
 
-        {/* Quadrant Labels */}
-        <div className="absolute top-2 left-2 text-xs font-medium text-red-400 opacity-70">
-          Trust
+        {/* Compass Crosshairs */}
+        <div className="absolute top-1/2 left-2 right-2 h-px bg-border/60 -translate-y-1/2" />
+        <div className="absolute left-1/2 top-2 bottom-2 w-px bg-border/60 -translate-x-1/2" />
+        
+        {/* Center dot */}
+        <div className="absolute top-1/2 left-1/2 w-1 h-1 bg-border rounded-full -translate-x-1/2 -translate-y-1/2" />
+
+        {/* Compass Labels */}
+        {/* North - Speed */}
+        <div className="absolute top-1 left-1/2 -translate-x-1/2 text-xs font-medium text-blue-400 opacity-80">
+          Speed
         </div>
-        <div className="absolute top-2 right-2 text-xs font-medium text-purple-400 opacity-70">
-          Performance
+        {/* East - Quality */}
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 text-xs font-medium text-purple-400 opacity-80 origin-center rotate-90">
+          Quality
         </div>
-        <div className="absolute bottom-2 left-2 text-xs font-medium text-green-400 opacity-70">
-          Efficiency
+        {/* South - Cost */}
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-xs font-medium text-orange-400 opacity-80">
+          Cost
         </div>
-        <div className="absolute bottom-2 right-2 text-xs font-medium text-blue-400 opacity-70">
-          Simplicity
+        {/* West - Green */}
+        <div className="absolute left-1 top-1/2 -translate-y-1/2 text-xs font-medium text-green-400 opacity-80 origin-center -rotate-90">
+          Green
         </div>
 
         {/* Joystick Knob */}

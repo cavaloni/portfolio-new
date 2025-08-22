@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 type SiteHeaderProps = {
   className?: string;
@@ -12,17 +13,19 @@ type SiteHeaderProps = {
 export function SiteHeader({ className }: SiteHeaderProps) {
   const { theme, setTheme } = useTheme();
 
+  const router = useRouter();
+
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "sticky top-0 z-40 w-full glass-strong border-b",
         className,
       )}
     >
       <div className="container flex h-14 items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="font-bold">Carbon-Aware LLM Proxy</span>
+            <span className="font-bold">Routly</span>
           </Link>
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link
@@ -31,12 +34,15 @@ export function SiteHeader({ className }: SiteHeaderProps) {
             >
               Chat
             </Link>
-            <Link
-              href="/settings"
-              className="transition-colors hover:text-foreground/80 text-foreground/60"
+            <Button
+              variant="outline"
+              size="sm"
+              className="glass glass-hover"
+              onClick={() => router.push("/settings")}
             >
+              <Settings className="h-4 w-4 mr-2" />
               Settings
-            </Link>
+            </Button>
           </nav>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">

@@ -20,6 +20,8 @@ import { QuadrantJoystick } from "@/components/quadrant-joystick";
 import { QuadrantPosition } from "@/components/quadrant-joystick/QuadrantJoystick.types";
 import { TimeoutHandler } from "@/components/chat/timeout-handler";
 import { ChatProgressIndicator } from "@/components/chat/chat-progress";
+import { BackgroundFog } from "@/components/background-fog";
+import { Globe } from "@/components/globe";
 import { Message, MessageRole } from "@/types/chat";
 import { cn } from "@/lib/utils";
 
@@ -338,36 +340,23 @@ export default function ChatPage() {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <h1 className="text-xl font-bold">Carbon-Aware Chat</h1>
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/settings")}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 overflow-hidden flex">
+    <div className="flex flex-col h-screen bg-background relative">
+      {/* Dynamic background fog effect */}
+      <BackgroundFog joystickPosition={joystickPosition} />
+      
+      <main className="flex-1 overflow-hidden flex relative z-10">
         {/* Left sidebar with joystick and status */}
-        <div className="w-80 border-r bg-muted/50 p-4 space-y-4">
+        <div className="w-80 glass-panel border-r-0 p-6 space-y-6 m-4 mr-0 glass-glow">
           {/* Joystick */}
-          <div>
-            <h3 className="text-sm font-medium mb-3">AI Preferences</h3>
+          <div className="glass glass-hover p-5">
+            <h3 className="text-sm font-semibold mb-4 text-primary">AI Preferences</h3>
             <div className="flex justify-center">
               <QuadrantJoystick
                 onChange={handleJoystickChange}
                 defaultPosition={{ x: 0, y: 0 }}
                 size={180}
                 showCoordinates={false}
-                className="border rounded-lg bg-background"
+                className="glass-glow"
               />
             </div>
             <div className="text-xs text-muted-foreground mt-2 text-center">
@@ -380,8 +369,8 @@ export default function ChatPage() {
           </div>
 
           {/* Deployment Status */}
-          <div>
-            <h3 className="text-sm font-medium mb-3">Deployment Status</h3>
+          <div className="glass glass-hover p-5">
+            <h3 className="text-sm font-semibold mb-4 text-primary">Deployment Status</h3>
 
             {routingStatus.isRouting && (
               <Alert>
@@ -399,17 +388,20 @@ export default function ChatPage() {
             )}
 
             {currentDeployment && (
-              <div className="p-3 border rounded-lg bg-background">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="glass-strong p-4 glass-glow">
+                <div className="flex items-center gap-2 mb-3">
                   {getPreferenceIcon(
                     routingService.getPreferenceFromJoystick(joystickPosition),
                   )}
                   <Badge
                     variant="secondary"
-                    className={getPreferenceColor(
-                      routingService.getPreferenceFromJoystick(
-                        joystickPosition,
-                      ),
+                    className={cn(
+                      "glass-hover rounded-xl",
+                      getPreferenceColor(
+                        routingService.getPreferenceFromJoystick(
+                          joystickPosition,
+                        ),
+                      )
                     )}
                   >
                     {routingService.formatRegion(currentDeployment.region)}
@@ -441,41 +433,61 @@ export default function ChatPage() {
               )}
           </div>
 
+          {/* Globe - Model Location */}
+          <div className="glass glass-hover p-5">
+            <h3 className="text-sm font-semibold mb-4 text-primary">Model Location</h3>
+            <div className="flex justify-center">
+              <Globe
+                activeRegion={currentDeployment?.region}
+                size={180}
+                isLoading={routingStatus.isRouting}
+                className="glass-glow"
+                autoRotate={true}
+                rotationSpeed={0.015}
+                preference={routingService.getPreferenceFromJoystick(joystickPosition)}
+              />
+            </div>
+          </div>
+
           {/* Preference Guide */}
-          <div className="text-xs text-muted-foreground space-y-1 pt-4 border-t">
-            <p className="font-medium mb-2">Joystick Guide:</p>
-            <p>
-              <span className="font-medium">←</span> Green (Low Carbon)
-            </p>
-            <p>
-              <span className="font-medium">→</span> Quality (Best Model)
-            </p>
-            <p>
-              <span className="font-medium">↑</span> Speed (Fast Response)
-            </p>
-            <p>
-              <span className="font-medium">↓</span> Cost (Economical)
-            </p>
+          <div className="glass p-4 text-xs text-muted-foreground space-y-2">
+            <p className="font-semibold mb-3 text-primary">Joystick Guide:</p>
+            <div className="space-y-2">
+              <p className="flex items-center gap-2">
+                <span className="font-medium text-green-400">←</span> Green (Low Carbon)
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="font-medium text-purple-400">→</span> Quality (Best Model)
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="font-medium text-blue-400">↑</span> Speed (Fast Response)
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="font-medium text-orange-400">↓</span> Cost (Economical)
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Chat area */}
         <div className="flex-1 flex flex-col">
-          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto">
+          <div ref={messagesContainerRef} className="flex-1 overflow-y-auto pb-8 pt-8">
             <div className="max-w-4xl mx-auto">
               {messages.length === 0 ? (
-                <div className="h-[60vh] flex flex-col items-center justify-center text-center p-8">
-                  <div className="bg-primary/10 p-4 rounded-full mb-4">
-                    <MessageSquare className="h-8 w-8 text-primary" />
+                <div className="h-[50vh] flex flex-col items-center justify-center text-center p-8">
+                  <div className="glass-strong glass-glow p-6 rounded-full mb-6">
+                    <MessageSquare className="h-10 w-10 text-primary" />
                   </div>
-                  <h2 className="text-2xl font-bold mb-2">
+                  <h2 className="text-3xl font-bold mb-4 text-primary">
                     How can I help you today?
                   </h2>
-                  <p className="text-muted-foreground max-w-md">
-                    Adjust the joystick to set your AI preferences, then start
-                    chatting. I'll route your request to the optimal model based
-                    on your settings.
-                  </p>
+                  <div className="glass p-6 max-w-lg rounded-3xl">
+                    <p className="text-muted-foreground">
+                      🎯 Adjust the joystick to set your AI preferences, then start
+                      chatting. I'll route your request to the optimal model based
+                      on your settings for the perfect balance of speed, quality, cost, and environmental impact.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 messages.map((message) => (
@@ -521,8 +533,8 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Input area */}
-          <div className="border-t bg-background/80 backdrop-blur-sm p-4">
+          {/* Input area - enhanced with glassmorphism */}
+          <div className="glass-panel border-0 m-4 mt-0 p-6 glass-glow">
             <div className="max-w-4xl mx-auto">
               <ChatInput
                 onSendMessage={handleSendMessage}
@@ -535,14 +547,17 @@ export default function ChatPage() {
                     : "Type your message..."
                 }
               />
-              <div className="mt-2 text-xs text-muted-foreground text-center">
+              <div className="mt-3 text-xs text-muted-foreground text-center">
                 <p>
-                  Carbon-aware AI assistant - Intelligently routed to minimize
+                  🌱 Carbon-aware AI assistant - Intelligently routed to minimize
                   environmental impact
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Add some bottom spacing */}
+          <div className="h-16"></div>
         </div>
       </main>
     </div>

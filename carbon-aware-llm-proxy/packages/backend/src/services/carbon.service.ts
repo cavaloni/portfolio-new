@@ -161,6 +161,83 @@ class CarbonService {
     return 50 + (hash % 450);
   }
 
+  // Get carbon intensity with user preference weighting (for mock routing)
+  async getCarbonIntensityWithPreferences(
+    region: string, 
+    greenWeight: number = 0
+  ): Promise<number> {
+    // Use cache key that includes preference weight
+    const cacheKey = `carbon:${region}:intensity:green:${greenWeight.toFixed(2)}`;
+
+    // Try to get from cache first
+    try {
+      const cached = await redisService.get(cacheKey);
+      if (cached !== null) {
+        return cached.value;
+      }
+    } catch (error) {
+      logger.error("Redis cache error:", error);
+    }
+
+    // Calculate preference-based carbon intensity
+    let carbonIntensity: number;
+    
+    if (this.useMockData || !this.electricityMapApiKey) {
+      carbonIntensity = this.getMockCarbonIntensityWithPreferences(region, greenWeight);
+    } else {
+      // For real API data, we'd still apply preference weighting
+      try {
+        const baseIntensity = await this.getCarbonIntensity(region);
+        carbonIntensity = this.applyPreferenceWeighting(baseIntensity, greenWeight);
+      } catch (error) {
+        carbonIntensity = this.getMockCarbonIntensityWithPreferences(region, greenWeight);
+      }
+    }
+
+    // Cache the result
+    await redisService.set(
+      cacheKey,
+      { value: carbonIntensity },
+      CACHE_TTL.CARBON_INTENSITY,
+    );
+
+    return carbonIntensity;
+  }
+
+  // Get mock carbon intensity based on region and user preferences
+  private getMockCarbonIntensityWithPreferences(region: string, greenWeight: number): number {
+    // Base regional carbon intensity (varies by region)
+    const regionalVariation = this.getMockCarbonIntensity(region);
+    
+    // Best case: 200 gCO2eq/kWh (when fully green)
+    // Worst case: 526 gCO2eq/kWh (when fully performance-focused)
+    const bestCarbon = 200;
+    const worstCarbon = 526;
+    
+    // Interpolate based on green weight
+    // greenWeight: 1.0 = fully green (use best)
+    // greenWeight: 0.0 = not green (use worst)
+    const preferenceBasedCarbon = worstCarbon - (greenWeight * (worstCarbon - bestCarbon));
+    
+    // Blend with regional variation (60% preference, 40% regional)
+    const blendedCarbon = (preferenceBasedCarbon * 0.6) + (regionalVariation * 0.4);
+    
+    // Ensure we stay within realistic bounds
+    return Math.round(Math.max(150, Math.min(600, blendedCarbon)));
+  }
+
+  // Apply preference weighting to real carbon intensity data
+  private applyPreferenceWeighting(baseIntensity: number, greenWeight: number): number {
+    // For real data, we simulate that green-conscious users get routed to 
+    // cleaner energy sources, while performance-focused users might get
+    // less optimal routing
+    const adjustmentFactor = 0.3; // 30% adjustment range
+    const adjustment = (0.5 - greenWeight) * adjustmentFactor;
+    
+    const adjustedIntensity = baseIntensity * (1 + adjustment);
+    return Math.round(Math.max(50, adjustedIntensity));
+  }
+
   // Get WattTime authentication token with caching
   private async getWattTimeToken(): Promise<string | null> {
     const cacheKey = "watttime:token";
