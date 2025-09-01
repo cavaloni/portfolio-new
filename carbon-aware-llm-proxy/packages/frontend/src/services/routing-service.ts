@@ -112,7 +112,14 @@ export const routingService = {
       "us-west": "US West",
       "ca-toronto-1": "Toronto",
       "eu-west": "EU West",
-      "ap-southeast": "Asia Pacific",
+      "eu-central": "EU Central",
+      "ap-northeast": "Asia Pacific Northeast",
+      "ap-southeast": "Asia Pacific Southeast",
+      "ap-south": "Asia Pacific South",
+      "sa-east": "South America East",
+      "af-south": "Africa South",
+      "me-south": "Middle East South",
+      "us-central": "US Central",
     };
 
     return regionMap[region] || region;

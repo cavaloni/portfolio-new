@@ -23,7 +23,7 @@ export function normalizeCoordinates(x: number, y: number): Position {
   const distance = Math.sqrt(x * x + y * y);
   
   // If outside the circle, project to the circle edge
-  if (distance > 1.2) {
+  if (distance > 1) {
     return {
       x: x / distance,
       y: y / distance,

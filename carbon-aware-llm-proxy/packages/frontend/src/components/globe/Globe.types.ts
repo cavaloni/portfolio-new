@@ -1,24 +1,31 @@
 export interface GlobeConfig {
-  devicePixelRatio?: number;
+  // react-globe.gl configurations
   width?: number;
   height?: number;
-  phi?: number;
-  theta?: number;
-  dark?: number;
-  diffuse?: number;
-  mapSamples?: number;
-  mapBrightness?: number;
-  baseColor?: [number, number, number];
-  markerColor?: [number, number, number];
-  glowColor?: [number, number, number];
-  markers?: GlobeMarker[];
-  onRender?: (state: any) => void;
+  backgroundColor?: string;
+  showAtmosphere?: boolean;
+  atmosphereColor?: string;
+  atmosphereAltitude?: number;
+  enablePointerInteraction?: boolean;
+  animateIn?: boolean;
 }
 
 export interface GlobeMarker {
   location: [number, number]; // [latitude, longitude]
   size: number;
   color?: [number, number, number];
+  icon?: string; // Path to icon file
+  modelId?: string; // LLM model identifier
+  name?: string; // Display name
+}
+
+export interface ModelData {
+  modelId: string;
+  scoreQuality: number;
+  scoreCost: number;
+  scoreSpeed: number;
+  scoreGreen: number;
+  icon: string;
 }
 
 export interface RegionCoordinates {
@@ -60,6 +67,14 @@ export interface GlobeProps {
    * Current preference to determine marker color
    */
   preference?: string;
+
+  /**
+   * Currently selected model info from backend deployment
+   */
+  selectedModel?: {
+    id: string;
+    region: string | null;
+  } | null;
 }
 
 export interface GlobeState {

@@ -88,8 +88,8 @@ export const chatService = {
   ): Promise<{ message: Message | null; metadata: { usedFallback: boolean; fallbackIndex?: number } }> {
     const { temperature = 0.7, maxTokens = 1000, onProgress, timeoutOverride } = options;
 
-    // Calculate green weight from joystick position
-    const greenWeight = Math.max(0, -joystickPosition.x);
+    // Calculate green weight from joystick position (clamped to 0..1)
+    const greenWeight = Math.min(1, Math.max(0, -joystickPosition.x));
 
     // Prepare fallback chain
     const fallbackIds = routing.fallbackOptions.slice(0, 3).map(f => f.id); // Limit to top 3

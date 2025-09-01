@@ -57,41 +57,41 @@ export function ChatProgressIndicator({ progress }: ChatProgressIndicatorProps) 
   };
 
   return (
-    <Alert variant={getVariant()} className="mb-4">
+    <Alert
+      variant={getVariant()}
+      className="mt-[-6px] mx-4 md:mx-8 rounded-t-none rounded-b-xl border border-transparent border-l-2 border-l-primary/30 bg-transparent text-muted-foreground p-2 pl-3 shadow-none"
+    >
       {getStatusIcon()}
-      <AlertDescription className="flex items-center justify-between">
+      <AlertDescription className="flex items-center justify-between gap-3 text-xs">
         <div className="flex-1">
-          <p className="font-medium">{progress.message}</p>
+          {progress.status !== 'ready' && progress.message && (
+            <p className="font-normal">{progress.message}</p>
+          )}
           {progress.estimatedWait && progress.estimatedWait > 5000 && (
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-0.5">
               Estimated wait: ~{Math.round(progress.estimatedWait / 1000)}s
             </p>
           )}
           {progress.usedFallback && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Switched to fallback option for faster response
-            </p>
+            <p className="mt-0.5">Switched to fallback option for faster response</p>
           )}
         </div>
-        
+
         {progress.deployment && (
-          <div className="flex items-center gap-2 ml-4">
-            <Badge 
-              variant="outline" 
-              className="flex items-center gap-1"
-            >
+          <div className="flex items-center gap-1.5 ml-2 whitespace-nowrap">
+            <Badge variant="outline" className="flex items-center gap-1 text-[10px] py-0.5">
               {getModelIcon(progress.deployment.modelId)}
               {progress.deployment.modelId}
             </Badge>
             {progress.deployment.region && (
-              <Badge variant="secondary">
+              <Badge variant="secondary" className="text-[10px] py-0.5">
                 {progress.deployment.region}
               </Badge>
             )}
             {progress.deployment.co2_g_per_kwh > 0 && (
-              <Badge 
-                variant="outline" 
-                className="text-xs"
+              <Badge
+                variant="outline"
+                className="text-[10px] py-0.5"
                 title="Carbon intensity"
               >
                 {progress.deployment.co2_g_per_kwh}g CO₂/kWh

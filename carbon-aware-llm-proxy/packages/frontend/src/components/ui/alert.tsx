@@ -1,5 +1,5 @@
-import * as React from "react";
 import { cn } from "@/lib/utils";
+import * as React from "react";
 
 const Alert = React.forwardRef<
   HTMLDivElement,
@@ -11,13 +11,13 @@ const Alert = React.forwardRef<
     ref={ref}
     role="alert"
     className={cn(
-      "relative w-full rounded-lg border p-4",
+      "relative w-full rounded-lg p-4",
       {
         "bg-background text-foreground": variant === "default",
         "border-destructive/50 text-destructive dark:border-destructive":
           variant === "destructive",
       },
-      className,
+      className
     )}
     {...props}
   />

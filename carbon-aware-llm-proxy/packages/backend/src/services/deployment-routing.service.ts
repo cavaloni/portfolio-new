@@ -120,12 +120,39 @@ export async function selectDeploymentAndWarm(input: {
     input.weights ??
     joystickToWeights(input.joystick?.x ?? 0, input.joystick?.y ?? 0);
 
-  // Helper to compute base score
-  const baseScore = (d: ModelDeployment) =>
-    (d.scoreCost / 100) * w.cost +
-    (d.scoreSpeed / 100) * w.speed +
-    (d.scoreQuality / 100) * w.quality +
-    (d.scoreGreen / 100) * w.green;
+  // Helper to compute base score with carbon intensity weighting
+  const baseScore = async (d: ModelDeployment) => {
+    let score = (d.scoreCost / 100) * w.cost +
+               (d.scoreSpeed / 100) * w.speed +
+               (d.scoreQuality / 100) * w.quality +
+               (d.scoreGreen / 100) * w.green;
+
+    // Add carbon intensity factor for green preferences
+    if (w.green > 0.3) {
+      try {
+        const carbonIntensity = await carbonService.getCarbonIntensity(d.region || "us-east");
+        // Lower carbon intensity = better score for green preferences
+        // Normalize carbon intensity (assuming range 80-800 gCO2eq/kWh for mock diversity)
+        const normalizedCarbon = Math.max(0, Math.min(1, (carbonIntensity - 80) / 720));
+        // Invert so lower carbon = higher score
+        const carbonScore = (1 - normalizedCarbon) * w.green * 1.5; // Increased for better mock diversity
+        score += carbonScore;
+        
+        // Debug logging for carbon scores
+        console.log(`🌱 Carbon score for ${d.region}:`, {
+          region: d.region,
+          carbonIntensity,
+          normalizedCarbon,
+          carbonScore,
+          totalScore: score
+        });
+      } catch (error) {
+        console.warn('Failed to get carbon intensity for region:', d.region);
+      }
+    }
+
+    return score;
+  };
 
   // Ideal without cold penalty (pure preference)
   const candidates = deployments.filter((d) => {
@@ -148,8 +175,8 @@ export async function selectDeploymentAndWarm(input: {
   let ideal = candidates[0];
   let idealScore = -Infinity;
   for (const d of candidates) {
-    const score =
-      baseScore(d) + (input.region && d.region === input.region ? 0.05 : 0);
+    const baseScoreValue = await baseScore(d);
+    const score = baseScoreValue + (input.region && d.region === input.region ? 0.05 : 0);
     if (score > idealScore) {
       ideal = d;
       idealScore = score;
@@ -212,8 +239,8 @@ export async function selectDeploymentAndWarm(input: {
       let bestWarmScore = -Infinity;
       for (const d of candidates) {
         if (!warmById.get(d.id)) continue;
-        const score =
-          baseScore(d) + (input.region && d.region === input.region ? 0.05 : 0);
+        const baseScoreValue = await baseScore(d);
+        const score = baseScoreValue + (input.region && d.region === input.region ? 0.05 : 0);
         if (score > bestWarmScore) {
           bestWarm = d;
           bestWarmScore = score;
@@ -241,11 +268,12 @@ export async function selectDeploymentAndWarm(input: {
   const fallbackOptions: FallbackOption[] = [];
   for (const d of candidates) {
     if (d.id === chosen.id) continue; // Skip the chosen deployment
-    
-    const score = baseScore(d) + (input.region && d.region === input.region ? 0.05 : 0);
+
+    const baseScoreValue = await baseScore(d);
+    const score = baseScoreValue + (input.region && d.region === input.region ? 0.05 : 0);
     const isWarm = warmById.get(d.id) || false;
     const co2 = await carbonService.getCarbonIntensity(d.region || "us-east");
-    
+
     fallbackOptions.push({
       id: d.id,
       appName: d.appName,
@@ -359,7 +387,7 @@ function dominantPreferenceFromWeights(w: Weights): "green" | "speed" | "quality
   return entries[0][0] as any;
 }
 
-async function selectMockDeploymentAndWarm(input: {
+export async function selectMockDeploymentAndWarm(input: {
   joystick?: Joystick;
   weights?: Weights;
   region?: string;
@@ -392,7 +420,11 @@ async function selectMockDeploymentAndWarm(input: {
     dominantPreference: dominantPreferenceFromWeights(w)
   });
 
-  const regions = ["us-east", "us-west", "eu-west", "ca-toronto-1"];
+  const regions = [
+    "us-east", "us-west", "eu-west", "ca-toronto-1",
+    "eu-central", "ap-northeast", "ap-southeast", "ap-south",
+    "sa-east", "af-south", "me-south", "us-central"
+  ];
 
   type Candidate = MockModel & { region: string };
   let candidates: Candidate[] = [];
@@ -412,23 +444,138 @@ async function selectMockDeploymentAndWarm(input: {
     } as any;
   }
 
-  const baseScore = (c: Candidate) =>
-    (c.scoreCost / 100) * w.cost +
-    (c.scoreSpeed / 100) * w.speed +
-    (c.scoreQuality / 100) * w.quality +
-    (c.scoreGreen / 100) * w.green;
+  const baseScore = async (c: Candidate) => {
+    let score = (c.scoreCost / 100) * w.cost +
+               (c.scoreSpeed / 100) * w.speed +
+               (c.scoreQuality / 100) * w.quality +
+               (c.scoreGreen / 100) * w.green;
+
+    // Add carbon intensity factor for green preferences
+    if (w.green > 0.3) {
+      try {
+        const carbonIntensity = await carbonService.getCarbonIntensity(c.region);
+        // Lower carbon intensity = better score for green preferences
+        // Normalize carbon intensity (assuming range 80-800 gCO2eq/kWh for mock diversity)
+        const normalizedCarbon = Math.max(0, Math.min(1, (carbonIntensity - 80) / 720));
+        // Invert so lower carbon = higher score
+        const carbonScore = (1 - normalizedCarbon) * w.green * 1.5; // Increased for better mock diversity
+        score += carbonScore;
+        
+        // Debug logging for carbon scores
+        console.log(`🌱 Carbon score for ${c.region}:`, {
+          region: c.region,
+          carbonIntensity,
+          normalizedCarbon,
+          carbonScore,
+          totalScore: score
+        });
+      } catch (error) {
+        console.warn('Failed to get carbon intensity for region:', c.region);
+      }
+    }
+
+    return score;
+  };
 
   let ideal = candidates[0];
   let idealScore = -Infinity;
+  let topCandidates: { candidate: Candidate; score: number }[] = [];
+  
   for (const c of candidates) {
-    const score = baseScore(c) + (input.region && c.region === input.region ? 0.05 : 0);
+    const baseScoreValue = await baseScore(c);
+    const score = baseScoreValue + (input.region && c.region === input.region ? 0.05 : 0);
     if (score > idealScore) {
       ideal = c;
       idealScore = score;
     }
+    topCandidates.push({ candidate: c, score });
+  }
+  
+  // Enhanced diversity algorithm for better global region distribution
+  let chosen = ideal;
+  
+  // Group candidates by region to ensure global distribution
+  const regionMap = new Map<string, { candidate: Candidate; score: number }[]>();
+  for (const entry of topCandidates) {
+    const region = entry.candidate.region;
+    if (!regionMap.has(region)) {
+      regionMap.set(region, []);
+    }
+    regionMap.get(region)!.push(entry);
+  }
+  
+  // Ensure we're hitting different regions more frequently
+  // Increase diversity when user preferences are balanced (not extreme)
+  const maxWeight = Math.max(w.green, w.speed, w.quality, w.cost);
+  const isBalancedPreference = maxWeight < 0.7; // Not strongly weighted toward one preference
+  
+  // Enhanced diversity logic:
+  // 1. 70% chance for diversity when preferences are balanced
+  // 2. 50% chance even with strong preferences to ensure global spread
+  const diversityChance = isBalancedPreference ? 0.7 : 0.5;
+  
+  if (Math.random() < diversityChance) {
+    // Expanded score threshold for better diversity (top 25% instead of 10%)
+    const scoreThreshold = idealScore * 0.75;
+    const diverseCandidates = topCandidates.filter(c => c.score >= scoreThreshold);
+    
+    // Track recent regions to avoid consecutive hits on same areas
+    // In a real implementation, this would use Redis or similar persistent storage
+    const recentRegions = process.env.RECENT_REGIONS?.split(',') || [];
+    
+    // Prefer regions that haven't been selected recently
+    const unvisitedCandidates = diverseCandidates.filter(c => 
+      !recentRegions.includes(c.candidate.region)
+    );
+    
+    const candidatePool = unvisitedCandidates.length > 0 ? unvisitedCandidates : diverseCandidates;
+    
+    if (candidatePool.length > 1) {
+      // Weighted random selection favoring geographic diversity
+      const regionContinent = (region: string) => {
+        if (region.startsWith('us-') || region.startsWith('ca-')) return 'north_america';
+        if (region.startsWith('eu-')) return 'europe';
+        if (region.startsWith('ap-')) return 'asia_pacific';
+        if (region.startsWith('sa-')) return 'south_america';
+        if (region.startsWith('af-')) return 'africa';
+        if (region.startsWith('me-')) return 'middle_east';
+        return 'other';
+      };
+      
+      const idealContinent = regionContinent(ideal.region);
+      
+      // Boost score for candidates from different continents (geographic diversity)
+      const diversityBoostedCandidates = candidatePool.map(c => ({
+        ...c,
+        diversityScore: c.score + (regionContinent(c.candidate.region) !== idealContinent ? 0.15 : 0)
+      }));
+      
+      // Sort by diversity-boosted score and pick from top options
+      diversityBoostedCandidates.sort((a, b) => b.diversityScore - a.diversityScore);
+      
+      // Pick from top 5 candidates to maintain quality while ensuring diversity
+      const topDiverseCandidates = diversityBoostedCandidates.slice(0, Math.min(5, diversityBoostedCandidates.length));
+      const randomIndex = Math.floor(Math.random() * topDiverseCandidates.length);
+      
+      chosen = topDiverseCandidates[randomIndex].candidate;
+      idealScore = topDiverseCandidates[randomIndex].score;
+      
+      console.log("🎲 ENHANCED DIVERSITY: Selected region for global distribution:", {
+        originalBest: ideal.region,
+        newSelection: chosen.region,
+        originalContinent: idealContinent,
+        newContinent: regionContinent(chosen.region),
+        candidatesConsidered: candidatePool.length,
+        diversityChance: diversityChance,
+        isBalancedPreference
+      });
+      
+      // Store recent region for future diversity tracking
+      const updatedRecentRegions = [chosen.region, ...recentRegions.slice(0, 4)]; // Keep last 5 regions
+      process.env.RECENT_REGIONS = updatedRecentRegions.join(',');
+    }
   }
 
-  const chosen = ideal;
   const fallbackUsed = false;
   const warmingStarted = false;
 
@@ -456,7 +603,7 @@ async function selectMockDeploymentAndWarm(input: {
 
   const maxToleratedDelayMs = 10000 + w.green * 20000;
   const dominant = dominantPreferenceFromWeights(w);
-  const message = `Routing to ${dominant} in ${ideal.region || "global"}.`;
+  const message = `Routing to ${dominant} in ${chosen.region || "global"}.`;
 
   // Create unique mock deployment IDs that encode the selected model and region
   const chosenMockId = `mock-${chosen.modelId.replace(/[^a-zA-Z0-9]/g, '-')}-${chosen.region}`;

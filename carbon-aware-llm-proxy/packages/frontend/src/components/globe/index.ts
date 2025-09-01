@@ -1,5 +1,5 @@
 export { Globe } from "./Globe";
-export type { GlobeProps, GlobeConfig, GlobeMarker, RegionCoordinates } from "./Globe.types";
+export type { GlobeProps, GlobeConfig, GlobeMarker, RegionCoordinates, ModelData } from "./Globe.types";
 export {
   REGION_COORDINATES,
   DEFAULT_GLOBE_CONFIG,
@@ -7,5 +7,9 @@ export {
   createRegionMarker,
   getMarkerColor,
   getRegionDisplayName,
+  createModelLabel,
+  getModelDisplayName,
+  getModelIcon,
+  hasModelIcon,
   calculateDistance,
 } from "./Globe.utils";

@@ -152,13 +152,30 @@ class CarbonService {
 
   // Get mock carbon intensity based on region
   private getMockCarbonIntensity(region: string): number {
-    // Simple hash function to get a consistent but region-specific mock value
-    const hash = region.split("").reduce((acc, char) => {
-      return (acc * 31 + char.charCodeAt(0)) % 1000;
-    }, 0);
-
-    // Return a value between 50 and 500 gCO2eq/kWh
-    return 50 + (hash % 450);
+    // Create much more pronounced differences between regions for better mock routing diversity
+    const regionCarbonMap: { [key: string]: number } = {
+      'ca-toronto-1': 80,   // Canada - extremely green (hydro/nuclear)
+      'eu-central': 90,     // Germany - very green (renewables)
+      'eu-west': 120,       // UK - green
+      'ap-northeast': 180,  // Japan - moderate (nuclear + renewables)
+      'us-west': 250,       // US West - moderate
+      'us-central': 320,    // US Central - moderate
+      'ap-southeast': 280,  // Singapore - moderate
+      'sa-east': 200,       // Brazil - moderate (hydro)
+      'us-east': 450,       // US East - higher carbon
+      'ap-south': 600,      // India - high carbon (coal)
+      'me-south': 700,      // UAE - very high carbon (fossil fuels)
+      'af-south': 800,      // South Africa - extremely high carbon (coal)
+    };
+    
+    // Get base value
+    const baseValue = regionCarbonMap[region] || 300;
+    
+    // Add some randomization for mock diversity (±10% variation)
+    const variation = (Math.random() - 0.5) * 0.2; // ±10%
+    const randomizedValue = baseValue * (1 + variation);
+    
+    return Math.round(Math.max(50, randomizedValue));
   }
 
   // Get carbon intensity with user preference weighting (for mock routing)
@@ -209,10 +226,10 @@ class CarbonService {
     // Base regional carbon intensity (varies by region)
     const regionalVariation = this.getMockCarbonIntensity(region);
     
-    // Best case: 200 gCO2eq/kWh (when fully green)
-    // Worst case: 526 gCO2eq/kWh (when fully performance-focused)
-    const bestCarbon = 200;
-    const worstCarbon = 526;
+    // Best case: 80 gCO2eq/kWh (when fully green)
+    // Worst case: 800 gCO2eq/kWh (when fully performance-focused)
+    const bestCarbon = 80;
+    const worstCarbon = 800;
     
     // Interpolate based on green weight
     // greenWeight: 1.0 = fully green (use best)
@@ -223,7 +240,7 @@ class CarbonService {
     const blendedCarbon = (preferenceBasedCarbon * 0.6) + (regionalVariation * 0.4);
     
     // Ensure we stay within realistic bounds
-    return Math.round(Math.max(150, Math.min(600, blendedCarbon)));
+    return Math.round(Math.max(50, Math.min(900, blendedCarbon)));
   }
 
   // Apply preference weighting to real carbon intensity data

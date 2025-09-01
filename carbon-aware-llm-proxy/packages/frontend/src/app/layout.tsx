@@ -1,11 +1,10 @@
-import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
 import { Providers } from "@/components/providers";
-import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/toaster";
+import type { Metadata, Viewport } from "next";
+import { Manrope } from "next/font/google";
+import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "Carbon-Aware LLM Proxy",
@@ -27,7 +26,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} glass-theme min-h-screen bg-background`}>
+      <body
+        className={`glass-theme min-h-screen bg-background font-sans antialiased ${manrope.variable}`}
+      >
         <Providers
           attribute="class"
           defaultTheme="system"
@@ -35,18 +36,29 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <div className="min-h-screen flex flex-col">
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <footer className="border-t py-6">
-              <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-                <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                  Built with ❤️ for a greener AI future
-                </p>
-                <p className="text-center text-sm text-muted-foreground md:text-right">
-                  © {new Date().getFullYear()} Routly
-                </p>
+            <div className="w-full border-b">
+              <div className="container flex h-16 items-center ml-1">
+                <svg
+                  className="h-6 w-6 sm:h-7 sm:w-7 text-gray-700"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  role="img"
+                  aria-label="Routly logo"
+                >
+                  <path d="M19.5 6.5c-1.9-2.1-4.7-3.3-7.7-3.2-5 .1-9 4.3-8.8 9.3.1 3.3 2 6.2 4.8 7.7"></path>
+                  <path d="M12 3 L13.2 4.2"></path>
+                  <path d="M12 3 L10.8 4.2"></path>
+                </svg>
+                <span className="text-xl sm:text-2xl font-thin text-gray-300">
+                  Routly
+                </span>
               </div>
-            </footer>
+            </div>
+            <main className="flex-1">{children}</main>
           </div>
           <Toaster />
         </Providers>

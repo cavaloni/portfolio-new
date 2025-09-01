@@ -187,52 +187,80 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
           throw new ApiError(500, "OPENROUTER_API_KEY is not configured", true);
         }
 
-        // Handle mock deployment IDs
+        // Handle mock deployment IDs with dynamic region selection
         let selectedModelForDisplay: string;
         let mockRegion: string;
         let mockGreenWeight: number = greenWeight || 0; // Use the greenWeight from the request
-        
+
         if (deploymentId.startsWith('mock-')) {
-          // Parse mock deployment ID to extract model and region
-          // Format is: mock-<model-sanitized>-<region>
-          // Note: <region> itself can contain hyphens (e.g., "us-east", "ca-toronto-1")
+          // Parse model from deployment ID, but select region dynamically based on preferences
           const rest = deploymentId.replace(/^mock-/, '');
-          // Known mock regions used by the router
+          const parts = rest.split('-');
+
+          // Extract model from deployment ID
+          let modelFromId: string;
           const knownRegions = [
-            'us-east',
-            'us-west',
-            'eu-west',
-            'ca-toronto-1',
+            'us-east', 'us-west', 'eu-west', 'ca-toronto-1',
+            'eu-central', 'ap-northeast', 'ap-southeast', 'ap-south',
+            'sa-east', 'af-south', 'me-south', 'us-central'
           ];
           const matchedRegion = knownRegions.find(r => rest.endsWith(`-${r}`));
+
           if (matchedRegion) {
-            mockRegion = matchedRegion;
             const modelSanitized = rest.slice(0, rest.length - (matchedRegion.length + 1)); // strip "-<region>"
-            // Reconstruct model ID (handle model IDs with slashes and dashes)
-            selectedModelForDisplay = modelSanitized.replace(/-/g, '/');
-            // Fix common replacements
-            selectedModelForDisplay = selectedModelForDisplay
-              .replace(/mistralai\/mistral/g, 'mistralai/mistral')
-              .replace(/databricks\/dbrx/g, 'databricks/dbrx')
-              .replace(/meta\/llama/g, 'meta-llama')
-              .replace(/tiiuae\/falcon/g, 'tiiuae/falcon');
+            modelFromId = modelSanitized.replace(/-/g, '/');
           } else {
-            // Fallback to legacy parsing (may be inaccurate for hyphenated regions)
-            const parts = rest.split('-');
-            if (parts.length >= 2) {
-              mockRegion = parts[parts.length - 1];
-              const modelSanitized = parts.slice(0, -1).join('-');
-              selectedModelForDisplay = modelSanitized.replace(/-/g, '/');
+            // Fallback to legacy parsing
+            modelFromId = parts.length >= 2 ? parts.slice(0, -1).join('/') : 'mistralai/ministral-8b';
+          }
+
+          // Apply common model name fixes
+          modelFromId = modelFromId
+            .replace(/mistralai\/mistral/g, 'mistralai/mistral')
+            .replace(/databricks\/dbrx/g, 'databricks/dbrx')
+            .replace(/meta\/llama/g, 'meta-llama')
+            .replace(/tiiuae\/falcon/g, 'tiiuae/falcon');
+
+          // Use dynamic region selection based on user preferences (joystick/green weight)
+          const { selectMockDeploymentAndWarm } = await import("../../services/deployment-routing.service");
+          const routingService = await import("../../services/deployment-routing.service");
+
+          try {
+            // Create weights from greenWeight (assuming this comes from joystick position)
+            // joystickToWeights expects x,y coordinates, so we derive them from greenWeight
+            const x = -mockGreenWeight; // negative x = green preference
+            const y = 0; // neutral speed/cost preference for now
+
+            const routingResult = await routingService.selectMockDeploymentAndWarm({
+              weights: {
+                green: mockGreenWeight,
+                quality: Math.max(0, -x), // opposite of green
+                speed: 0.5, // neutral
+                cost: 0.5,  // neutral
+              }
+            });
+
+            if (routingResult && 'chosen' in routingResult && !('error' in routingResult)) {
+              selectedModelForDisplay = routingResult.chosen.modelId;
+              mockRegion = routingResult.chosen.region || 'us-east';
+              logger.info('Mock routing: Dynamic region selection', {
+                modelFromId,
+                selectedModel: selectedModelForDisplay,
+                selectedRegion: mockRegion,
+                greenWeight: mockGreenWeight,
+                weights: { green: mockGreenWeight, quality: Math.max(0, -x), speed: 0.5, cost: 0.5 }
+              });
             } else {
-              selectedModelForDisplay = model || 'mistralai/ministral-8b';
-              mockRegion = 'global';
+              // Fallback to original logic if routing fails
+              selectedModelForDisplay = modelFromId;
+              mockRegion = matchedRegion || (parts.length >= 2 ? parts[parts.length - 1] : 'us-east');
+              logger.warn('Mock routing: Using fallback region selection', { modelFromId, mockRegion });
             }
-            // Apply the same fix-ups
-            selectedModelForDisplay = selectedModelForDisplay
-              .replace(/mistralai\/mistral/g, 'mistralai/mistral')
-              .replace(/databricks\/dbrx/g, 'databricks/dbrx')
-              .replace(/meta\/llama/g, 'meta-llama')
-              .replace(/tiiuae\/falcon/g, 'tiiuae/falcon');
+          } catch (error) {
+            logger.error('Mock routing: Error in dynamic region selection', error);
+            // Fallback to static parsing
+            selectedModelForDisplay = modelFromId;
+            mockRegion = matchedRegion || (parts.length >= 2 ? parts[parts.length - 1] : 'us-east');
           }
         } else {
           // Real deployment - get from database
