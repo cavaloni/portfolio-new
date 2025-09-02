@@ -25,10 +25,7 @@ export function ChatInput({
     onSendMessage(message.trim());
     setMessage("");
     
-    // Keep focus on the textarea after sending
-    setTimeout(() => {
-      textareaRef.current?.focus();
-    }, 0);
+    // Focus will be handled by the effect when disabled state changes
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -38,10 +35,15 @@ export function ChatInput({
     }
   };
 
-  // Auto-focus on mount
+  // Auto-focus on mount and when disabled state changes
   useEffect(() => {
-    textareaRef.current?.focus();
-  }, []);
+    if (!disabled) {
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [disabled]);
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-3">
@@ -54,16 +56,18 @@ export function ChatInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         disabled={disabled}
-        className="flex-1 min-h-[48px] max-h-[120px] resize-none glass-input px-4 py-3 text-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex-1 min-h-[48px] max-h-[120px] resize-none glass-input px-4 py-3 text-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-colors"
         rows={1}
       />
       <Button 
         type="submit" 
         disabled={disabled || !message.trim()} 
         size="icon"
-        className="glass glass-hover glass-glow h-12 w-12 rounded-2xl"
+        variant="glass"
+        className="h-12 w-12 rounded-2xl text-foreground disabled:opacity-80"
+        aria-label="Send message"
       >
-        <Send className="h-5 w-5" />
+        <Send className="h-5 w-5 text-foreground/95 drop-shadow" strokeWidth={2.2} />
       </Button>
     </form>
   );

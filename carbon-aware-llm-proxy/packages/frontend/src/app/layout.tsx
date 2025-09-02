@@ -1,4 +1,5 @@
 import { Providers } from "@/components/providers";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/toaster";
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
@@ -31,15 +32,16 @@ export default function RootLayout({
       >
         <Providers
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <div className="min-h-screen flex flex-col">
             <div className="w-full border-b">
-              <div className="container flex h-16 items-center ml-1">
-                <svg
-                  className="h-6 w-6 sm:h-7 sm:w-7 text-gray-700"
+              <div className="container flex h-16 items-center justify-between">
+                <div className="flex items-center ml-1">
+                  <svg
+                  className="h-6 w-6 sm:h-7 sm:w-7 text-foreground/80"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -53,9 +55,13 @@ export default function RootLayout({
                   <path d="M12 3 L13.2 4.2"></path>
                   <path d="M12 3 L10.8 4.2"></path>
                 </svg>
-                <span className="text-xl sm:text-2xl font-thin text-gray-300">
-                  Routly
-                </span>
+                  <span className="ml-2 text-xl sm:text-2xl font-thin text-foreground/60">
+                    Routly
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                </div>
               </div>
             </div>
             <main className="flex-1">{children}</main>

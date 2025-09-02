@@ -4,6 +4,8 @@ import { BackgroundFog } from "@/components/background-fog";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatProgressIndicator } from "@/components/chat/chat-progress";
+import { JoystickGuideModal } from "@/components/chat/JoystickGuideModal";
+import { PromptSuggestions } from "@/components/chat/prompt-suggestions";
 import { TimeoutHandler } from "@/components/chat/timeout-handler";
 import { Globe } from "@/components/globe";
 import { QuadrantJoystick } from "@/components/quadrant-joystick";
@@ -13,7 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Message, MessageRole } from "@/types/chat";
 import {
+  ChevronDown,
+  ChevronRight,
   DollarSign,
+  Info,
   Leaf,
   Loader2,
   MessageSquare,
@@ -55,6 +60,11 @@ export default function ChatPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isJoystickExpanded, setIsJoystickExpanded] = useState(true);
+  const [isDeploymentExpanded, setIsDeploymentExpanded] = useState(true);
+  const [isModelLocationExpanded, setIsModelLocationExpanded] = useState(true);
+  const [isPreferenceGuideExpanded, setIsPreferenceGuideExpanded] = useState(true);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [joystickPosition, setJoystickPosition] = useState<JoystickPosition>({
     x: 0,
     y: 0,
@@ -305,6 +315,11 @@ export default function ChatPage() {
     // Continue waiting - the request is still ongoing
   }, []);
 
+  // Handle prompt suggestion selection
+  const handlePromptSelect = useCallback((prompt: string) => {
+    handleSendMessage(prompt);
+  }, []);
+
   // Get preference icon
   const getPreferenceIcon = (preference?: string) => {
     switch (preference) {
@@ -352,147 +367,223 @@ export default function ChatPage() {
 
       <main className="flex-1 overflow-hidden flex relative z-10">
         {/* Left sidebar with joystick and status */}
-        <div className="w-80 glass-panel border-r-0 p-6 space-y-6 m-4 mr-0 glass-glow">
-          {/* Joystick */}
-          <div className="glass glass-hover p-5">
-            <h3 className="text-sm font-semibold mb-4 text-primary">
-              AI Preferences
-            </h3>
-            <div className="flex justify-center">
-              <QuadrantJoystick
-                onChange={handleJoystickChange}
-                defaultPosition={{ x: 0, y: 0 }}
-                size={180}
-                showCoordinates={false}
-                className="glass-glow"
-              />
+        <div className="w-80 glass-panel border-r-0 p-0 m-4 mr-0 glass-glow h-[91vh] flex flex-col">
+          {/* Collapsible header */}
+          <button
+            onClick={() => setIsJoystickExpanded(!isJoystickExpanded)}
+            className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              {isJoystickExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              <span>AI Preferences</span>
             </div>
-            <div className="text-xs text-muted-foreground mt-2 text-center">
-              Current:{" "}
-              {routingService.getPreferenceFromJoystick(joystickPosition)}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsGuideOpen(true);
+              }}
+              className="text-muted-foreground hover:text-primary p-1 rounded-full hover:bg-white/10"
+              aria-label="Joystick guide"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+          </button>
+
+          {/* Collapsible content */}
+          {isJoystickExpanded && (
+            <div className="p-6 pt-0 space-y-6">
+              <div className="glass glass-hover p-5">
+                <div className="flex justify-center">
+                  <QuadrantJoystick
+                    onChange={handleJoystickChange}
+                    defaultPosition={{ x: 0, y: 0 }}
+                    size={180}
+                    showCoordinates={false}
+                    className="glass-glow"
+                  />
+                </div>
+                <div className="text-xs text-muted-foreground mt-2 text-center">
+                  Current:{" "}
+                  {routingService.getPreferenceFromJoystick(joystickPosition)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1 text-center">
+                  ({joystickPosition.x.toFixed(2)},{" "}
+                  {joystickPosition.y.toFixed(2)})
+                </div>
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1 text-center">
-              ({joystickPosition.x.toFixed(2)}, {joystickPosition.y.toFixed(2)})
-            </div>
-          </div>
+          )}
 
           {/* Deployment Status */}
-          <div className="glass glass-hover p-5">
-            <h3 className="text-sm font-semibold mb-4 text-primary">
-              Deployment Status
-            </h3>
+          <button
+            onClick={() => setIsDeploymentExpanded(!isDeploymentExpanded)}
+            className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              {isDeploymentExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              <span>Deployment Status</span>
+            </div>
+          </button>
 
-            {routingStatus.isRouting && (
-              <Alert>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <AlertDescription>
-                  {routingStatus.message || "Routing request..."}
-                </AlertDescription>
-              </Alert>
-            )}
+          {isDeploymentExpanded && (
+            <div className="p-6 pt-0 space-y-6">
+              <div className="glass glass-hover p-5">
+                {routingStatus.isRouting && (
+                  <Alert className="mb-3">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AlertDescription>
+                      {routingStatus.message || "Routing request..."}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-            {routingStatus.error && (
-              <Alert variant="destructive">
-                <AlertDescription>{routingStatus.error}</AlertDescription>
-              </Alert>
-            )}
+                {routingStatus.error && (
+                  <Alert variant="destructive" className="mb-3">
+                    <AlertDescription>{routingStatus.error}</AlertDescription>
+                  </Alert>
+                )}
 
-            {currentDeployment && (
-              <div className="glass-strong p-4 glass-glow">
-                <div className="flex items-center gap-2 mb-3">
-                  {getPreferenceIcon(
-                    routingService.getPreferenceFromJoystick(joystickPosition)
-                  )}
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "glass-hover rounded-xl",
-                      getPreferenceColor(
+                {currentDeployment && (
+                  <div className="glass-strong p-4 glass-glow">
+                    <div className="flex items-center gap-2 mb-3">
+                      {getPreferenceIcon(
                         routingService.getPreferenceFromJoystick(
                           joystickPosition
                         )
-                      )
-                    )}
-                  >
-                    {routingService.formatRegion(currentDeployment.region)}
-                  </Badge>
-                </div>
+                      )}
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "glass-hover rounded-xl",
+                          getPreferenceColor(
+                            routingService.getPreferenceFromJoystick(
+                              joystickPosition
+                            )
+                          )
+                        )}
+                      >
+                        {routingService.formatRegion(currentDeployment.region)}
+                      </Badge>
+                    </div>
 
-                <div className="text-sm space-y-1">
-                  <div>
-                    <span className="font-medium">Model:</span>{" "}
-                    {currentDeployment.modelId}
+                    <div className="text-sm space-y-1">
+                      <div>
+                        <span className="font-medium">Model:</span>{" "}
+                        {currentDeployment.modelId}
+                      </div>
+                      <div>
+                        <span className="font-medium">CO₂:</span>{" "}
+                        {currentDeployment.co2_g_per_kwh} g/kWh
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (mock)
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-medium">CO₂:</span>{" "}
-                    {currentDeployment.co2_g_per_kwh} g/kWh
-                    <span className="text-xs text-muted-foreground ml-1">
-                      (mock)
-                    </span>
-                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Model Location */}
+          <button
+            onClick={() =>
+              setIsModelLocationExpanded(!isModelLocationExpanded)
+            }
+            className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              {isModelLocationExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              <span>Model Location</span>
+            </div>
+          </button>
+          {isModelLocationExpanded && (
+            <div className="p-6 pt-0 space-y-6">
+              <div className="glass glass-hover p-5">
+                <div className="flex justify-center">
+                  <Globe
+                    activeRegion={currentDeployment?.region}
+                    selectedModel={
+                      currentDeployment
+                        ? {
+                            id: currentDeployment.modelId,
+                            region: currentDeployment.region,
+                          }
+                        : null
+                    }
+                    size={180}
+                    isLoading={routingStatus.isRouting}
+                    className="glass-glow"
+                    autoRotate={true}
+                    rotationSpeed={0.015}
+                    preference={routingService.getPreferenceFromJoystick(
+                      joystickPosition
+                    )}
+                  />
                 </div>
               </div>
-            )}
-
-            {/* {routingStatus.message &&
-              !routingStatus.isRouting &&
-              !routingStatus.error && (
-                <Alert>
-                  <AlertDescription>{routingStatus.message}</AlertDescription>
-                </Alert>
-              )} */}
-          </div>
-
-          {/* Globe - Model Location */}
-          <div className="glass glass-hover p-5">
-            <h3 className="text-sm font-semibold mb-4 text-primary">
-              Model Location
-            </h3>
-            <div className="flex justify-center">
-              <Globe
-                activeRegion={currentDeployment?.region}
-                selectedModel={
-                  currentDeployment
-                    ? {
-                        id: currentDeployment.modelId,
-                        region: currentDeployment.region,
-                      }
-                    : null
-                }
-                size={180}
-                isLoading={routingStatus.isRouting}
-                className="glass-glow"
-                autoRotate={true}
-                rotationSpeed={0.015}
-                preference={routingService.getPreferenceFromJoystick(
-                  joystickPosition
-                )}
-              />
             </div>
-          </div>
+          )}
 
           {/* Preference Guide */}
-          <div className="glass p-4 text-xs text-muted-foreground space-y-2">
-            <p className="font-semibold mb-3 text-primary">Joystick Guide:</p>
-            <div className="space-y-2">
-              <p className="flex items-center gap-2">
-                <span className="font-medium text-green-400">←</span> Green (Low
-                Carbon)
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="font-medium text-purple-400">→</span> Quality
-                (Best Model)
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="font-medium text-blue-400">↑</span> Speed (Fast
-                Response)
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="font-medium text-orange-400">↓</span> Cost
-                (Economical)
-              </p>
+          <button
+            onClick={() =>
+              setIsPreferenceGuideExpanded(!isPreferenceGuideExpanded)
+            }
+            className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              {isPreferenceGuideExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              <span>Preference Guide</span>
             </div>
-          </div>
+          </button>
+          {isPreferenceGuideExpanded && (
+            <div className="p-6 pt-0 space-y-6">
+              <div className="glass glass-hover p-5 text-xs text-muted-foreground">
+                <p className="font-semibold mb-3 text-primary">Joystick Guide:</p>
+                <div className="space-y-2">
+                  <p className="flex items-center gap-2">
+                    <span className="font-medium text-green-400">←</span> Green
+                    (Low Carbon)
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <span className="font-medium text-purple-400">→</span> Quality
+                    (Best Model)
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <span className="font-medium text-blue-400">↑</span> Speed
+                    (Fast Response)
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <span className="font-medium text-orange-400">↓</span> Cost
+                    (Economical)
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Joystick Guide Modal */}
+          <JoystickGuideModal
+            isOpen={isGuideOpen}
+            onOpenChange={setIsGuideOpen}
+          />
         </div>
 
         {/* Chat area */}
@@ -503,13 +594,33 @@ export default function ChatPage() {
           >
             <div className="max-w-4xl mx-auto">
               {messages.length === 0 ? (
-                <div className="h-[50vh] flex flex-col items-center justify-center text-center p-8">
+                <div className="h-full flex flex-col items-center justify-center text-center p-8">
                   <div className="glass-strong glass-glow p-6 rounded-full mb-6">
                     <MessageSquare className="h-5 w-5 text-primary" />
                   </div>
                   <h2 className="text-3xl mb-4 text-primary">
                     Which route shall we take today?
                   </h2>
+
+                  {/* Centered Chat Input */}
+                  <div className="w-full max-w-2xl mx-auto mb-8">
+                    <div className="glass-panel border-0 p-6 glass-glow">
+                      <ChatInput
+                        onSendMessage={handleSendMessage}
+                        disabled={isLoading}
+                        placeholder={
+                          isLoading
+                            ? routingStatus.isRouting
+                              ? "Routing..."
+                              : "AI is responding..."
+                            : "Ask anything about carbon-aware AI deployment..."
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* Prompt Suggestions */}
+                  <PromptSuggestions onPromptSelect={handlePromptSelect} />
                 </div>
               ) : (
                 messages.map((message) => (
@@ -560,25 +671,27 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* Input area - enhanced with glassmorphism */}
-          <div className="glass-panel border-0 m-4 mt-0 p-6 glass-glow">
-            <div className="max-w-4xl mx-auto">
-              <ChatInput
-                onSendMessage={handleSendMessage}
-                disabled={isLoading}
-                placeholder={
-                  isLoading
-                    ? routingStatus.isRouting
-                      ? "Routing..."
-                      : "AI is responding..."
-                    : "Type your message..."
-                }
-              />
-              <div className="mt-3 text-xs text-muted-foreground text-center">
-                <p></p>
+          {/* Input area - enhanced with glassmorphism - only show when there are messages */}
+          {messages.length > 0 && (
+            <div className="glass-panel border-0 m-4 mt-0 p-6 glass-glow">
+              <div className="max-w-4xl mx-auto">
+                <ChatInput
+                  onSendMessage={handleSendMessage}
+                  disabled={isLoading}
+                  placeholder={
+                    isLoading
+                      ? routingStatus.isRouting
+                        ? "Routing..."
+                        : "AI is responding..."
+                      : "Type your message..."
+                  }
+                />
+                <div className="mt-3 text-xs text-muted-foreground text-center">
+                  <p></p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Add some bottom spacing */}
           <div className="h-16"></div>

@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import ReactGlobe from 'react-globe.gl';
-import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
-import { GlobeProps } from './Globe.types';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
+import ReactGlobe from "react-globe.gl";
+import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
+import { GlobeProps } from "./Globe.types";
+import { useTheme } from "next-themes";
 import {
 	getRegionCoordinates,
 	getMarkerColor,
@@ -15,15 +16,26 @@ import {
 } from './Globe.utils';
 
 export const GlobeComponent: React.FC<GlobeProps> = ({
-	activeRegion,
-	size = 200,
-	isLoading = false,
-	className,
-	autoRotate = true,
-	rotationSpeed = 0.01,
-	preference,
-	selectedModel,
+  activeRegion,
+  size = 200,
+  isLoading = false,
+  className,
+  autoRotate = true,
+  rotationSpeed = 0.01,
+  preference,
+  selectedModel,
 }) => {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const isDark = (resolvedTheme || "light") === "dark";
+  // Theme-aware visual tokens for the globe
+  const globeImageUrl = isDark
+    ? "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg"
+    : "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg";
+  const atmosphereColor = isDark ? "#4f46e5" : "#60a5fa";
+  const atmosphereAltitude = isDark ? 0.15 : 0.12;
 	const [isGlobeLoaded, setIsGlobeLoaded] = useState(false);
 	const [isGlobeAnimating, setIsGlobeAnimating] = useState(false);
 	const globeRef = useRef<any>(null);
@@ -171,96 +183,97 @@ export const GlobeComponent: React.FC<GlobeProps> = ({
 	const showLoading = isLoading || !isGlobeLoaded;
 
 	return (
-		<div className={cn('relative', className)}>
+		<div className={cn("relative", className)}>
 			{/* Globe Container */}
 			<div
-				className='relative overflow-hidden rounded-lg'
+				className="relative overflow-hidden rounded-lg"
 				style={{ width: size, height: size }}>
 									<ReactGlobe
 						ref={globeRef}
 						width={size}
 						height={size}
-						backgroundColor='rgba(0,0,0,0)'
+						backgroundColor="rgba(0,0,0,0)"
 						showAtmosphere={true}
-						atmosphereColor='#4f46e5'
-						atmosphereAltitude={0.15}
+						atmosphereColor={atmosphereColor}
+						atmosphereAltitude={atmosphereAltitude}
 						enablePointerInteraction={!isGlobeAnimating}
 					// HTML elements for model icons
 					htmlElementsData={labelData}
 					htmlLat={(d: any) => d.lat}
 					htmlLng={(d: any) => d.lng}
 					htmlElement={(d: any) => {
-						const el = document.createElement('div');
-						el.style.display = 'flex';
-						el.style.alignItems = 'center';
-						el.style.justifyContent = 'center';
-						el.style.width = '28px';
-						el.style.height = '28px';
-						el.style.background = 'rgba(255,255,255,0.55)';
-						el.style.borderRadius = '50%';
+						const el = document.createElement("div");
+						el.style.display = "flex";
+						el.style.alignItems = "center";
+						el.style.justifyContent = "center";
+						el.style.width = "28px";
+						el.style.height = "28px";
+						el.style.background = isDark
+							? "rgba(0,0,0,0.55)"
+							: "rgba(255,255,255,0.55)";
+						el.style.borderRadius = "50%";
 						el.style.border = `2px solid #4f46e5`;
-						el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.3)';
-						el.style.cursor = 'pointer';
-						el.style.transition = 'all 0.2s ease';
+						el.style.boxShadow = isDark
+							? "0 2px 14px rgba(0,0,0,0.6)"
+							: "0 2px 12px rgba(0,0,0,0.3)";
+						el.style.cursor = "pointer";
+						el.style.transition = "all 0.2s ease";
 						// Ensure proper centering with react-globe.gl's positioning
-						el.style.transformOrigin = 'center center';
-						el.style.position = 'absolute';
-						el.style.left = '-14px'; // Half of width to center
-						el.style.top = '-14px';  // Half of height to center
+						el.style.transformOrigin = "center center";
+						el.style.position = "absolute";
+						el.style.left = "-14px"; // Half of width to center
+						el.style.top = "-14px"; // Half of height to center
 
-						const img = document.createElement('img');
+						const img = document.createElement("img");
 						img.src = d.icon;
 						img.alt = d.name;
-						img.style.width = '18px';
-						img.style.height = '18px';
-						img.style.objectFit = 'contain';
-						img.style.borderRadius = '50%';
+						img.style.width = "18px";
+						img.style.height = "18px";
+						img.style.objectFit = "contain";
+						img.style.borderRadius = "50%";
 
 						el.appendChild(img);
 						el.title = `${d.name} - Active Model`;
 
 						return el;
 					}}
-					globeImageUrl='//cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg'
+					globeImageUrl={globeImageUrl}
 					hexPolygonsData={countries.features}
 					hexPolygonResolution={3}
 					hexPolygonMargin={0.3}
 					hexPolygonUseDots={true}
+					hexPolygonColor={() => (isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.15)")}
 					onGlobeReady={() => setIsGlobeLoaded(true)}
 				/>
 
 				{/* Loading State */}
 				{showLoading && (
-					<div className='absolute inset-0 flex items-center justify-center bg-card/50 backdrop-blur-sm rounded-lg z-10'>
-						<div className='flex flex-col items-center gap-2'>
-							<Loader2 className='h-6 w-6 animate-spin text-primary' />
-							<span className='text-xs text-muted-foreground'>
-								Loading globe...
-							</span>
+					<div className="absolute inset-0 flex items-center justify-center bg-card/50 backdrop-blur-sm rounded-lg z-10">
+						<div className="flex flex-col items-center gap-2">
+							<Loader2 className="h-6 w-6 animate-spin text-primary" />
+							<span className="text-xs text-muted-foreground">Loading globe...</span>
 						</div>
 					</div>
 				)}
 
 				{/* Region Indicator Overlay */}
 				{activeRegion && !showLoading && (
-					<div className='absolute bottom-2 left-2 right-2 z-10'>
-						<div className='glass-strong p-2 rounded text-center'>
-							<span className='text-xs font-medium text-primary'>
-								{displayName}
-							</span>
+					<div className="absolute bottom-2 left-2 right-2 z-10">
+						<div className="glass-strong p-2 rounded text-center">
+							<span className="text-xs font-medium text-primary">{displayName}</span>
 						</div>
 					</div>
 				)}
 
 				{/* Glow Effect */}
-				<div className='absolute inset-0 rounded-lg bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none' />
+				<div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none" />
 			</div>
 
 			{/* Region Status */}
 			{activeRegion && (
-				<div className='mt-2 text-center'>
-					<div className='inline-flex items-center gap-1 text-xs text-muted-foreground'>
-						<div className='w-2 h-2 bg-primary rounded-full animate-pulse' />
+				<div className="mt-2 text-center">
+					<div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+						<div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
 						<span>Active in {displayName}</span>
 					</div>
 				</div>
@@ -268,10 +281,8 @@ export const GlobeComponent: React.FC<GlobeProps> = ({
 
 			{/* Model Indicator */}
 			{selectedModel && labelData.length > 0 && !showLoading && (
-				<div className='mt-1 text-center'>
-					<span className='text-xs text-muted-foreground'>
-						Active: {labelData[0]?.name}
-					</span>
+				<div className="mt-1 text-center">
+					<span className="text-xs text-muted-foreground">Active: {labelData[0]?.name}</span>
 				</div>
 			)}
 		</div>

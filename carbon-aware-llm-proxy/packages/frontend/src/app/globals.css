@@ -4,33 +4,51 @@
  
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* High-contrast Light theme (not pure white) */
+    --background: 210 20% 98%; /* soft cool off-white */
+    --foreground: 222 26% 14%; /* strong readable text */
+    --card: 210 25% 99%; /* subtle panel, not stark white */
+    --card-foreground: 222 26% 14%;
+    --popover: 210 25% 99%;
+    --popover-foreground: 222 26% 14%;
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --secondary: 210 30% 96%; /* chips / soft fills */
+    --secondary-foreground: 222 26% 18%;
+    --muted: 210 26% 94%;
+    --muted-foreground: 222 12% 40%;
+    --accent: 210 24% 92%;
+    --accent-foreground: 222 26% 14%;
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 24% 86%; /* visible on light */
+    --input: 214 24% 86%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 1.25rem; /* Increased for more modern, futuristic look */
+    --radius: 1.25rem; /* modern rounded */
 
-    /* Enhanced Glassmorphism tokens for futuristic design */
-    --glass-bg: 0 0% 100% / 0.08; /* More subtle base transparency */
-    --glass-bg-strong: 0 0% 100% / 0.15; /* For prominent elements */
-    --glass-border: 0 0% 100% / 0.2; /* Stronger borders */
-    --glass-shadow: 0 20px 50px 0 hsla(221.2 83.2% 53.3% / 0.15); /* Deeper shadows */
-    --glass-inner-shadow: inset 0 1px 1px 0 hsla(0 0% 100% / 0.1); /* Inner glow */
+    /* Brand tints for light gradients */
+    --clr-powder: 210 60% 92%;   /* light powder blue */
+    --clr-lavender: 250 45% 95%; /* light lavender */
+    --clr-dusty: 350 45% 94%;    /* pale dusty pink */
+    --clr-mist: 160 45% 92%;     /* light mist green */
+
+    /* Background gradient anchors */
+    --bg-grad-1: var(--clr-powder);
+    --bg-grad-2: var(--clr-lavender);
+    --bg-grad-3: var(--clr-mist);
+
+    /* Neumorphism tokens (tuned for light) */
+    --neo-shadow-light: 0 2px 3px hsla(0 0% 100% / 0.9);
+    --neo-shadow-dark: 0 8px 16px hsla(220 40% 20% / 0.08);
+    --neo-inset-light: inset 0 1px 1px hsla(0 0% 100% / 0.9);
+    --neo-inset-dark: inset 0 6px 12px hsla(220 40% 40% / 0.08);
+
+    /* Glassmorphism tokens (light) */
+    --glass-bg: 210 40% 98% / 0.65; /* soft translucency */
+    --glass-bg-strong: 210 40% 98% / 0.8;
+    --glass-border: 214 24% 86% / 0.9;
+    --glass-shadow: 0 12px 24px 0 hsla(220 40% 20% / 0.08);
+    --glass-inner-shadow: inset 0 1px 0 0 hsla(0 0% 100% / 0.9);
   }
  
   .dark {
@@ -60,6 +78,18 @@
     --glass-border: 0 0% 100% / 0.12; /* Subtle light edge */
     --glass-shadow: 0 25px 60px 0 hsla(0 0% 0% / 0.5); /* Deeper shadows */
     --glass-inner-shadow: inset 0 1px 1px 0 hsla(0 0% 100% / 0.08); /* Inner glow */
+
+    /* Neumorphism tokens (tuned for dark) */
+    --neo-shadow-light: 0 2px 4px hsla(0 0% 100% / 0.08);
+    --neo-shadow-dark: 0 10px 20px hsla(220 40% 2% / 0.55);
+    --neo-inset-light: inset 0 1px 2px hsla(0 0% 100% / 0.08);
+    --neo-inset-dark: inset 0 6px 16px hsla(220 40% 10% / 0.35);
+
+    /* Dark brand tints for gradient anchors */
+    --clr-powder: 210 40% 22%;
+    --clr-lavender: 250 25% 20%;
+    --clr-dusty: 350 25% 22%;
+    --clr-mist: 160 25% 20%;
   }
 }
  
@@ -70,6 +100,17 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Soft background gradient mist (light default) */
+    background-image: radial-gradient(1200px 600px at 10% 10%, hsla(var(--bg-grad-1) / 0.25), transparent 60%),
+      radial-gradient(1000px 500px at 90% 0%, hsla(var(--bg-grad-2) / 0.22), transparent 60%),
+      radial-gradient(1200px 600px at 50% 100%, hsla(var(--bg-grad-3) / 0.22), transparent 60%);
+    background-attachment: fixed;
+  }
+  /* Dark mode keeps richer mist to deepen contrast */
+  .dark body {
+    background-image: radial-gradient(1200px 600px at 10% 10%, hsla(var(--bg-grad-1) / 0.35), transparent 60%),
+      radial-gradient(1000px 500px at 90% 0%, hsla(var(--bg-grad-2) / 0.35), transparent 60%),
+      radial-gradient(1200px 600px at 50% 100%, hsla(var(--bg-grad-3) / 0.35), transparent 60%);
   }
 }
 
@@ -145,5 +186,39 @@
 
   .glass-theme .glass-glow:hover::before {
     opacity: 1;
+  }
+
+  /* Neumorphism utilities */
+  .glass-theme .neo-raised {
+    box-shadow: var(--neo-shadow-light), var(--neo-shadow-dark);
+  }
+
+  .glass-theme .neo-inset {
+    box-shadow: var(--neo-inset-light), var(--neo-inset-dark);
+  }
+
+  .glass-theme .neo-soft {
+    box-shadow: 0 4px 10px hsla(220 40% 30% / 0.08), inset 0 1px 1px hsla(0 0% 100% / 0.4);
+  }
+
+  /* Motion utilities */
+  .glass-theme .ui-smooth {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter;
+    transition-duration: 250ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-theme .neo-shift:hover {
+    transform: translateY(-0.5px);
+    box-shadow: 0 14px 28px hsla(220 40% 20% / 0.18), 0 6px 10px hsla(0 0% 100% / 0.18);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .glass-theme .ui-smooth,
+    .glass-theme .neo-shift:hover,
+    .glass-theme .glass-hover,
+    .glass-theme .glass-glow::before {
+      transition: none !important;
+    }
   }
 }
