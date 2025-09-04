@@ -3,8 +3,7 @@ const nextConfig = {
   // Enable standalone output for Docker deployment
   // output: "standalone", // Commented out for Vercel deployment
 
-  // Disable telemetry
-  telemetry: false,
+  // Telemetry is disabled by default in Next.js 14+
 
   // Enable experimental features
   experimental: {
