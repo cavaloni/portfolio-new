@@ -53,5 +53,9 @@
     "typescript": "^5.0.0"
   },
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "resolutions": {
+    "vfile": "^6.0.0",
+    "vfile-message": "^4.0.0"
+  }
 }

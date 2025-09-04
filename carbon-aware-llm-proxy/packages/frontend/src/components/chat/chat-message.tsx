@@ -126,8 +126,9 @@ export function ChatMessage({
                   className="text-blue-400 hover:underline"
                 />
               ),
-              code: ({ node, inline, className, children, ...props }) => {
-                if (inline) {
+              code: ({ node, className, children, ...props }) => {
+                const isInline = !className?.includes('language-');
+                if (isInline) {
                   return (
                     <code className="bg-gray-800 rounded px-1.5 py-0.5 text-sm">
                       {children}
