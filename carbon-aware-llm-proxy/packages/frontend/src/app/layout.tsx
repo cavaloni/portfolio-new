@@ -1,6 +1,8 @@
 import { Providers } from "@/components/providers";
+import BrandLogo from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/toaster";
+import "highlight.js/styles/github-dark.min.css";
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
@@ -37,28 +39,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <div className="min-h-screen flex flex-col">
-            <div className="w-full border-b">
-              <div className="container flex h-16 items-center justify-between">
-                <div className="flex items-center ml-1">
-                  <svg
-                  className="h-6 w-6 sm:h-7 sm:w-7 text-foreground/80"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  role="img"
-                  aria-label="Routly logo"
-                >
-                  <path d="M19.5 6.5c-1.9-2.1-4.7-3.3-7.7-3.2-5 .1-9 4.3-8.8 9.3.1 3.3 2 6.2 4.8 7.7"></path>
-                  <path d="M12 3 L13.2 4.2"></path>
-                  <path d="M12 3 L10.8 4.2"></path>
-                </svg>
-                  <span className="ml-2 text-xl sm:text-2xl font-thin text-foreground/60">
-                    Routly
-                  </span>
-                </div>
+            <div className="w-full border-b absolute top-0 z-50">
+              <div className="container ml-0 flex h-16 items-center justify-between">
+                <BrandLogo scale={3} leftOffsetPx={35} className="ml-1" zIndexClass="-z-10" />
                 <div className="flex items-center gap-2">
                   <ThemeToggle />
                 </div>

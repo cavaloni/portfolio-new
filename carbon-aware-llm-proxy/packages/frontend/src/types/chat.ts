@@ -18,6 +18,8 @@ export interface Message {
   };
   isStreaming?: boolean;
   tokens?: number;
+  /** Time from user send to assistant completion in milliseconds */
+  responseTimeMs?: number;
 }
 
 export interface ModelInfo {

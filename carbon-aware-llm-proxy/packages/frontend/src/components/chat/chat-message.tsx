@@ -1,13 +1,15 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { Icons } from "@/components/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
 import { Message, MessageRole } from "@/types/chat";
 import { formatDistanceToNow } from "date-fns";
 import { useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 
 export interface ChatMessageProps {
   message: Message;
@@ -42,7 +44,7 @@ export function ChatMessage({
         textareaRef.current?.focus();
         textareaRef.current?.setSelectionRange(
           editedContent.length,
-          editedContent.length,
+          editedContent.length
         );
       }, 0);
     }
@@ -62,7 +64,9 @@ export function ChatMessage({
     if (isCurrentUser) {
       return (
         <Avatar className="h-10 w-10 glass-glow">
-          <AvatarFallback className="glass text-primary font-semibold">You</AvatarFallback>
+          <AvatarFallback className="glass text-primary font-semibold">
+            You
+          </AvatarFallback>
         </Avatar>
       );
     }
@@ -102,16 +106,86 @@ export function ChatMessage({
     }
 
     return (
-      <div className="whitespace-pre-wrap break-words">
+      <div className="prose prose-invert max-w-none">
         {message.isStreaming && !message.content ? (
           <div className="flex items-center space-x-1">
             <div className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-pulse" />
             <div className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-pulse delay-100" />
             <div className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-pulse delay-200" />
           </div>
-        ) : (
-          message.content
-        )}
+        ) : message.content ? (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeHighlight]}
+            components={{
+              a: ({ node, ...props }) => (
+                <a
+                  {...props}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline"
+                />
+              ),
+              code: ({ node, inline, className, children, ...props }) => {
+                if (inline) {
+                  return (
+                    <code className="bg-gray-800 rounded px-1.5 py-0.5 text-sm">
+                      {children}
+                    </code>
+                  );
+                }
+                return (
+                  <div className="bg-gray-800 rounded-md p-4 my-2 overflow-x-auto">
+                    <code className={className} {...props}>
+                      {children}
+                    </code>
+                  </div>
+                );
+              },
+              ul: ({ node, ...props }) => (
+                <ul className="list-disc pl-6 my-2" {...props} />
+              ),
+              ol: ({ node, ...props }) => (
+                <ol className="list-decimal pl-6 my-2" {...props} />
+              ),
+              blockquote: ({ node, ...props }) => (
+                <blockquote
+                  className="border-l-4 border-gray-600 pl-4 my-2 text-gray-300 italic"
+                  {...props}
+                />
+              ),
+              h1: ({ node, ...props }) => (
+                <h1 className="text-2xl font-bold my-3" {...props} />
+              ),
+              h2: ({ node, ...props }) => (
+                <h2 className="text-xl font-bold my-3" {...props} />
+              ),
+              h3: ({ node, ...props }) => (
+                <h3 className="text-lg font-semibold my-2" {...props} />
+              ),
+              p: ({ node, ...props }) => <p className="my-2" {...props} />,
+              table: ({ node, ...props }) => (
+                <div className="overflow-x-auto">
+                  <table
+                    className="min-w-full border border-gray-700"
+                    {...props}
+                  />
+                </div>
+              ),
+              th: ({ node, ...props }) => (
+                <th
+                  className="border border-gray-600 px-4 py-2 text-left bg-gray-800"
+                  {...props}
+                />
+              ),
+              td: ({ node, ...props }) => (
+                <td className="border border-gray-600 px-4 py-2" {...props} />
+              ),
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        ) : null}
       </div>
     );
   };
@@ -195,10 +269,10 @@ export function ChatMessage({
     <div
       className={cn(
         "group relative flex items-start gap-4 py-6 px-6 mx-4 my-3",
-        isCurrentUser 
-          ? "glass glass-hover glass-glow ml-8" 
+        isCurrentUser
+          ? "glass glass-hover glass-glow ml-8"
           : "glass-panel glass-hover mr-8",
-        className,
+        className
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

@@ -25,8 +25,11 @@ const nextConfig = {
   },
 
   // Webpack configuration
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Add any custom webpack configuration here
+  webpack: (config, { dev }) => {
+    // Use in-memory cache in development to avoid flaky PackFileCacheStrategy issues
+    if (dev) {
+      config.cache = { type: "memory" };
+    }
     return config;
   },
 

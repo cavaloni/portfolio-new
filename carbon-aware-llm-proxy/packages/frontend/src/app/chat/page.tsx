@@ -1,6 +1,7 @@
 "use client";
 
 import { BackgroundFog } from "@/components/background-fog";
+import { ChatHistorySidebar } from "@/components/chat/chat-history-sidebar";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatProgressIndicator } from "@/components/chat/chat-progress";
@@ -10,9 +11,7 @@ import { TimeoutHandler } from "@/components/chat/timeout-handler";
 import { Globe } from "@/components/globe";
 import { QuadrantJoystick } from "@/components/quadrant-joystick";
 import { QuadrantPosition } from "@/components/quadrant-joystick/QuadrantJoystick.types";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { useChatHistory } from "@/hooks/use-chat-history";
 import { Message, MessageRole } from "@/types/chat";
 import {
   ChevronDown,
@@ -21,7 +20,6 @@ import {
   Info,
   Leaf,
   Loader2,
-  MessageSquare,
   Star,
   Zap,
 } from "lucide-react";
@@ -63,7 +61,7 @@ export default function ChatPage() {
   const [isJoystickExpanded, setIsJoystickExpanded] = useState(true);
   const [isDeploymentExpanded, setIsDeploymentExpanded] = useState(true);
   const [isModelLocationExpanded, setIsModelLocationExpanded] = useState(true);
-  const [isPreferenceGuideExpanded, setIsPreferenceGuideExpanded] = useState(true);
+  const [isChatHistoryExpanded, setIsChatHistoryExpanded] = useState(true);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [joystickPosition, setJoystickPosition] = useState<JoystickPosition>({
     x: 0,
@@ -130,6 +128,43 @@ export default function ChatPage() {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
   );
+
+  // Agent Note: Chat History - Chat history management
+  const { activeSession, createSession, updateCurrentSession } =
+    useChatHistory();
+
+  // Agent Note: Chat History - Auto-save current conversation
+  useEffect(() => {
+    const autoSaveConversation = async () => {
+      // Only auto-save if we have messages and they're not just loading states
+      if (messages.length === 0 || isLoading) return;
+
+      try {
+        if (!activeSession) {
+          // Create a new session for the current conversation
+          await createSession({
+            initialMessage: messages[0],
+          });
+
+          // The createSession will automatically set this as the active session
+          // If there are more messages, they'll be saved in the next effect run
+        } else {
+          // Update existing session with all current messages
+          await updateCurrentSession({
+            messages: messages,
+            appendMessages: false, // Replace all messages
+          });
+        }
+      } catch (error) {
+        console.error("Error auto-saving conversation:", error);
+        // Don't show user error for auto-save failures
+      }
+    };
+
+    // Debounce auto-save to avoid excessive saves during typing/streaming
+    const timeoutId = setTimeout(autoSaveConversation, 2000);
+    return () => clearTimeout(timeoutId);
+  }, [messages, activeSession, createSession, updateCurrentSession, isLoading]);
 
   // Enhanced send message with timeout handling and fallbacks
   const handleSendMessage = useCallback(
@@ -320,6 +355,61 @@ export default function ChatPage() {
     handleSendMessage(prompt);
   }, []);
 
+  // Agent Note: Chat History - Handle chat history sidebar functions
+  const handleChatHistoryMaximize = useCallback(() => {
+    // Collapse all other sections and expand chat history
+    setIsJoystickExpanded(false);
+    setIsDeploymentExpanded(false);
+    setIsModelLocationExpanded(false);
+    setIsChatHistoryExpanded(true);
+  }, []);
+
+  const handleSessionLoad = useCallback((sessionMessages: Message[]) => {
+    // Load messages from a chat session
+    setMessages(sessionMessages);
+    // Note: The active session is already set by the loadSession function in the hook
+  }, []);
+
+  const handleNewChat = useCallback(async () => {
+    // Save current conversation to history (to avoid losing it) without duplicating
+    try {
+      if (messages.length > 0) {
+        if (activeSession) {
+          // Update existing active session with the full conversation
+          await updateCurrentSession({
+            messages,
+            appendMessages: false,
+          });
+        } else {
+          // Create a new session with first message, then append the rest
+          const created = await createSession({ initialMessage: messages[0] });
+          if (messages.length > 1) {
+            // Now that a session exists and is active in this hook, append remaining messages
+            await updateCurrentSession({
+              messages: messages.slice(1),
+              appendMessages: true,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error saving current chat before starting new:", error);
+    }
+
+    // Start a new chat by clearing current messages and active session
+    setMessages([]);
+
+    // Clear the active session so a new one will be created next time
+    try {
+      const { chatHistoryService } = await import(
+        "@/services/chat-history-service"
+      );
+      await chatHistoryService.setActiveSession(null);
+    } catch (error) {
+      console.error("Error clearing active session:", error);
+    }
+  }, [messages, activeSession, createSession, updateCurrentSession]);
+
   // Get preference icon
   const getPreferenceIcon = (preference?: string) => {
     switch (preference) {
@@ -361,11 +451,26 @@ export default function ChatPage() {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-screen bg-background relative">
+    <div className="flex flex-col h-screen bg-background relative top-16 h-[94vh]">
       {/* Dynamic background fog effect */}
       <BackgroundFog joystickPosition={joystickPosition} />
 
       <main className="flex-1 overflow-hidden flex relative z-10">
+        {/* Subtle rotated arrows background */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 -z-10 dark:opacity-[0.09] opacity-[0.35]"
+          style={{
+            backgroundImage: "url('/icons/flowing_arrows_pattern.svg')",
+            backgroundSize: "420px 420px",
+            transform: "rotate(5deg) scale(3) translate(10px, -108px)",
+            maskImage:
+              "radial-gradient(circle, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0) 60%)",
+            WebkitMaskImage:
+              "radial-gradient(circle, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.35) 25%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0) 60%)",
+            filter: "saturate(60%) brightness(115%)",
+          }}
+        />
         {/* Left sidebar with joystick and status */}
         <div className="w-80 glass-panel border-r-0 p-0 m-4 mr-0 glass-glow h-[91vh] flex flex-col">
           {/* Collapsible header */}
@@ -406,19 +511,19 @@ export default function ChatPage() {
                     className="glass-glow"
                   />
                 </div>
-                <div className="text-xs text-muted-foreground mt-2 text-center">
+                {/* <div className="text-xs text-muted-foreground mt-2 text-center">
                   Current:{" "}
                   {routingService.getPreferenceFromJoystick(joystickPosition)}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1 text-center">
                   ({joystickPosition.x.toFixed(2)},{" "}
                   {joystickPosition.y.toFixed(2)})
-                </div>
+                </div> */}
               </div>
             </div>
           )}
 
-          {/* Deployment Status */}
+          {/* Deployment Status
           <button
             onClick={() => setIsDeploymentExpanded(!isDeploymentExpanded)}
             className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
@@ -491,13 +596,11 @@ export default function ChatPage() {
                 )}
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Model Location */}
           <button
-            onClick={() =>
-              setIsModelLocationExpanded(!isModelLocationExpanded)
-            }
+            onClick={() => setIsModelLocationExpanded(!isModelLocationExpanded)}
             className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
           >
             <div className="flex items-center gap-2">
@@ -537,47 +640,16 @@ export default function ChatPage() {
             </div>
           )}
 
-          {/* Preference Guide */}
-          <button
-            onClick={() =>
-              setIsPreferenceGuideExpanded(!isPreferenceGuideExpanded)
+          {/* Agent Note: Chat History - Chat History Section */}
+          <ChatHistorySidebar
+            isExpanded={isChatHistoryExpanded}
+            onToggleExpanded={() =>
+              setIsChatHistoryExpanded(!isChatHistoryExpanded)
             }
-            className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              {isPreferenceGuideExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-              <span>Preference Guide</span>
-            </div>
-          </button>
-          {isPreferenceGuideExpanded && (
-            <div className="p-6 pt-0 space-y-6">
-              <div className="glass glass-hover p-5 text-xs text-muted-foreground">
-                <p className="font-semibold mb-3 text-primary">Joystick Guide:</p>
-                <div className="space-y-2">
-                  <p className="flex items-center gap-2">
-                    <span className="font-medium text-green-400">←</span> Green
-                    (Low Carbon)
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="font-medium text-purple-400">→</span> Quality
-                    (Best Model)
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="font-medium text-blue-400">↑</span> Speed
-                    (Fast Response)
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="font-medium text-orange-400">↓</span> Cost
-                    (Economical)
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+            onMaximize={handleChatHistoryMaximize}
+            onSessionLoad={handleSessionLoad}
+            onNewChat={handleNewChat}
+          />
 
           {/* Joystick Guide Modal */}
           <JoystickGuideModal
@@ -595,9 +667,14 @@ export default function ChatPage() {
             <div className="max-w-4xl mx-auto">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8">
-                  <div className="glass-strong glass-glow p-6 rounded-full mb-6">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                  </div>
+                  {/* <div className="mb-6">
+                    <BrandLogo
+                      scale={3}
+                      leftOffsetPx={35}
+                      className="ml-1 justify-center"
+                      zIndexClass="-z-10"
+                    />
+                  </div> */}
                   <h2 className="text-3xl mb-4 text-primary">
                     Which route shall we take today?
                   </h2>
