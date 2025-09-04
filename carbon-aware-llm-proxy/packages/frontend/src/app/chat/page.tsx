@@ -62,6 +62,7 @@ export default function ChatPage() {
   const [isDeploymentExpanded, setIsDeploymentExpanded] = useState(true);
   const [isModelLocationExpanded, setIsModelLocationExpanded] = useState(true);
   const [isChatHistoryExpanded, setIsChatHistoryExpanded] = useState(true);
+  const [areOtherPanesCollapsed, setAreOtherPanesCollapsed] = useState(false);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [joystickPosition, setJoystickPosition] = useState<JoystickPosition>({
     x: 0,
@@ -83,6 +84,10 @@ export default function ChatPage() {
     maxToleratedDelay: 0,
     showTimeoutOptions: false,
   });
+
+  useEffect(() => {
+    setAreOtherPanesCollapsed(!isJoystickExpanded && !isDeploymentExpanded && !isModelLocationExpanded);
+  }, [isJoystickExpanded, isDeploymentExpanded, isModelLocationExpanded]);
 
   // Start presence service on mount
   useEffect(() => {
@@ -356,13 +361,21 @@ export default function ChatPage() {
   }, []);
 
   // Agent Note: Chat History - Handle chat history sidebar functions
-  const handleChatHistoryMaximize = useCallback(() => {
-    // Collapse all other sections and expand chat history
-    setIsJoystickExpanded(false);
-    setIsDeploymentExpanded(false);
-    setIsModelLocationExpanded(false);
-    setIsChatHistoryExpanded(true);
-  }, []);
+  const handleToggleChatHistoryMaximize = useCallback(() => {
+    if (areOtherPanesCollapsed) {
+      // Restore all panes
+      setIsJoystickExpanded(true);
+      setIsDeploymentExpanded(true);
+      setIsModelLocationExpanded(true);
+      setIsChatHistoryExpanded(true);
+    } else {
+      // Collapse all other sections and expand chat history
+      setIsJoystickExpanded(false);
+      setIsDeploymentExpanded(false);
+      setIsModelLocationExpanded(false);
+      setIsChatHistoryExpanded(true);
+    }
+  }, [areOtherPanesCollapsed]);
 
   const handleSessionLoad = useCallback((sessionMessages: Message[]) => {
     // Load messages from a chat session
@@ -646,9 +659,10 @@ export default function ChatPage() {
             onToggleExpanded={() =>
               setIsChatHistoryExpanded(!isChatHistoryExpanded)
             }
-            onMaximize={handleChatHistoryMaximize}
+            onToggleMaximize={handleToggleChatHistoryMaximize}
             onSessionLoad={handleSessionLoad}
             onNewChat={handleNewChat}
+            areOtherPanesCollapsed={areOtherPanesCollapsed}
           />
 
           {/* Joystick Guide Modal */}

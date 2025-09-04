@@ -17,7 +17,48 @@ export function useChatHistory() {
   });
 }
 
+export function useSendMessage() {
+  return useMutation({
+    mutationFn: async (params: {
+      messages: Message[];
+      modelId: string;
+      carbonAware: boolean;
+    }) => {
+      const { messages, modelId, carbonAware } = params;
+      const response = await apiPost("/v1/chat/completions", {
+        deploymentId: modelId,
+        messages: messages.map(({ role, content }) => ({ role, content })),
+        temperature: 0.7,
+        max_tokens: 1000,
+        stream: false,
+        greenWeight: carbonAware ? 1 : 0,
+      });
 
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const completionResponse = response.data;
+      if (
+        completionResponse &&
+        completionResponse.choices &&
+        completionResponse.choices.length > 0
+      ) {
+        const message = completionResponse.choices[0].message;
+        return {
+          ...message,
+          carbonFootprint:
+            completionResponse.carbon_footprint?.emissions_gco2e,
+          energyUsage:
+            completionResponse.carbon_footprint?.energy_consumed_kwh,
+          tokenCount: completionResponse.usage?.total_tokens,
+        };
+      }
+
+      return null;
+    },
+  });
+}
 
 export function useStreamMessage() {
   const queryClient = useQueryClient();

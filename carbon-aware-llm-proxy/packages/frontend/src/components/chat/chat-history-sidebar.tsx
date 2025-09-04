@@ -18,8 +18,10 @@ interface ChatHistorySidebarProps {
   isExpanded: boolean;
   /** Callback to toggle the expanded state */
   onToggleExpanded: () => void;
-  /** Callback to maximize this section (collapse all others) */
-  onMaximize: () => void;
+  /** Callback to toggle the maximized state of this section */
+  onToggleMaximize: () => void;
+  /** Whether the other panes are collapsed */
+  areOtherPanesCollapsed: boolean;
   /** Callback when a session is loaded */
   onSessionLoad: (messages: Message[]) => void;
   /** Callback when a new chat is started */
@@ -41,7 +43,8 @@ interface ChatHistorySidebarProps {
 export function ChatHistorySidebar({
   isExpanded,
   onToggleExpanded,
-  onMaximize,
+  onToggleMaximize,
+  areOtherPanesCollapsed,
   onSessionLoad,
   onNewChat,
   className,
@@ -236,14 +239,15 @@ export function ChatHistorySidebar({
       )}
     >
       <ChatHistoryHeader
+        sessionCount={sessions.length}
         isExpanded={isExpanded}
         onToggleExpanded={onToggleExpanded}
-        onMaximize={onMaximize}
+        onMaximize={onToggleMaximize}
+        areOtherPanesCollapsed={areOtherPanesCollapsed}
         onNewChat={handleNewChat}
         onExport={handleExport}
         onImport={handleImport}
         onClearAll={() => setConfirmClearAllOpen(true)}
-        sessionCount={sessions.length}
         className="border-b border-border/50 flex-shrink-0"
       />
 

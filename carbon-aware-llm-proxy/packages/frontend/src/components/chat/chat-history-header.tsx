@@ -8,6 +8,7 @@ import {
   ChevronDown, 
   ChevronRight, 
   Maximize2, 
+  Minimize2,
   Plus, 
   Trash2,
   Download,
@@ -31,6 +32,8 @@ interface ChatHistoryHeaderProps {
   onToggleExpanded: () => void;
   /** Callback to maximize the chat history section (collapse all others) */
   onMaximize: () => void;
+  /** Whether the other panes are collapsed */
+  areOtherPanesCollapsed: boolean;
   /** Callback to create a new chat session */
   onNewChat: () => void;
   /** Callback to clear all chat history */
@@ -59,6 +62,7 @@ export function ChatHistoryHeader({
   isExpanded,
   onToggleExpanded,
   onMaximize,
+  areOtherPanesCollapsed,
   onNewChat,
   onClearAll,
   onExport,
@@ -128,9 +132,9 @@ export function ChatHistoryHeader({
           onClick={onMaximize}
           disabled={isLoading}
           className="h-8 w-8 p-0 text-muted-foreground hover:text-primary"
-          title="Focus on chat history"
+          title={areOtherPanesCollapsed ? "Restore panes" : "Focus on chat history"}
         >
-          <Maximize2 className="h-4 w-4" />
+          {areOtherPanesCollapsed ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
         </Button>
 
         {/* New chat button */}

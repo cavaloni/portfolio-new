@@ -1,22 +1,22 @@
 "use client";
 
 import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  ReactNode,
-  useEffect,
-} from "react";
-import { useRouter } from "next/navigation";
-import { Message } from "@/services/chat-service";
-import { Model } from "@/services/model-service";
-import {
+  useCreateConversation,
   useSendMessage,
   useStreamMessage,
-  useCreateConversation,
 } from "@/hooks/use-chat";
-import { useModels, useModel, useCarbonAwareModels } from "@/hooks/use-models";
+import { useCarbonAwareModels } from "@/hooks/use-models";
+import { Message } from "@/services/chat-service";
+import { Model } from "@/services/model-service";
+import { useRouter } from "next/navigation";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { useAuth } from "./auth-context";
 
 interface ChatContextType {
@@ -110,12 +110,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             modelId: selectedModel.id,
             temperature: 0.7,
             maxTokens: 1000,
-
           });
 
           if (response.error) {
             throw new Error(
-              response.error.message || "Failed to create conversation",
+              response.error.message || "Failed to create conversation"
             );
           }
 
@@ -129,7 +128,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           setError(
             err instanceof Error
               ? err
-              : new Error("Failed to create conversation"),
+              : new Error("Failed to create conversation")
           );
           return;
         }
@@ -182,7 +181,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error("Error sending message:", err);
         setError(
-          err instanceof Error ? err : new Error("Failed to send message"),
+          err instanceof Error ? err : new Error("Failed to send message")
         );
 
         // Remove the loading message if there was an error
@@ -197,7 +196,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       createConversation,
       sendMessage,
       isCarbonAware,
-    ],
+    ]
   );
 
   // Handle input change
@@ -205,7 +204,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setInput(e.target.value);
     },
-    [],
+    []
   );
 
   // Clear the chat
@@ -235,12 +234,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         modelId: selectedModel.id,
         temperature: 0.7, // Default temperature
         maxTokens: 1000, // Default max tokens
-        carbonAware: isCarbonAware,
+        // carbonAware: isCarbonAware,
       });
 
       if (response.error) {
         throw new Error(
-          response.error.message || "Failed to create conversation",
+          response.error.message || "Failed to create conversation"
         );
       }
 
@@ -256,7 +255,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to create new conversation"),
+          : new Error("Failed to create new conversation")
       );
       throw err;
     }
