@@ -240,9 +240,10 @@ export function ChatHistorySidebar({
         onToggleExpanded={onToggleExpanded}
         onMaximize={onMaximize}
         onNewChat={handleNewChat}
-        onExportAll={handleExport}
+        onExport={handleExport}
         onImport={handleImport}
         onClearAll={() => setConfirmClearAllOpen(true)}
+        sessionCount={sessions.length}
         className="border-b border-border/50 flex-shrink-0"
       />
 

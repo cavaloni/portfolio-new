@@ -43,6 +43,8 @@ interface ChatHistoryHeaderProps {
   sessionCount: number;
   /** Whether any operations are in progress */
   isLoading?: boolean;
+  /** Additional CSS classes */
+  className?: string;
 }
 
 /**
