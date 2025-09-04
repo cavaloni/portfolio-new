@@ -1,0 +1,98 @@
+stages:
+  - deploy
+
+# Shared configuration for Fly.io deployments
+.flyctl_setup: &flyctl_setup
+  image: alpine:3.19
+  before_script:
+    - apk add --no-cache curl bash ca-certificates jq
+    - curl -L https://fly.io/install.sh | FLYCTL_INSTALL=/usr/local bash
+    - export FLYCTL_INSTALL=/usr/local
+    - export PATH="/usr/local/bin:$PATH"
+    - flyctl version
+
+deploy_backend_prod:
+  stage: deploy
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+  variables:
+    FLY_APP: "$FLY_APP_BACKEND"
+  <<: *flyctl_setup
+  script:
+    - test -n "$FLY_API_TOKEN" || { echo "FLY_API_TOKEN is required"; exit 1; }
+    - test -n "$FLY_APP" || { echo "FLY_APP_BACKEND is required"; exit 1; }
+    - echo "Logging into Fly.io"
+    - flyctl auth token "$FLY_API_TOKEN"
+    # Ensure required secrets exist (no-op if already set)
+    - |
+      flyctl secrets set \
+        NODE_ENV=production \
+        PORT=3001 \
+        CORS_ORIGINS="${CORS_ORIGINS:-https://your-frontend-domain}" \
+        JWT_SECRET="$JWT_SECRET" \
+        DB_HOST="${DB_HOST:-postgres}" \
+        DB_PORT="${DB_PORT:-5432}" \
+        DB_USERNAME="${DB_USERNAME:-postgres}" \
+        DB_PASSWORD="$DB_PASSWORD" \
+        DB_NAME="${DB_NAME:-carbon_aware_llm}" \
+        REDIS_HOST="${REDIS_HOST:-redis}" \
+        REDIS_PORT="${REDIS_PORT:-6379}" \
+        LLM_PROVIDER="${LLM_PROVIDER:-modal}" \
+        MODAL_ENDPOINT_URL="$MODAL_ENDPOINT_URL" \
+        MODAL_API_KEY="$MODAL_API_KEY" \
+        ROUTING_MOCK_ENABLED=false \
+        --app "$FLY_APP" --stage
+    - echo "Deploying backend to Fly app: $FLY_APP"
+    - flyctl deploy --config packages/backend/fly.toml --app "$FLY_APP" --detach
+
+deploy_backend_mock:
+  stage: deploy
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+  variables:
+    FLY_APP: "$FLY_APP_BACKEND_MOCK"
+  <<: *flyctl_setup
+  script:
+    - test -n "$FLY_API_TOKEN" || { echo "FLY_API_TOKEN is required"; exit 1; }
+    - test -n "$FLY_APP" || { echo "FLY_APP_BACKEND_MOCK is required"; exit 1; }
+    - test -n "$OPENROUTER_API_KEY" || { echo "OPENROUTER_API_KEY is required for mock mode"; exit 1; }
+    - echo "Logging into Fly.io"
+    - flyctl auth token "$FLY_API_TOKEN"
+    # Set/refresh mock-mode secrets. This switches routing + chat to mock path.
+    - |
+      flyctl secrets set \
+        NODE_ENV=production \
+        PORT=3001 \
+        ROUTING_MOCK_ENABLED=true \
+        OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
+        CORS_ORIGINS="${CORS_ORIGINS:-https://your-frontend-domain}" \
+        JWT_SECRET="$JWT_SECRET" \
+        DB_HOST="${DB_HOST:-postgres}" \
+        DB_PORT="${DB_PORT:-5432}" \
+        DB_USERNAME="${DB_USERNAME:-postgres}" \
+        DB_PASSWORD="$DB_PASSWORD" \
+        DB_NAME="${DB_NAME:-carbon_aware_llm}" \
+        REDIS_HOST="${REDIS_HOST:-redis}" \
+        REDIS_PORT="${REDIS_PORT:-6379}" \
+        LLM_PROVIDER="${LLM_PROVIDER:-modal}" \
+        MODAL_ENDPOINT_URL="${MODAL_ENDPOINT_URL}" \
+        MODAL_API_KEY="${MODAL_API_KEY}" \
+        --app "$FLY_APP" --stage
+    - echo "Deploying backend (mock mode) to Fly app: $FLY_APP"
+    - flyctl deploy --config packages/backend/fly.toml --app "$FLY_APP" --detach
+
+# Notes:
+# - Configure CI/CD variables in GitLab project Settings > CI/CD > Variables:
+#   - FLY_API_TOKEN (required)
+#   - FLY_APP_BACKEND (e.g., airth-carbon-aware-backend)
+#   - FLY_APP_BACKEND_MOCK (e.g., airth-carbon-aware-backend-mock)
+#   - JWT_SECRET, DB_PASSWORD (required)
+#   - OPENROUTER_API_KEY (required for mock)
+#   - Optional: MODAL_ENDPOINT_URL, MODAL_API_KEY (for non-mock)
+# - Both jobs are manual by default. Trigger from the pipeline UI.
