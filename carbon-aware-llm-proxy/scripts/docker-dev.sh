@@ -43,7 +43,7 @@ fi
 
 # Start the services
 echo "🚀 Starting development services..."
-docker compose up -d
+NEXT_PUBLIC_DISABLE_AUTH=true docker compose up -d
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to be ready..."

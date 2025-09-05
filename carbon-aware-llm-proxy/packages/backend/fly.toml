@@ -9,6 +9,8 @@ primary_region = "iad"
   PORT = "3001"
   # Increase Modal provider timeout to avoid 30s client aborts in production
   MODAL_TIMEOUT_MS = "120000"
+  # CORS configuration for production
+  CORS_ORIGINS = "https://routly-main.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
 
 [http_service]
   internal_port = 3001
