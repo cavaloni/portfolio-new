@@ -102,6 +102,8 @@ services:
       NEXT_PUBLIC_WS_URL: localhost:3001
       NEXT_TELEMETRY_DISABLED: 1
       NEXT_PUBLIC_MODAL_ENDPOINT_URL: https://cavaloni--carbon-aware-modal-app-asgi-app.modal.run
+      NEXT_PUBLIC_DISABLE_AUTH: ${NEXT_PUBLIC_DISABLE_AUTH:-true}
+      FORCE_AUTH: ${FORCE_AUTH:-false}
     ports:
       - "3000:3000"
     volumes:

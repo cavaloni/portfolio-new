@@ -23,6 +23,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Check if authentication is disabled via environment variable
+  // This allows disabling auth in development or staging environments
+  if (process.env.NEXT_PUBLIC_DISABLE_AUTH === "true" ||
+      process.env.NODE_ENV === "development" && process.env.FORCE_AUTH !== "true") {
+    return NextResponse.next();
+  }
+
   const cookie = request.cookies.get(AUTH_COOKIE)?.value;
   if (cookie === "ok") {
     return NextResponse.next();

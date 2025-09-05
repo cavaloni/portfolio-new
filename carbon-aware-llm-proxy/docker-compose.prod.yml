@@ -105,6 +105,8 @@ services:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001}
       NEXT_TELEMETRY_DISABLED: 1
+      NEXT_PUBLIC_DISABLE_AUTH: ${NEXT_PUBLIC_DISABLE_AUTH:-false}
+      FORCE_AUTH: ${FORCE_AUTH:-true}
     networks:
       - carbon-aware-network
     depends_on:

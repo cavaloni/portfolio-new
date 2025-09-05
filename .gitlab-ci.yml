@@ -99,7 +99,7 @@ deploy_backend_prod:
         MODAL_API_KEY="$MODAL_API_KEY" \
         ROUTING_MOCK_ENABLED=false \
         --app "$FLY_APP" --stage
-    - echo "Deploying backend to Fly app: $FLY_APP"
+    - echo "Deploying backend to Fly app $FLY_APP"
     - flyctl deploy --config carbon-aware-llm-proxy/packages/backend/fly.toml --app "$FLY_APP" --detach
 
 deploy_backend_mock:
@@ -137,7 +137,7 @@ deploy_backend_mock:
         MODAL_ENDPOINT_URL="${MODAL_ENDPOINT_URL}" \
         MODAL_API_KEY="${MODAL_API_KEY}" \
         --app "$FLY_APP" --stage
-    - echo "Deploying backend (mock mode) to Fly app: $FLY_APP"
+    - echo "Deploying backend (mock mode) to Fly app $FLY_APP"
     - flyctl deploy --config carbon-aware-llm-proxy/packages/backend/fly.toml --app "$FLY_APP" --detach
 
 # Notes:

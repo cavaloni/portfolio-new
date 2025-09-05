@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     value: "ok",
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" || request.headers.get("x-forwarded-proto") === "https",
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 7 days
   });

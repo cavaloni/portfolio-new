@@ -251,6 +251,18 @@ API documentation is available at `/api/docs` when running the backend in develo
 
 ### Authentication
 
+#### Frontend Password Protection
+
+The frontend includes a simple password protection mechanism that can be configured for deployment environments:
+
+- **Password**: `HardOnRoutly` (hardcoded for demo purposes)
+- **Environment Variables**:
+  - `NEXT_PUBLIC_DISABLE_AUTH=true` - Disable authentication completely
+  - `FORCE_AUTH=true` - Force authentication even in development
+  - By default, authentication is disabled in development and enabled in production
+
+#### API Authentication
+
 All protected routes require a JWT token in the `Authorization` header:
 
 ```
