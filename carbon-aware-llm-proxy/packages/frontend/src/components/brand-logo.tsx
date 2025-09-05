@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 interface BrandLogoProps {
   // Tailwind arbitrary scale, e.g. 3 for scale-[3]
@@ -15,8 +16,8 @@ interface BrandLogoProps {
 
 /**
  * BrandLogo renders the Routly brand with theme-aware light/dark SVG variants.
- * It mirrors the header implementation (two <img> tags toggled by Tailwind's dark: utilities)
- * and includes a wordmark by default.
+ * It uses Next.js Image components for optimized loading and Vercel compatibility.
+ * The component includes a wordmark by default and supports theme switching.
  */
 export function BrandLogo({
   scale = 3,
@@ -25,26 +26,29 @@ export function BrandLogo({
   showWordmark = true,
   zIndexClass = "-z-10",
 }: BrandLogoProps) {
-  const commonImgClasses = `transform scale-[${scale}] h-6 w-6 sm:h-7 sm:w-7 relative ${zIndexClass}`;
   const containerClasses = `flex items-center ${className}`;
 
   return (
     <div className={containerClasses}>
       {/* Light mode logo */}
-      <img
-        src="/logo-light.svg"
-        alt="Carbon-Aware LLM Proxy Logo (Light)"
-        className={`block dark:hidden ${commonImgClasses}`}
-        style={{ left: `${leftOffsetPx}px` }}
-      />
+      <div className={`relative h-6 w-6 sm:h-7 sm:w-7 transform scale-[${scale}] ${zIndexClass}`} style={{ left: `${leftOffsetPx}px` }}>
+        <Image
+          src="/logo-light.svg"
+          alt="Carbon-Aware LLM Proxy Logo (Light)"
+          fill
+          className="block dark:hidden object-contain"
+        />
+      </div>
 
       {/* Dark mode logo */}
-      <img
-        src="/logo-dark.svg"
-        alt="Carbon-Aware LLM Proxy Logo (Dark)"
-        className={`hidden dark:block ${commonImgClasses}`}
-        style={{ left: `${leftOffsetPx}px` }}
-      />
+      <div className={`relative h-6 w-6 sm:h-7 sm:w-7 transform scale-[${scale}] ${zIndexClass}`} style={{ left: `${leftOffsetPx}px` }}>
+        <Image
+          src="/logo-dark.svg"
+          alt="Carbon-Aware LLM Proxy Logo (Dark)"
+          fill
+          className="hidden dark:block object-contain"
+        />
+      </div>
 
       {showWordmark && (
         <span className="ml-2 text-xl sm:text-2xl font-thin text-foreground/60">
