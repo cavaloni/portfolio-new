@@ -40,7 +40,7 @@ export function BrandLogo({
 
       {/* Dark mode logo */}
       <img
-        src="/icons/new-logo.svg"
+        src="/icons/dark/logo-dark.svg"
         alt="Carbon-Aware LLM Proxy Logo (Dark)"
         className={`hidden dark:block ${commonImgClasses}`}
         style={{ left: `${leftOffsetPx}px` }}
