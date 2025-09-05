@@ -32,7 +32,7 @@ export function BrandLogo({
     <div className={containerClasses}>
       {/* Light mode logo */}
       <img
-        src="/icons/light/logo-light.svg"
+        src="/logo-light.svg"
         alt="Carbon-Aware LLM Proxy Logo (Light)"
         className={`block dark:hidden ${commonImgClasses}`}
         style={{ left: `${leftOffsetPx}px` }}
@@ -40,7 +40,7 @@ export function BrandLogo({
 
       {/* Dark mode logo */}
       <img
-        src="/icons/dark/logo-dark.svg"
+        src="/logo-dark.svg"
         alt="Carbon-Aware LLM Proxy Logo (Dark)"
         className={`hidden dark:block ${commonImgClasses}`}
         style={{ left: `${leftOffsetPx}px` }}
