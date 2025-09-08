@@ -486,7 +486,7 @@ export default function ChatPageClient() {
           }}
         />
         {/* Responsive sidebar with joystick and status */}
-        <ResponsiveSidebar title="AI Controls" description="Preferences and chat history">
+        <ResponsiveSidebar title="Routly">
           <SidebarContent className="glass-panel border-r-0 p-0 glass-glow h-[91vh] lg:h-[91vh]">
             {/* Collapsible header */}
             <button
