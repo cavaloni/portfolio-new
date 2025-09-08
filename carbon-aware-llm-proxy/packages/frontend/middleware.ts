@@ -23,12 +23,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if authentication should be bypassed
-  // In development: auth is disabled by default unless FORCE_AUTH=true
-  // In production: auth is always enabled unless NEXT_PUBLIC_DISABLE_AUTH=true
-  const shouldBypassAuth =
-    
-    (process.env.FORCE_AUTH === "false" || !process.env.FORCE_AUTH);
+  // Simple auth logic: only bypass if explicitly disabled
+  const shouldBypassAuth = process.env.NEXT_PUBLIC_DISABLE_AUTH === "true";
 
   if (shouldBypassAuth) {
     return NextResponse.next();
