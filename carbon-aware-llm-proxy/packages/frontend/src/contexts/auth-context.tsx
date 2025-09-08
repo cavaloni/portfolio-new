@@ -28,11 +28,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useLogout();
   const signupMutation = useSignup();
 
-  // Check if we have a token on initial load
+  // Check if we have the demo auth cookie on initial load
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("auth_token");
-      if (token) {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('demo_auth='))
+        ?.split('=')[1];
+
+      if (cookieValue === "ok") {
         refetch();
       }
     }

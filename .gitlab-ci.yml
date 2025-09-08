@@ -104,7 +104,8 @@ deploy_backend_prod:
         ROUTING_MOCK_ENABLED=false \
         --app "$FLY_APP" --stage
     - echo "Deploying backend to Fly app $FLY_APP"
-    - flyctl deploy --config carbon-aware-llm-proxy/packages/backend/fly.toml --app "$FLY_APP" --detach
+    - cd carbon-aware-llm-proxy/packages/backend
+    - flyctl deploy --app "$FLY_APP" --detach
 
 deploy_backend_mock:
   stage: deploy
@@ -142,7 +143,8 @@ deploy_backend_mock:
         MODAL_API_KEY="${MODAL_API_KEY}" \
         --app "$FLY_APP" --stage
     - echo "Deploying backend (mock mode) to Fly app $FLY_APP"
-    - flyctl deploy --config carbon-aware-llm-proxy/packages/backend/fly.toml --app "$FLY_APP" --detach
+    - cd carbon-aware-llm-proxy/packages/backend
+    - flyctl deploy --app "$FLY_APP" --detach
 
 # Notes:
 # - Configure CI/CD variables in GitLab project Settings > CI/CD > Variables:

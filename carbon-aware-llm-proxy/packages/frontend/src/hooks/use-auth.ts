@@ -34,14 +34,12 @@ export function useLogin() {
       email: string;
       password: string;
     }) => {
+      // For demo purposes, we'll simulate a successful login
       // In a real app, this would call your authentication API
-      // For now, we'll simulate a successful login
-      return { success: true, token: "dummy-token" };
+      return { success: true };
     },
     onSuccess: (data) => {
       if (data.success) {
-        // Store the token
-        localStorage.setItem("auth_token", data.token);
         // Invalidate the user query to refetch the user data
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
         // Redirect to the dashboard
@@ -57,12 +55,15 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      // In a real app, this would call your logout API
-      return { success: true };
+      const response = await fetch("/api/logout", {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+      return response.json();
     },
     onSuccess: () => {
-      // Remove the auth token
-      localStorage.removeItem("auth_token");
       // Clear the user data from the cache
       queryClient.setQueryData(queryKeys.auth.me, null);
       // Clear all queries
@@ -89,12 +90,10 @@ export function useSignup() {
     }) => {
       // In a real app, this would call your signup API
       // For now, we'll simulate a successful signup
-      return { success: true, token: "dummy-token" };
+      return { success: true };
     },
     onSuccess: (data) => {
       if (data.success) {
-        // Store the token
-        localStorage.setItem("auth_token", data.token);
         // Invalidate the user query to refetch the user data
         queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
         // Redirect to the dashboard

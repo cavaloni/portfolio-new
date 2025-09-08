@@ -41,13 +41,17 @@ export function middleware(request: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-// Protect everything except static assets and the explicit bypass routes.
+// Protect all routes except login and API routes
 export const config = {
-  // Run middleware only for application routes, excluding:
-  // - any path with a file extension (e.g., .svg, .png, .css, .js, etc.)
-  // - Next.js internals under _next
-  // - explicit bypass routes
   matcher: [
-    "/((?!.+\\.[\\w]+$|_next/static|_next/image|favicon.ico|robots.txt|api/health|api/login|login).*)",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - login (login page)
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico|login).*)",
   ],
 };
