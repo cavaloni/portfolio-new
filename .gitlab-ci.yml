@@ -77,11 +77,11 @@ deploy_backend_prod:
       when: manual
       allow_failure: false
   variables:
-    FLY_APP: "$FLY_APP_BACKEND"
+    FLY_APP: "$FLY_APP_NAME"
   <<: *flyctl_setup
   script:
     - test -n "$FLY_API_TOKEN" || { echo "FLY_API_TOKEN is required"; exit 1; }
-    - test -n "$FLY_APP" || { echo "FLY_APP_BACKEND is required"; exit 1; }
+    - test -n "$FLY_APP_NAME" || { echo "FLY_APP_NAME is required"; exit 1; }
     - echo "Logging into Fly.io"
     - flyctl auth token "$FLY_API_TOKEN"
     # Ensure required secrets exist (no-op if already set)
@@ -113,11 +113,11 @@ deploy_backend_mock:
       when: manual
       allow_failure: false
   variables:
-    FLY_APP: "$FLY_APP_BACKEND_MOCK"
+    FLY_APP: "$FLY_APP_NAME"
   <<: *flyctl_setup
   script:
     - test -n "$FLY_API_TOKEN" || { echo "FLY_API_TOKEN is required"; exit 1; }
-    - test -n "$FLY_APP" || { echo "FLY_APP_BACKEND_MOCK is required"; exit 1; }
+    - test -n "$FLY_APP_NAME" || { echo "FLY_APP_NAME is required"; exit 1; }
     - test -n "$OPENROUTER_API_KEY" || { echo "OPENROUTER_API_KEY is required for mock mode"; exit 1; }
     - echo "Logging into Fly.io"
     - flyctl auth token "$FLY_API_TOKEN"
@@ -147,9 +147,9 @@ deploy_backend_mock:
 # Notes:
 # - Configure CI/CD variables in GitLab project Settings > CI/CD > Variables:
 #   - FLY_API_TOKEN (required)
-#   - FLY_APP_BACKEND (e.g., airth-carbon-aware-backend)
-#   - FLY_APP_BACKEND_MOCK (e.g., airth-carbon-aware-backend-mock)
+#   - FLY_APP_NAME (required) - Your Fly.io app name
 #   - JWT_SECRET, DB_PASSWORD (required)
-#   - OPENROUTER_API_KEY (required for mock)
-#   - Optional: MODAL_ENDPOINT_URL, MODAL_API_KEY (for non-mock)
-# - Both jobs are manual by default. Trigger from the pipeline UI.
+#   - OPENROUTER_API_KEY (required for mock mode)
+#   - Optional: MODAL_ENDPOINT_URL, MODAL_API_KEY (for production mode)
+# - Both jobs deploy to the same Fly.io app but with different ROUTING_MOCK_ENABLED settings
+# - Jobs are manual by default. Trigger from the pipeline UI.
