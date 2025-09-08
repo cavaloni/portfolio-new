@@ -57,8 +57,8 @@ deploy_modal_production:
     - test -n "$MODAL_API_KEY" || (echo "❌ MODAL_API_KEY not set" && exit 1)
     - yarn workspace @carbon-aware-llm/backend deploy:modal
     - echo "✅ Modal deployment completed successfully"
-  needs:
-    - migrate_production
+  # needs:
+  #   - migrate_production
 
 # Shared configuration for Fly.io deployments
 .flyctl_setup: &flyctl_setup
