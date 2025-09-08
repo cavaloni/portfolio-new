@@ -17,7 +17,7 @@ export function middleware(request: NextRequest) {
   if (
     bypass.includes(pathname) ||
     pathname.startsWith("/_next/") ||
-    pathname.startsWith("/public/") ||
+    // Exclude common static asset paths
     pathname.startsWith("/assets/")
   ) {
     return NextResponse.next();
@@ -43,8 +43,11 @@ export function middleware(request: NextRequest) {
 
 // Protect everything except static assets and the explicit bypass routes.
 export const config = {
+  // Run middleware only for application routes, excluding:
+  // - any path with a file extension (e.g., .svg, .png, .css, .js, etc.)
+  // - Next.js internals under _next
+  // - explicit bypass routes
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|api/health|api/login|login).*)",
+    "/((?!.+\\.[\\w]+$|_next/static|_next/image|favicon.ico|robots.txt|api/health|api/login|login).*)",
   ],
 };
-
