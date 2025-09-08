@@ -1,6 +1,6 @@
 stages:
   - test
-  - migrate
+  # - migrate
   - deploy
 
 debug_ci:
@@ -13,25 +13,25 @@ debug_ci:
   rules:
     - when: always
 
-migrate_production:
-  stage: migrate
-  rules:
-    - if: '$CI_COMMIT_REF_NAME == "main"'
-      when: manual
-      allow_failure: false
-  image: node:20
-  variables:
-    NODE_ENV: production
-  before_script:
-    - cd carbon-aware-llm-proxy
-    - corepack enable
-    - yarn --version
-    - yarn install --immutable
-  script:
-    - echo "Running production database migrations..."
-    - test -n "$DATABASE_URL" || (echo "❌ DATABASE_URL not set" && exit 1)
-    - yarn workspace @carbon-aware-llm/backend migration:run
-    - echo "✅ Migrations completed successfully"
+# migrate_production:
+#   stage: migrate
+#   rules:
+#     - if: '$CI_COMMIT_REF_NAME == "main"'
+#       when: manual
+#       allow_failure: false
+#   image: node:20
+#   variables:
+#     NODE_ENV: production
+#   before_script:
+#     - cd carbon-aware-llm-proxy
+#     - corepack enable
+#     - yarn --version
+#     - yarn install --immutable
+#   script:
+#     - echo "Running production database migrations..."
+#     - test -n "$DATABASE_URL" || (echo "❌ DATABASE_URL not set" && exit 1)
+#     - yarn workspace @carbon-aware-llm/backend migration:run
+#     - echo "✅ Migrations completed successfully"
 
 deploy_modal_production:
   stage: deploy

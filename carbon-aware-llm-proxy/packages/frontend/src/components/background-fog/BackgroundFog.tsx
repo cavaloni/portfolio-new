@@ -23,10 +23,7 @@ export const BackgroundFog: React.FC<BackgroundFogProps> = ({
   // Calculate the dominant color based on joystick position
   const backgroundStyle = useMemo(() => {
     const { x, y } = joystickPosition;
-    
-    // Debug log to verify position changes
-    console.log('BackgroundFog position:', { x, y });
-    
+
     // Normalize coordinates to [0, 1] range
     const normalizedX = (x + 1) / 2; // [-1, 1] -> [0, 1]
     const normalizedY = (y + 1) / 2; // [-1, 1] -> [0, 1]
@@ -77,10 +74,7 @@ export const BackgroundFog: React.FC<BackgroundFogProps> = ({
     // Create subtle gradient effects - increased visibility for testing
     const centerAlpha = 0.15; // More visible center for testing
     const edgeAlpha = 0.06; // More visible edges for testing
-    
-    // Debug log the calculated color
-    console.log('BackgroundFog color:', { r, g, b, centerAlpha, edgeAlpha });
-    
+
     return {
       background: `
         radial-gradient(

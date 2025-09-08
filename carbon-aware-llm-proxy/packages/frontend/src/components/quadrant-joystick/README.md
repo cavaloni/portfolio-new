@@ -30,8 +30,7 @@ import { QuadrantJoystick } from '@/components/quadrant-joystick';
 
 function MyComponent() {
   const handleChange = (position) => {
-    console.log('Position:', position.x, position.y);
-    console.log('Quadrant:', position.quadrant);
+    // Handle position change
   };
 
   return <QuadrantJoystick onChange={handleChange} />;
