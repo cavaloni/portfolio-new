@@ -1,0 +1,53 @@
+<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Transparent background -->
+  
+  <!-- Define arrow marker -->
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L6,3 z" fill="#9ca3af" stroke="none"/>
+    </marker>
+    
+    <!-- Define dashed line style -->
+    <style>
+      .flow-line {
+        stroke: #9ca3af;
+        stroke-width: 1.5;
+        fill: none;
+        stroke-dasharray: 8,4;
+        marker-end: url(#arrow);
+      }
+    </style>
+  </defs>
+  
+  <!-- Flowing curved lines with arrows -->
+  <path class="flow-line" d="M50,80 Q150,60 250,90 Q350,120 450,85 Q550,50 650,75"/>
+  
+  <path class="flow-line" d="M80,150 Q180,130 280,160 Q380,190 480,155 Q580,120 680,145"/>
+  
+  <path class="flow-line" d="M30,220 Q130,200 230,230 Q330,260 430,225 Q530,190 630,215"/>
+  
+  <path class="flow-line" d="M100,290 Q200,270 300,300 Q400,330 500,295 Q600,260 700,285"/>
+  
+  <path class="flow-line" d="M20,350 Q120,330 220,360 Q320,390 420,355 Q520,320 620,345"/>
+  
+  <!-- Additional intersecting flows -->
+  <path class="flow-line" d="M120,40 Q220,80 320,50 Q420,20 520,55 Q620,90 720,65"/>
+  
+  <path class="flow-line" d="M60,120 Q160,160 260,130 Q360,100 460,135 Q560,170 660,145"/>
+  
+  <path class="flow-line" d="M150,180 Q250,220 350,190 Q450,160 550,195 Q650,230 750,205"/>
+  
+  <path class="flow-line" d="M10,250 Q110,290 210,260 Q310,230 410,265 Q510,300 610,275"/>
+  
+  <path class="flow-line" d="M90,320 Q190,360 290,330 Q390,300 490,335 Q590,370 690,345"/>
+  
+  <!-- Some reverse direction flows -->
+  <path class="flow-line" d="M700,110 Q600,140 500,110 Q400,80 300,115 Q200,150 100,125"/>
+  
+  <path class="flow-line" d="M750,240 Q650,270 550,240 Q450,210 350,245 Q250,280 150,255"/>
+  
+  <!-- Sparkle/star in bottom right -->
+  <g transform="translate(720,350)">
+    <path d="M0,-8 L2,-2 L8,0 L2,2 L0,8 L-2,2 L-8,0 L-2,-2 Z" fill="#9ca3af" opacity="0.8"/>
+  </g>
+</svg>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <defs>
+    <!-- Soft dashed line style -->
+    <style>
+      .wave {
+        fill: none;
+        stroke: currentColor;
+        stroke-opacity: .25;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-dasharray: 8 10;
+      }
+    </style>
+    <!-- subtle blur for depth -->
+    <filter id="soften" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Large sweeping arcs; center is off-canvas to the top-left so curves feel concentric -->
+  <g filter="url(#soften)">
+    <path class="wave" d="M-600 220 C 200 120, 1000 60, 2200 120" />
+    <path class="wave" d="M-600 340 C 200 240, 1000 180, 2200 240" />
+    <path class="wave" d="M-600 460 C 200 360, 1000 300, 2200 360" />
+    <path class="wave" d="M-600 580 C 200 480, 1000 420, 2200 480" />
+    <path class="wave" d="M-600 700 C 200 600, 1000 540, 2200 600" />
+    <path class="wave" d="M-600 820 C 200 720, 1000 660, 2200 720" />
+  </g>
+
+  <!-- A second, fainter layer for depth -->
+  <g opacity=".5">
+    <path class="wave" d="M-700 160 C 50 80, 1050 20, 2300 80" />
+    <path class="wave" d="M-700 280 C 50 200, 1050 140, 2300 200" />
+    <path class="wave" d="M-700 400 C 50 320, 1050 260, 2300 320" />
+    <path class="wave" d="M-700 520 C 50 440, 1050 380, 2300 440" />
+    <path class="wave" d="M-700 640 C 50 560, 1050 500, 2300 560" />
+    <path class="wave" d="M-700 760 C 50 680, 1050 620, 2300 680" />
+  </g>
+</svg>
