@@ -1,5 +1,3 @@
-import React from "react";
-
 interface BrandLogoProps {
   // Tailwind arbitrary scale, e.g. 3 for scale-[3]
   scale?: number;
@@ -34,7 +32,7 @@ export function BrandLogo({
         className={`relative h-6 w-6 sm:h-7 sm:w-7 transform scale-[${scale}] ${zIndexClass} block dark:hidden bg-contain bg-no-repeat bg-center`}
         style={{
           left: `${leftOffsetPx}px`,
-          backgroundImage: "url('/logo-light.svg')"
+          backgroundImage: "url('/icons/light/logo-light.svg')",
         }}
         role="img"
         aria-label="Carbon-Aware LLM Proxy Logo (Light)"
@@ -45,7 +43,7 @@ export function BrandLogo({
         className={`relative h-6 w-6 sm:h-7 sm:w-7 transform scale-[${scale}] ${zIndexClass} hidden dark:block bg-contain bg-no-repeat bg-center`}
         style={{
           left: `${leftOffsetPx}px`,
-          backgroundImage: "url('/logo-dark.svg')"
+          backgroundImage: "url('/icons/dark/logo-dark.svg')",
         }}
         role="img"
         aria-label="Carbon-Aware LLM Proxy Logo (Dark)"
