@@ -89,7 +89,8 @@ deploy_backend_prod:
       flyctl secrets set \
         NODE_ENV=production \
         PORT=3001 \
-        CORS_ORIGINS="${CORS_ORIGINS:-https://your-frontend-domain}" \
+        # Do not override CORS_ORIGINS here; use value from fly.toml or CI var if explicitly set
+        ${CORS_ORIGINS:+CORS_ORIGINS="$CORS_ORIGINS"} \
         JWT_SECRET="$JWT_SECRET" \
         DB_HOST="${DB_HOST:-postgres}" \
         DB_PORT="${DB_PORT:-5432}" \
@@ -129,7 +130,8 @@ deploy_backend_mock:
         PORT=3001 \
         ROUTING_MOCK_ENABLED=true \
         OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
-        CORS_ORIGINS="${CORS_ORIGINS:-https://your-frontend-domain}" \
+        # Do not override CORS_ORIGINS here; use value from fly.toml or CI var if explicitly set
+        ${CORS_ORIGINS:+CORS_ORIGINS="$CORS_ORIGINS"} \
         JWT_SECRET="$JWT_SECRET" \
         DB_HOST="${DB_HOST:-postgres}" \
         DB_PORT="${DB_PORT:-5432}" \

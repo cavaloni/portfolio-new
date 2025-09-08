@@ -23,10 +23,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check if authentication is disabled via environment variable
-  // This allows disabling auth in development or staging environments
-  if (process.env.NEXT_PUBLIC_DISABLE_AUTH === "true" ||
-      process.env.NODE_ENV === "development" && process.env.FORCE_AUTH !== "true") {
+  // Check if authentication should be bypassed
+  // In development: auth is disabled by default unless FORCE_AUTH=true
+  // In production: auth is always enabled unless NEXT_PUBLIC_DISABLE_AUTH=true
+  const shouldBypassAuth =
+    
+    (process.env.FORCE_AUTH === "false" || !process.env.FORCE_AUTH);
+
+  if (shouldBypassAuth) {
     return NextResponse.next();
   }
 
