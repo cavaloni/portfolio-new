@@ -65,6 +65,10 @@ const rateLimiter = new RateLimiterRedis({
 
 // Rate limiting middleware
 export const rateLimiterMiddleware: RequestHandler = async (req, res, next) => {
+  // Do not rate limit CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return next();
+  }
   try {
     // Use IP + user agent as a key to identify unique clients
     const key = `${req.ip}_${req.headers["user-agent"]}`;

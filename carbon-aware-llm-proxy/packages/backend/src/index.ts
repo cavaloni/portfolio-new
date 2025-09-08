@@ -27,8 +27,11 @@ const corsOptions = {
     : true, // Allow all origins if not specified
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-};
+  // Let the cors package reflect the request's Access-Control-Request-Headers automatically
+  // by omitting allowedHeaders. This avoids mismatches when clients send custom headers.
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+} as const;
 app.use(cors(corsOptions));
 // Handle CORS preflight for all routes
 app.options("*", cors(corsOptions));

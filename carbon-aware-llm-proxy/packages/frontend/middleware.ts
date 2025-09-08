@@ -26,7 +26,18 @@ export function middleware(request: NextRequest) {
   // Simple auth logic: only bypass if explicitly disabled
   const shouldBypassAuth = process.env.NEXT_PUBLIC_DISABLE_AUTH === "true";
 
+  // Debug logging for production troubleshooting
+  console.log("🔐 Auth Debug:", {
+    pathname,
+    shouldBypassAuth,
+    disableAuth: process.env.NEXT_PUBLIC_DISABLE_AUTH,
+    hasCookie: !!request.cookies.get(AUTH_COOKIE),
+    cookieValue: request.cookies.get(AUTH_COOKIE)?.value,
+    nodeEnv: process.env.NODE_ENV
+  });
+
   if (shouldBypassAuth) {
+    console.log("🔐 Auth bypassed for:", pathname);
     return NextResponse.next();
   }
 
@@ -41,17 +52,14 @@ export function middleware(request: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-// Protect all routes except login and API routes
+// Protect main application routes
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - login (login page)
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico|login).*)",
+    "/",
+    "/chat",
+    "/models",
+    "/analytics",
+    "/profile",
+    "/settings"
   ],
 };
