@@ -11,9 +11,8 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++ || \
     (sleep 5 && apk add --no-cache python3 make g++)
 
-# Copy package files
-COPY package.json ./
-COPY package-lock.json* ./
+# Copy package manifest files (handles presence/absence of lockfile gracefully)
+COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install all dependencies for building (including dev dependencies)
@@ -42,9 +41,8 @@ WORKDIR /app
 # Install runtime dependencies only
 RUN apk add --no-cache dumb-init
 
-# Copy package files
-COPY package.json ./
-COPY package-lock.json* ./
+# Copy package manifest files (handles presence/absence of lockfile gracefully)
+COPY package*.json ./
 
 # Install production dependencies only
 RUN npm config set fund false && \
