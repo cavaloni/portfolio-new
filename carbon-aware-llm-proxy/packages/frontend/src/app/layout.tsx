@@ -40,7 +40,7 @@ export default function RootLayout({
         >
           <div className="min-h-screen flex flex-col">
             <div className="w-full border-b absolute top-0 z-50">
-              <div className="container ml-0 flex h-16 items-center justify-between">
+              <div className="container flex h-16 items-center justify-between">
                 <BrandLogo scale={3} leftOffsetPx={35} className="ml-1" zIndexClass="-z-10" />
                 <div className="flex items-center gap-2">
                   <ThemeToggle />

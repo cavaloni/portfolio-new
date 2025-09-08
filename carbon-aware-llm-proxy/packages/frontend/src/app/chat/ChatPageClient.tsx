@@ -11,6 +11,7 @@ import { TimeoutHandler } from "@/components/chat/timeout-handler";
 import { Globe } from "@/components/globe";
 import { QuadrantJoystick } from "@/components/quadrant-joystick";
 import { QuadrantPosition } from "@/components/quadrant-joystick/QuadrantJoystick.types";
+import { ResponsiveSidebar, SidebarContent } from "@/components/responsive-sidebar";
 import { useChatHistory } from "@/hooks/use-chat-history";
 import { Message, MessageRole } from "@/types/chat";
 import {
@@ -484,110 +485,112 @@ export default function ChatPageClient() {
             filter: "saturate(60%) brightness(115%)",
           }}
         />
-        {/* Left sidebar with joystick and status */}
-        <div className="w-80 glass-panel border-r-0 p-0 m-4 mr-0 glass-glow h-[91vh] flex flex-col">
-          {/* Collapsible header */}
-          <button
-            onClick={() => setIsJoystickExpanded(!isJoystickExpanded)}
-            className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              {isJoystickExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-              <span>AI Preferences</span>
-            </div>
+        {/* Responsive sidebar with joystick and status */}
+        <ResponsiveSidebar title="AI Controls" description="Preferences and chat history">
+          <SidebarContent className="glass-panel border-r-0 p-0 glass-glow h-[91vh] lg:h-[91vh]">
+            {/* Collapsible header */}
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsGuideOpen(true);
-              }}
-              className="text-muted-foreground hover:text-primary p-1 rounded-full hover:bg-white/10"
-              aria-label="Joystick guide"
+              onClick={() => setIsJoystickExpanded(!isJoystickExpanded)}
+              className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
             >
-              <Info className="h-4 w-4" />
+              <div className="flex items-center gap-2">
+                {isJoystickExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+                <span>AI Preferences</span>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsGuideOpen(true);
+                }}
+                className="text-muted-foreground hover:text-primary p-1 rounded-full hover:bg-white/10"
+                aria-label="Joystick guide"
+              >
+                <Info className="h-4 w-4" />
+              </button>
             </button>
-          </button>
 
-          {/* Collapsible content */}
-          {isJoystickExpanded && (
-            <div className="p-6 pt-0 space-y-6">
-              <div className="glass glass-hover p-5">
-                <div className="flex justify-center">
-                  <QuadrantJoystick
-                    onChange={handleJoystickChange}
-                    defaultPosition={{ x: 0, y: 0 }}
-                    size={180}
-                    showCoordinates={false}
-                    className="glass-glow"
-                  />
+            {/* Collapsible content */}
+            {isJoystickExpanded && (
+              <div className="p-6 pt-0 space-y-6">
+                <div className="glass glass-hover p-5">
+                  <div className="flex justify-center">
+                    <QuadrantJoystick
+                      onChange={handleJoystickChange}
+                      defaultPosition={{ x: 0, y: 0 }}
+                      size={180}
+                      showCoordinates={false}
+                      className="glass-glow"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Model Location */}
-          <button
-            onClick={() => setIsModelLocationExpanded(!isModelLocationExpanded)}
-            className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              {isModelLocationExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-              <span>Model Location</span>
-            </div>
-          </button>
-          {isModelLocationExpanded && (
-            <div className="p-6 pt-0 space-y-6">
-              <div className="glass glass-hover p-5">
-                <div className="flex justify-center">
-                  <Globe
-                    activeRegion={currentDeployment?.region}
-                    selectedModel={
-                      currentDeployment
-                        ? {
-                            id: currentDeployment.modelId,
-                            region: currentDeployment.region,
-                          }
-                        : null
-                    }
-                    size={180}
-                    isLoading={routingStatus.isRouting}
-                    className="glass-glow"
-                    autoRotate={true}
-                    rotationSpeed={0.015}
-                    preference={routingService.getPreferenceFromJoystick(
-                      joystickPosition
-                    )}
-                  />
+            {/* Model Location */}
+            <button
+              onClick={() => setIsModelLocationExpanded(!isModelLocationExpanded)}
+              className="flex items-center justify-between w-full p-4 text-sm font-medium text-left hover:bg-white/5 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                {isModelLocationExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+                <span>Model Location</span>
+              </div>
+            </button>
+            {isModelLocationExpanded && (
+              <div className="p-6 pt-0 space-y-6">
+                <div className="glass glass-hover p-5">
+                  <div className="flex justify-center">
+                    <Globe
+                      activeRegion={currentDeployment?.region}
+                      selectedModel={
+                        currentDeployment
+                          ? {
+                              id: currentDeployment.modelId,
+                              region: currentDeployment.region,
+                            }
+                          : null
+                      }
+                      size={180}
+                      isLoading={routingStatus.isRouting}
+                      className="glass-glow"
+                      autoRotate={true}
+                      rotationSpeed={0.015}
+                      preference={routingService.getPreferenceFromJoystick(
+                        joystickPosition
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Agent Note: Chat History - Chat History Section */}
-          <ChatHistorySidebar
-            isExpanded={isChatHistoryExpanded}
-            onToggleExpanded={() =>
-              setIsChatHistoryExpanded(!isChatHistoryExpanded)
-            }
-            onToggleMaximize={handleToggleChatHistoryMaximize}
-            onSessionLoad={handleSessionLoad}
-            onNewChat={handleNewChat}
-            areOtherPanesCollapsed={areOtherPanesCollapsed}
-          />
+            {/* Agent Note: Chat History - Chat History Section */}
+            <ChatHistorySidebar
+              isExpanded={isChatHistoryExpanded}
+              onToggleExpanded={() =>
+                setIsChatHistoryExpanded(!isChatHistoryExpanded)
+              }
+              onToggleMaximize={handleToggleChatHistoryMaximize}
+              onSessionLoad={handleSessionLoad}
+              onNewChat={handleNewChat}
+              areOtherPanesCollapsed={areOtherPanesCollapsed}
+            />
 
-          {/* Joystick Guide Modal */}
-          <JoystickGuideModal
-            isOpen={isGuideOpen}
-            onOpenChange={setIsGuideOpen}
-          />
-        </div>
+            {/* Joystick Guide Modal */}
+            <JoystickGuideModal
+              isOpen={isGuideOpen}
+              onOpenChange={setIsGuideOpen}
+            />
+          </SidebarContent>
+        </ResponsiveSidebar>
 
         {/* Chat area */}
         <div className="flex-1 flex flex-col">
