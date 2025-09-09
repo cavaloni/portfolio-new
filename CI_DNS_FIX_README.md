@@ -9,6 +9,8 @@ Error: getaddrinfo ENOTFOUND [MASKED]
 
 This DNS resolution error occurred during TypeORM migration runs in the CI environment.
 
+**Important**: This project uses Yarn workspaces. All CI jobs install dependencies using `yarn install --frozen-lockfile` at the root level before navigating to individual packages.
+
 ## Root Causes
 1. **Missing environment variables**: Database connection parameters not properly configured in GitLab CI
 2. **DNS resolution failures**: Containerized CI environment unable to resolve database hostnames
@@ -53,7 +55,7 @@ npm run migration:run
 ### For CI/GitLab
 ```bash
 # Use CI-optimized migration command
-npm run migration:run:ci
+yarn migration:run:ci
 
 # Use enhanced migration script (recommended for CI)
 ./scripts/migrate-with-retry.sh

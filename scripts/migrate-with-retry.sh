@@ -118,7 +118,7 @@ run_migration() {
     while [ $attempt -le $MAX_RETRIES ]; do
         echo "🚀 Running migration (attempt $attempt/$MAX_RETRIES)..."
 
-        if npm run migration:run; then
+        if yarn migration:run; then
             echo "✅ Migration completed successfully!"
             return 0
         else
@@ -147,7 +147,9 @@ cd carbon-aware-llm-proxy/packages/backend
 # Install dependencies if node_modules doesn't exist
 if [ ! -d "node_modules" ]; then
     echo "📦 Installing dependencies..."
-    npm ci
+    cd ../..
+    yarn install --frozen-lockfile
+    cd packages/backend
 fi
 
 # Wait for services to be ready
