@@ -84,16 +84,12 @@ deploy_backend_prod:
     - test -n "$FLY_APP_NAME" || { echo "FLY_APP_NAME is required"; exit 1; }
     - echo "Logging into Fly.io"
     - flyctl auth token "$FLY_API_TOKEN"
-    # Ensure required secrets exist (no-op if already set)
+    # Ensure we do NOT override CORS via secrets; rely on fly.toml
+    - flyctl secrets unset CORS_ORIGINS --app "$FLY_APP" --yes || true
     - |
-      CORS_ARG=""
-      if [ -n "$CORS_ORIGINS" ]; then
-        CORS_ARG="CORS_ORIGINS=$CORS_ORIGINS"
-      fi
       flyctl secrets set \
         NODE_ENV=production \
         PORT=3001 \
-        $CORS_ARG \
         JWT_SECRET="$JWT_SECRET" \
         DB_HOST="${DB_HOST:-postgres}" \
         DB_PORT="${DB_PORT:-5432}" \
@@ -126,18 +122,15 @@ deploy_backend_mock:
     - test -n "$OPENROUTER_API_KEY" || { echo "OPENROUTER_API_KEY is required for mock mode"; exit 1; }
     - echo "Logging into Fly.io"
     - flyctl auth token "$FLY_API_TOKEN"
+    # Ensure we do NOT override CORS via secrets; rely on fly.toml
+    - flyctl secrets unset CORS_ORIGINS --app "$FLY_APP" --yes || true
     # Set/refresh mock-mode secrets. This switches routing + chat to mock path.
     - |
-      CORS_ARG=""
-      if [ -n "$CORS_ORIGINS" ]; then
-        CORS_ARG="CORS_ORIGINS=$CORS_ORIGINS"
-      fi
       flyctl secrets set \
         NODE_ENV=production \
         PORT=3001 \
         ROUTING_MOCK_ENABLED=true \
         OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
-        $CORS_ARG \
         JWT_SECRET="$JWT_SECRET" \
         DB_HOST="${DB_HOST:-postgres}" \
         DB_PORT="${DB_PORT:-5432}" \
