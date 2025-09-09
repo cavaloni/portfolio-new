@@ -496,6 +496,7 @@ __metadata:
     prettier: "npm:^3.1.1"
     prettier-plugin-tailwindcss: "npm:^0.5.7"
     react: "npm:^18.3.1"
+    react-chat-elements: "npm:^12.0.18"
     react-dom: "npm:^18.3.1"
     react-globe.gl: "npm:^2.35.0"
     react-hook-form: "npm:^7.60.0"
@@ -646,6 +647,22 @@ __metadata:
   peerDependencies:
     react-hook-form: ^7.55.0
   checksum: 10/9accc49f668209b58a4db5f410ab629d55fb9ac19d3cc6a591df9742a869286e1b929f117f419accaeb302a5941bf22f7e6da9c8b06cdb1104f57ac1a2a11c7e
+  languageName: node
+  linkType: hard
+
+"@hugeicons/core-free-icons@npm:^1.0.13":
+  version: 1.0.16
+  resolution: "@hugeicons/core-free-icons@npm:1.0.16"
+  checksum: 10/78e86b66e4e9fe9a201bd98bec91a84dde8cc2cdc053cba22d4340fc993e6895a5dc6309c3a6166cbf8b7d1066617bada5d36c2b0b30bfd788d5fbdbaaf29efd
+  languageName: node
+  linkType: hard
+
+"@hugeicons/react@npm:^1.0.5":
+  version: 1.1.1
+  resolution: "@hugeicons/react@npm:1.1.1"
+  peerDependencies:
+    react: ">=16.0.0"
+  checksum: 10/8115b96fb4083df55bbe735fe17ffbcbd10f285564b6d901ed712998c67cc0920accd39b0f192964cd9a69017a1bc0e83d25aaea12b50fcd1b13f73698f8600d
   languageName: node
   linkType: hard
 
@@ -3745,6 +3762,13 @@ __metadata:
   dependencies:
     clsx: "npm:^2.1.1"
   checksum: 10/27a1face3f5ee88caa7813743461977aef5110830dc8e8960e7c9570598b37ffb8b2760b4e5d738dc827b0eb9058ddd204e9002e9af0ef39b6851f6ea9aa82c1
+  languageName: node
+  linkType: hard
+
+"classnames@npm:^2.2.3, classnames@npm:^2.2.5":
+  version: 2.5.1
+  resolution: "classnames@npm:2.5.1"
+  checksum: 10/58eb394e8817021b153bb6e7d782cfb667e4ab390cb2e9dac2fc7c6b979d1cc2b2a733093955fc5c94aa79ef5c8c89f11ab77780894509be6afbb91dddd79d15
   languageName: node
   linkType: hard
 
@@ -7228,6 +7252,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"loaders.css@npm:^0.1.2":
+  version: 0.1.2
+  resolution: "loaders.css@npm:0.1.2"
+  checksum: 10/56f5f461a4ec13544a6c066c771f9fd23aaa54ddfbbb24a885341b2b58f5a126f6dfe4cd63b7f2a504e41ff193172b0e07de152a642b09d1164d4e56acb6d542
+  languageName: node
+  linkType: hard
+
 "locate-path@npm:^5.0.0":
   version: 5.0.0
   resolution: "locate-path@npm:5.0.0"
@@ -8407,7 +8438,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"object-assign@npm:^4, object-assign@npm:^4.0.1, object-assign@npm:^4.1.1":
+"object-assign@npm:^4, object-assign@npm:^4.0.1, object-assign@npm:^4.1.0, object-assign@npm:^4.1.1":
   version: 4.1.1
   resolution: "object-assign@npm:4.1.1"
   checksum: 10/fcc6e4ea8c7fe48abfbb552578b1c53e0d194086e2e6bbbf59e0a536381a292f39943c6e9628af05b5528aa5e3318bb30d6b2e53cadaf5b8fe9e12c4b69af23f
@@ -9161,6 +9192,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"progressbar.js@npm:^1.1.0":
+  version: 1.1.1
+  resolution: "progressbar.js@npm:1.1.1"
+  dependencies:
+    lodash.merge: "npm:^4.6.2"
+    shifty: "npm:^2.8.3"
+  checksum: 10/c9078bf511450774373b207e25f2b6409cb54e418694de7cf5f32791db09cc7b6e98a355440ad24cd4dd6d41174b671e0eccbe04c97fa6e49d2aab5faf443902
+  languageName: node
+  linkType: hard
+
 "promise-retry@npm:^2.0.1":
   version: 2.0.1
   resolution: "promise-retry@npm:2.0.1"
@@ -9181,7 +9222,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:15, prop-types@npm:^15.6.2, prop-types@npm:^15.8.1":
+"prop-types@npm:15, prop-types@npm:^15.5.8, prop-types@npm:^15.6.2, prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -9295,6 +9336,23 @@ __metadata:
     iconv-lite: "npm:0.4.24"
     unpipe: "npm:1.0.0"
   checksum: 10/863b5171e140546a4d99f349b720abac4410338e23df5e409cfcc3752538c9caf947ce382c89129ba976f71894bd38b5806c774edac35ebf168d02aa1ac11a95
+  languageName: node
+  linkType: hard
+
+"react-chat-elements@npm:^12.0.18":
+  version: 12.0.18
+  resolution: "react-chat-elements@npm:12.0.18"
+  dependencies:
+    "@hugeicons/core-free-icons": "npm:^1.0.13"
+    "@hugeicons/react": "npm:^1.0.5"
+    classnames: "npm:^2.2.5"
+    progressbar.js: "npm:^1.1.0"
+    react-spinkit: "npm:^3.0.0"
+    timeago.js: "npm:^4.0.2"
+  peerDependencies:
+    react: ^18.2.0
+    react-dom: 18.2.0
+  checksum: 10/35a03089a8818b274f3dac1f48ae02f7175608cc12364c450f43902fbc6f058ca6dc66530480e676ad507bcb6960aeea293f444f6af3e40397c9fae7bfe82d32
   languageName: node
   linkType: hard
 
@@ -9447,6 +9505,18 @@ __metadata:
     react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
   checksum: 10/cc5593356d154253f61a2c0b7b2fa8a979527495e2fe47c4252628d86e93c72c75df988c5438867d373de4e5a47d871ab9262474c02e66c411f94f047ecb5b0f
+  languageName: node
+  linkType: hard
+
+"react-spinkit@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "react-spinkit@npm:3.0.0"
+  dependencies:
+    classnames: "npm:^2.2.3"
+    loaders.css: "npm:^0.1.2"
+    object-assign: "npm:^4.1.0"
+    prop-types: "npm:^15.5.8"
+  checksum: 10/61b294248f05b5ec200f5bade5b755c7f0253b877224eed715856964d89422c382608db32b89f26157c9ba1956e19673cab55cd73dd8509c1f3c01fe18848191
   languageName: node
   linkType: hard
 
@@ -10013,6 +10083,18 @@ __metadata:
   version: 3.0.0
   resolution: "shebang-regex@npm:3.0.0"
   checksum: 10/1a2bcae50de99034fcd92ad4212d8e01eedf52c7ec7830eedcf886622804fe36884278f2be8be0ea5fde3fd1c23911643a4e0f726c8685b61871c8908af01222
+  languageName: node
+  linkType: hard
+
+"shifty@npm:^2.8.3":
+  version: 2.20.4
+  resolution: "shifty@npm:2.20.4"
+  dependencies:
+    fsevents: "npm:^2.3.2"
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  checksum: 10/315587eaf97636cfba04c81b60fb20cd2c42ea57e26278c0bbca1584af962c8db23c7613e61017ef5ac6cb01c2eefbb0a4d3400f35b23f835e8631d83c0d02c4
   languageName: node
   linkType: hard
 
@@ -10748,6 +10830,13 @@ __metadata:
   version: 0.179.1
   resolution: "three@npm:0.179.1"
   checksum: 10/7abe91805f5aa5376fb1c3f47fb888a32a26b38c983cd9c11dc436db4e10c787b37fa8cc2d2dd36e108b27ee05a6515ea0a7c2cf848aeefb4d81f2647ffad84a
+  languageName: node
+  linkType: hard
+
+"timeago.js@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "timeago.js@npm:4.0.2"
+  checksum: 10/30e38e8a82f885d95162e66bf7d9673a14c5fe7aff3f5b3e3d74fe5c431046da23194f1d4ab6bbd259b8d3504b47a0478429c147dee496036701f8b89e5951f3
   languageName: node
   linkType: hard
 

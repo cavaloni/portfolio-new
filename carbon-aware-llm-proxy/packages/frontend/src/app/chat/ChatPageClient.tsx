@@ -5,6 +5,7 @@ import { ChatHistorySidebar } from "@/components/chat/chat-history-sidebar";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { ChatProgressIndicator } from "@/components/chat/chat-progress";
+import { ChatScrollAnchor } from "@/components/chat/chat-scroll-anchor";
 import { JoystickGuideModal } from "@/components/chat/JoystickGuideModal";
 import { PromptSuggestions } from "@/components/chat/prompt-suggestions";
 import { TimeoutHandler } from "@/components/chat/timeout-handler";
@@ -62,6 +63,7 @@ export default function ChatPageClient() {
   const bottomPlaceholder = useRandomPlaceholder('bottom');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState<boolean>(false);
   const [isJoystickExpanded, setIsJoystickExpanded] = useState(true);
   const [isDeploymentExpanded, setIsDeploymentExpanded] = useState(true);
   const [isModelLocationExpanded, setIsModelLocationExpanded] = useState(true);
@@ -88,6 +90,30 @@ export default function ChatPageClient() {
     maxToleratedDelay: 0,
     showTimeoutOptions: false,
   });
+
+  // Handle scroll events to track if user is at bottom
+  const handleScroll = useCallback(() => {
+    if (!messagesContainerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const atBottom = scrollHeight - clientHeight <= scrollTop + 1;
+
+    setIsAtBottom(atBottom);
+  }, []);
+
+  // Auto-scroll when sending new messages
+  useEffect(() => {
+    if (isLoading) {
+      if (!messagesContainerRef.current) return;
+
+      const scrollAreaElement = messagesContainerRef.current;
+
+      scrollAreaElement.scrollTop =
+        scrollAreaElement.scrollHeight - scrollAreaElement.clientHeight;
+
+      setIsAtBottom(true);
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     setAreOtherPanesCollapsed(!isJoystickExpanded && !isDeploymentExpanded && !isModelLocationExpanded);
@@ -137,8 +163,6 @@ export default function ChatPageClient() {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
   );
-  const [userScrolledUp, setUserScrolledUp] = useState(false);
-  const [lastMessageCount, setLastMessageCount] = useState(messages.length);
 
   // Agent Note: Chat History - Chat history management
   const { activeSession, createSession, updateCurrentSession } =
@@ -462,53 +486,6 @@ export default function ChatPageClient() {
     }
   };
 
-  // Detect when user scrolls up manually and reset on new messages
-  useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      const isNearBottom = distanceFromBottom <= 150; // 150px threshold
-
-      // Only set as scrolled up if significantly away from bottom
-      setUserScrolledUp(!isNearBottom);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Auto-scroll to bottom when messages change (gracefully)
-  useEffect(() => {
-    const currentMessageCount = messages.length;
-
-    // Reset scroll state when new messages arrive
-    if (currentMessageCount > lastMessageCount) {
-      console.log('New message detected! Resetting scroll state');
-      setUserScrolledUp(false);
-      setLastMessageCount(currentMessageCount);
-    }
-
-    if (messagesContainerRef.current && !userScrolledUp) {
-      const container = messagesContainerRef.current;
-      console.log('Attempting auto-scroll:', {
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight,
-        canScroll: container.scrollHeight > container.clientHeight,
-        currentScrollTop: container.scrollTop
-      });
-
-      // Scroll to bottom immediately
-      if (container.scrollHeight > container.clientHeight) {
-        // Try both methods to ensure it works
-        container.scrollTop = container.scrollHeight;
-        console.log('Auto-scroll executed with scrollTop:', container.scrollHeight);
-      }
-    }
-  }, [messages, userScrolledUp, lastMessageCount]);
-
   return (
     <div className="flex flex-col min-h-screen bg-background overflow-x-hidden pb-32">
       {/* Dynamic background fog effect */}
@@ -642,6 +619,7 @@ export default function ChatPageClient() {
           <div
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto pt-8 min-h-0"
+            onScroll={handleScroll}
           >
             <div className="max-w-4xl mx-auto px-3 sm:px-0">
               {messages.length === 0 ? (
@@ -716,6 +694,13 @@ export default function ChatPageClient() {
                   </div>
                 )}
               </div>
+
+              {/* Invisible anchor for auto-scrolling */}
+              <ChatScrollAnchor
+                scrollAreaRef={messagesContainerRef}
+                isAtBottom={isAtBottom}
+                trackVisibility={isLoading}
+              />
             </div>
           </div>
         </div>
