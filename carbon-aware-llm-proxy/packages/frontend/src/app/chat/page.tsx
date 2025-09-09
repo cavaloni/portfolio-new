@@ -11,6 +11,19 @@ export const metadata: Metadata = {
   description: "AI chat with carbon-aware routing to optimize environmental impact",
 };
 
+// Dynamically import the chat component with SSR disabled (MUST be at module level)
+const ChatPageClient = dynamic(() => import("./ChatPageClient"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex flex-col h-screen bg-background items-center justify-center">
+      <div className="flex flex-col items-center space-y-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <p className="text-foreground">Loading chat...</p>
+      </div>
+    </div>
+  ),
+});
+
 export default function ChatPage() {
   // Check authentication on server side
   const cookieStore = cookies();
@@ -28,19 +41,6 @@ export default function ChatPage() {
   }
 
   console.log("💬 Valid auth found, showing chat page");
-
-  // Dynamically import the chat component with SSR disabled
-  const ChatPageClient = dynamic(() => import("./ChatPageClient"), {
-    ssr: false,
-    loading: () => (
-      <div className="flex flex-col h-screen bg-background items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          <p className="text-foreground">Loading chat...</p>
-        </div>
-      </div>
-    ),
-  });
 
   return <ChatPageClient />;
 }
