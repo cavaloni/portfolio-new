@@ -1,7 +1,27 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+const AUTH_COOKIE = "demo_auth";
 
 export default function Home() {
+  // Check authentication on server side
+  const cookieStore = cookies();
+  const authCookie = cookieStore.get(AUTH_COOKIE);
+
+  console.log("🏠 Home page auth check:", {
+    hasCookie: !!authCookie,
+    cookieValue: authCookie?.value
+  });
+
+  // If no valid auth cookie, redirect to login
+  if (!authCookie || authCookie.value !== "ok") {
+    console.log("🏠 No valid auth, redirecting to login");
+    redirect("/login?next=/");
+  }
+
+  console.log("🏠 Valid auth found, showing home page");
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">

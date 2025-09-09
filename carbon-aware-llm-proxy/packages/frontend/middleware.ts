@@ -7,6 +7,9 @@ const AUTH_COOKIE = "demo_auth";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // IMMEDIATE DEBUG - if you see this, middleware is running
+  console.log("🚨 MIDDLEWARE IS RUNNING! Path:", pathname);
+
   // Debug logging for Vercel troubleshooting
   console.log("🔐 Middleware triggered for:", pathname);
 
