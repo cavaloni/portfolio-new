@@ -20,18 +20,39 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(helmet());
 
-// CORS configuration
-const corsOptions = {
-  origin: process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
-    : true, // Allow all origins if not specified
+// CORS configuration with explicit origin function + logging for clarity
+const rawCorsOrigins = process.env.CORS_ORIGINS || "";
+const allowedOrigins = rawCorsOrigins
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+logger.info(
+  `CORS configuration: allowedOrigins=${
+    allowedOrigins.length ? allowedOrigins.join("|") : "<ALL>"
+  }`,
+);
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser or same-origin requests with no Origin header
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    logger.warn(
+      `CORS blocked request from origin=${origin}; allowed=${allowedOrigins.join(",")}`,
+    );
+    return callback(new Error("Not allowed by CORS"));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  // Let the cors package reflect the request's Access-Control-Request-Headers automatically
-  // by omitting allowedHeaders. This avoids mismatches when clients send custom headers.
+  // Let the cors package reflect Access-Control-Request-Headers automatically
   preflightContinue: false,
   optionsSuccessStatus: 204,
-} as const;
+};
 app.use(cors(corsOptions));
 // Handle CORS preflight for all routes
 app.options("*", cors(corsOptions));
