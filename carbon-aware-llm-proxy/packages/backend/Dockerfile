@@ -56,6 +56,9 @@ COPY --from=builder /app/dist ./dist
 # Copy migration files (needed for runtime)
 COPY --from=builder /app/dist/migrations ./src/migrations
 
+# Copy static mock assets needed at runtime
+COPY --from=builder /app/src/mocks ./dist/mocks
+
 # Copy scripts (CLI utilities)
 COPY scripts/ ./scripts/
 
