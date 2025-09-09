@@ -26,12 +26,12 @@ variables:
   DB_SSL: "false"
 
   # Alternative: Use DATABASE_URL for managed databases
-  # DATABASE_URL: "postgresql://user:password@host:port/database"
+  # DATABASE_URL: "postgresql://user:password@host:port/database?sslmode=require"
 
 # PostgreSQL service for CI (Option 1: Local database)
 # Uncomment this section if you want to use a local PostgreSQL instance
 # services:
-#   - postgres:15-alpine
+#   - postgres:15-alpineFix 
 
 #   variables:
 #     POSTGRES_DB: $DB_NAME
@@ -180,11 +180,11 @@ troubleshoot:
 
     # Environment variables check
     - echo "Environment variables:"
-    - echo "DB_HOST: $DB_HOST"
-    - echo "DB_PORT: $DB_PORT"
-    - echo "DB_USERNAME: $DB_USERNAME"
-    - echo "DB_NAME: $DB_NAME"
-    - echo "DATABASE_URL: $DATABASE_URL"
+    - echo "DB_HOST $DB_HOST"
+    - echo "DB_PORT $DB_PORT"
+    - echo "DB_USERNAME $DB_USERNAME"
+    - echo "DB_NAME $DB_NAME"
+    - echo "DATABASE_URL $DATABASE_URL"
 
     # Network connectivity test
     - echo "Testing network connectivity..."
