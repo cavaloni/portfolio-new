@@ -70,17 +70,17 @@ npm run migration:run:ci
 The GitLab CI pipeline includes multiple deployment options for different scenarios:
 
 ### 1. Mock Deployment (`mock_deploy`)
-- **Purpose**: Test deployment process without affecting production
+- **Purpose**: Actually deploys the app with mock routing enabled
 - **Triggers**: Runs on `main`, `develop`, and merge requests
-- **Safety**: Validates build artifacts and configuration without actual deployment
-- **Use case**: Testing deployment workflows and validating CI/CD setup
+- **Safety**: Deploys to staging environment with mock backend behavior
+- **Use case**: Testing deployed app functionality with mock routing without production impact
 
 ```bash
-# This job runs automatically and validates:
-# - Build artifacts are present and correct
-# - Database migrations completed successfully
-# - Environment variables are properly configured
-# - Deployment process works without errors
+# This job actually deploys the app with:
+# - ROUTING_MOCK_ENABLED=true (enables mock routing)
+# - NEXT_PUBLIC_DISABLE_AUTH=true (disables authentication)
+# - Full deployment to staging environment
+# - Mock backend behavior for testing
 ```
 
 ### 2. Development Deployment (`deploy`)
@@ -98,9 +98,11 @@ The GitLab CI pipeline includes multiple deployment options for different scenar
 ### Triggering Deployments
 
 ```bash
-# Mock deployment (automatic on pushes to main/develop)
-# Runs automatically when pushing to supported branches
-# Always uses ROUTING_MOCK_ENABLED=true and NEXT_PUBLIC_DISABLE_AUTH=true
+# Mock deployment (automatic on pushes to main/develop/merge_requests)
+# Actually deploys the app to staging with:
+# - ROUTING_MOCK_ENABLED=true (enables mock routing)
+# - NEXT_PUBLIC_DISABLE_AUTH=true (disables authentication)
+# - Full deployment using flyctl deploy --remote-only
 
 # Development deployment (automatic on develop branch)
 # Can be controlled via GitLab CI variables:
