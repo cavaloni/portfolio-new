@@ -69,6 +69,19 @@ export const rateLimiterMiddleware: RequestHandler = async (req, res, next) => {
   if (req.method === "OPTIONS") {
     return next();
   }
+
+  // Allow turning off rate limiting via env (e.g., during incidents)
+  if (process.env.RATE_LIMIT_ENABLED === "false") {
+    return next();
+  }
+
+  // If Redis isn't ready/connected, do not block traffic — degrade gracefully
+  if (redisClient.status !== "ready") {
+    logger.warn(
+      `Rate limiter bypassed: Redis status=${redisClient.status}. Allowing request ${req.method} ${req.originalUrl}`,
+    );
+    return next();
+  }
   try {
     // Use IP + user agent as a key to identify unique clients
     const key = `${req.ip}_${req.headers["user-agent"]}`;
@@ -89,16 +102,26 @@ export const rateLimiterMiddleware: RequestHandler = async (req, res, next) => {
     });
 
     next();
-  } catch (error) {
-    if (error instanceof Error) {
-      logger.error("Rate limiter error:", error);
+  } catch (error: any) {
+    // If this is a rate-limiter response, it means the limit was actually exceeded
+    if (error && typeof error === "object" && "msBeforeNext" in error) {
+      const rl = error as RateLimiterRes;
+      const resetTime = new Date(Date.now() + rl.msBeforeNext);
+      res.set({
+        "X-RateLimit-Limit": rateLimiter.points.toString(),
+        "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Reset": Math.ceil(resetTime.getTime() / 1000).toString(),
+        "Retry-After": Math.ceil(rl.msBeforeNext / 1000).toString(),
+      });
+      return res.status(429).json({
+        success: false,
+        error: "Too many requests, please try again later.",
+      });
     }
 
-    // Rate limit exceeded
-    res.status(429).json({
-      success: false,
-      error: "Too many requests, please try again later.",
-    });
+    // Otherwise, it's a backend/Redis error — don't block the request
+    logger.error("Rate limiter backend error — allowing request:", error);
+    return next();
   }
 };
 
