@@ -1,5 +1,5 @@
-# Backend Dockerfile for Carbon-Aware LLM Proxy
-# Multi-stage build for optimized production image
+# Backend Dockerfile for Carbon-Aware LLM Proxy (Yarn workspaces)
+# Multi-stage build for optimized production image using Yarn 4
 
 # Build stage
 FROM node:20-alpine AS builder
@@ -7,60 +7,54 @@ FROM node:20-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Install build dependencies with retry
-RUN apk add --no-cache python3 make g++ || \
-    (sleep 5 && apk add --no-cache python3 make g++)
+# System deps and Corepack (Yarn)
+RUN apk add --no-cache python3 make g++ && corepack enable
 
-# Copy package manifest files (handles presence/absence of lockfile gracefully)
-COPY package*.json ./
-COPY tsconfig.json ./
+# Copy root Yarn config and lockfile
+COPY .yarn/ .yarn/
+COPY .yarnrc.yml package.json yarn.lock ./
 
-# Install all dependencies for building (including dev dependencies)
-RUN npm config set fund false && \
-    npm config set audit-level moderate && \
-    if [ -f package-lock.json ]; then npm ci --prefer-offline --no-audit; else npm install --prefer-offline --no-audit; fi && \
-    npm cache clean --force
+# Pre-copy backend workspace manifest and tsconfig
+COPY packages/backend/package.json packages/backend/package.json
+COPY packages/backend/tsconfig.json packages/backend/tsconfig.json
 
-# Copy source code
-COPY src/ ./src/
-COPY scripts/ ./scripts/
+# Install all workspaces (immutable for reproducibility)
+RUN yarn install --immutable
 
-# Build the application
-RUN npm run build
+# Copy backend source and scripts
+COPY packages/backend/src packages/backend/src
+COPY packages/backend/scripts packages/backend/scripts
+
+# Build the backend workspace
+RUN yarn workspace @carbon-aware-llm/backend build
 
 # Production stage
 FROM node:20-alpine AS production
 
 # Create app user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S backend -u 1001
+RUN addgroup -g 1001 -S nodejs && adduser -S backend -u 1001
 
 # Set working directory
 WORKDIR /app
 
-# Install runtime dependencies only
-RUN apk add --no-cache dumb-init
+# Install runtime deps
+RUN apk add --no-cache dumb-init && corepack enable
 
-# Copy package manifest files (handles presence/absence of lockfile gracefully)
-COPY package*.json ./
+# Copy root Yarn config and lockfile
+COPY .yarn/ .yarn/
+COPY .yarnrc.yml package.json yarn.lock ./
 
-# Install production dependencies only
-RUN npm config set fund false && \
-    npm config set audit-level moderate && \
-    if [ -f package-lock.json ]; then npm ci --only=production --prefer-offline --no-audit; else npm install --only=production --prefer-offline --no-audit; fi && \
-    npm cache clean --force
+# Copy backend workspace manifest
+COPY packages/backend/package.json packages/backend/package.json
+
+# Reuse dependencies from builder to avoid re-install
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy built application from builder stage
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/packages/backend/dist ./packages/backend/dist
 
-# Copy migration files (needed for runtime)
-COPY --from=builder /app/dist/migrations ./src/migrations
-
-# Copy static mock assets needed at runtime
-COPY --from=builder /app/src/mocks ./dist/mocks
-
-# Copy scripts (CLI utilities)
-COPY scripts/ ./scripts/
+# Ensure mock assets are present at runtime
+COPY --from=builder /app/packages/backend/src/mocks ./packages/backend/dist/mocks
 
 # Change ownership to app user
 RUN chown -R backend:nodejs /app
@@ -77,4 +71,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
-CMD ["node", "dist/index.js"]
+CMD ["node", "packages/backend/dist/index.js"]

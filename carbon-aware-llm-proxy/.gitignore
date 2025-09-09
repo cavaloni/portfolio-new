@@ -197,7 +197,11 @@ local/
 .vscode/launch.json
 .vscode/tasks.json
 
-# Package manager lock files (uncomment if you want to ignore them)
+# Package manager lock files (standardize on Yarn)
+package-lock.json
+**/package-lock.json
+npm-shrinkwrap.json
+**/npm-shrinkwrap.json
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml

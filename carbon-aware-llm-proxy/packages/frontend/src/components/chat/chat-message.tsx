@@ -292,7 +292,7 @@ export function ChatMessage({
             {formatDistanceToNow(new Date(message.timestamp), {
               addSuffix: true,
             })}
-            {message.model && ` • ${message.model}`}
+            {/* {message.model && ` • ${message.model}`} */}
           </span>
         </div>
         <div className="mt-1">

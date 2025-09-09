@@ -97,7 +97,7 @@ export const chatService = {
     // Notify progress
     onProgress?.({
       status: 'deploying',
-      message: routing.expectedDelay > 30000 
+      message: routing.expectedDelay > 30000
         ? `Preparing ${routing.chosen.modelId} deployment. This may take up to ${Math.round(routing.expectedDelay / 1000)}s...`
         : `Connecting to ${routing.chosen.modelId}...`,
       deployment: routing.chosen,

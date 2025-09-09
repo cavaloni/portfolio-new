@@ -137,6 +137,8 @@ export default function ChatPageClient() {
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(
     null
   );
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
+  const [lastMessageCount, setLastMessageCount] = useState(messages.length);
 
   // Agent Note: Chat History - Chat history management
   const { activeSession, createSession, updateCurrentSession } =
@@ -251,15 +253,16 @@ export default function ChatPageClient() {
                 });
               }
 
-              if (progress.status === "ready" && progress.message) {
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? { ...msg, content: progress.message || "" }
-                      : msg
-                  )
-                );
-              }
+              // Removed: Don't set progress message as chat content
+              // if (progress.status === "ready" && progress.message) {
+              //   setMessages((prev) =>
+              //     prev.map((msg) =>
+              //       msg.id === assistantMessageId
+              //         ? { ...msg, content: progress.message || "" }
+              //         : msg
+              //     )
+              //   );
+              // }
             },
           }
         );
@@ -459,16 +462,55 @@ export default function ChatPageClient() {
     }
   };
 
-  // Auto-scroll to bottom when messages change
+  // Detect when user scrolls up manually and reset on new messages
   useEffect(() => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop =
-        messagesContainerRef.current.scrollHeight;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      const isNearBottom = distanceFromBottom <= 150; // 150px threshold
+
+      // Only set as scrolled up if significantly away from bottom
+      setUserScrolledUp(!isNearBottom);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Auto-scroll to bottom when messages change (gracefully)
+  useEffect(() => {
+    const currentMessageCount = messages.length;
+
+    // Reset scroll state when new messages arrive
+    if (currentMessageCount > lastMessageCount) {
+      console.log('New message detected! Resetting scroll state');
+      setUserScrolledUp(false);
+      setLastMessageCount(currentMessageCount);
     }
-  }, [messages]);
+
+    if (messagesContainerRef.current && !userScrolledUp) {
+      const container = messagesContainerRef.current;
+      console.log('Attempting auto-scroll:', {
+        scrollHeight: container.scrollHeight,
+        clientHeight: container.clientHeight,
+        canScroll: container.scrollHeight > container.clientHeight,
+        currentScrollTop: container.scrollTop
+      });
+
+      // Scroll to bottom immediately
+      if (container.scrollHeight > container.clientHeight) {
+        // Try both methods to ensure it works
+        container.scrollTop = container.scrollHeight;
+        console.log('Auto-scroll executed with scrollTop:', container.scrollHeight);
+      }
+    }
+  }, [messages, userScrolledUp, lastMessageCount]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-background overflow-x-hidden pb-32">
       {/* Dynamic background fog effect */}
       <BackgroundFog joystickPosition={joystickPosition} />
 
@@ -596,10 +638,10 @@ export default function ChatPageClient() {
         </ResponsiveSidebar>
 
         {/* Chat area */}
-        <div className="flex-1 flex flex-col w-full max-w-[100vw] overflow-x-hidden">
+        <div className="flex-1 flex flex-col w-full max-w-[100vw] overflow-x-hidden lg:ml-80">
           <div
             ref={messagesContainerRef}
-            className="flex-1 overflow-y-auto pb-8 pt-8"
+            className="flex-1 overflow-y-auto pt-8 min-h-0"
           >
             <div className="max-w-4xl mx-auto px-3 sm:px-0">
               {messages.length === 0 ? (
@@ -676,10 +718,12 @@ export default function ChatPageClient() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Input area - enhanced with glassmorphism - only show when there are messages */}
-          {messages.length > 0 && (
-            <div className="glass-panel border-0 m-4 mt-0 p-6 glass-glow">
+        {/* Fixed chat input - positioned at bottom when messages exist */}
+        {messages.length > 0 && (
+          <div className="fixed bottom-0 left-0 right-0 lg:left-80 bg-background/95 backdrop-blur-sm border-t border-border/50 z-30">
+            <div className="glass-panel border-0 m-0 p-6 glass-glow rounded-none border-t-0">
               <div className="max-w-4xl mx-auto px-3 sm:px-0">
                 <ChatInput
                   onSendMessage={handleSendMessage}
@@ -697,11 +741,8 @@ export default function ChatPageClient() {
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Add some bottom spacing */}
-          <div className="h-16"></div>
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

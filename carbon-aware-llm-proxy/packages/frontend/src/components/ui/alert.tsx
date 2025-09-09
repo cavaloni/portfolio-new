@@ -11,7 +11,7 @@ const Alert = React.forwardRef<
     ref={ref}
     role="alert"
     className={cn(
-      "relative w-full rounded-2xl p-4 glass-panel neo-inset ui-smooth",
+      "relative rounded-2xl p-4 glass-panel neo-inset ui-smooth",
       {
         "text-foreground": variant === "default",
         "border-destructive/50 text-destructive":

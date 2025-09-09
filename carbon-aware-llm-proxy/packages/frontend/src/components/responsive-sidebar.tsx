@@ -58,7 +58,7 @@ export function ResponsiveSidebar({
       </div>
 
       {/* Desktop: Fixed sidebar */}
-      <div className={cn("hidden lg:block w-80", className)}>
+      <div className={cn("hidden lg:block w-80 fixed ", className)}>
         {children}
       </div>
     </>

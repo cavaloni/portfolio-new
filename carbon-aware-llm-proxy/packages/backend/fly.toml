@@ -2,7 +2,9 @@ app = "airth-carbon-aware-backend"
 primary_region = "iad"
 
 [build]
-  dockerfile = "Dockerfile"
+  # Build from monorepo root so Dockerfile can access root Yarn files
+  context = "../.."
+  dockerfile = "packages/backend/Dockerfile"
 
 [env]
   NODE_ENV = "production"

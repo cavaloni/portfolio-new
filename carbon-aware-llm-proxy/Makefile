@@ -112,12 +112,12 @@ migrate-local: ## Run database migrations against LOCAL DB from host
 	DB_PORT=${DB_PORT:-5433} \
 	DB_NAME=${DB_NAME:-postgres} \
 	DATABASE_URL=postgres://$$DB_USER:$$DB_PASS@127.0.0.1:$$DB_PORT/$$DB_NAME \
-	npm --prefix packages/backend run migration:run
+	yarn workspace @carbon-aware-llm/backend migration:run
 
 migrate-prod: ## Run database migrations (production - requires DATABASE_URL)
 	@if [ -z "$$DATABASE_URL" ]; then echo "❌ Please set DATABASE_URL for production migrations"; exit 1; fi
 	@echo "🗄️ Running database migrations (production)..."
-	@DATABASE_URL="$$DATABASE_URL" npm --prefix packages/backend run migration:run
+	@DATABASE_URL="$$DATABASE_URL" yarn workspace @carbon-aware-llm/backend migration:run
 
 migrate-generate: ## Generate new migration
 	@echo "📝 Generating new migration..."
@@ -137,7 +137,7 @@ deploy-modal-local: ## Deploy Modal workers against LOCAL DB (override DB_* to c
 	DB_PORT=${DB_PORT:-5433} \
 	DB_NAME=${DB_NAME:-postgres} \
 	DATABASE_URL=postgres://$$DB_USER:$$DB_PASS@127.0.0.1:$$DB_PORT/$$DB_NAME \
-	npm --prefix packages/backend run deploy:modal
+	yarn workspace @carbon-aware-llm/backend deploy:modal
 
 deploy-modal-local-force: ## Force redeploy Modal workers against LOCAL DB (ignores current deployment status)
 	@echo "🪄 Force deploying Modal workers (local DB)..."
@@ -146,7 +146,7 @@ deploy-modal-local-force: ## Force redeploy Modal workers against LOCAL DB (igno
 	DB_PORT=${DB_PORT:-5433} \
 	DB_NAME=${DB_NAME:-postgres} \
 	DATABASE_URL=postgres://$$DB_USER:$$DB_PASS@127.0.0.1:$$DB_PORT/$$DB_NAME \
-	npm --prefix packages/backend run deploy:modal -- --force
+	yarn workspace @carbon-aware-llm/backend deploy:modal -- --force
 
 deploy-modal-prod: ## Deploy Modal workers against PROD DB (requires DATABASE_URL and MODAL_API_KEY)
 	@if [ -z "$$DATABASE_URL" ]; then echo "❌ Please set DATABASE_URL for production deployment"; exit 1; fi
