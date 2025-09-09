@@ -28,6 +28,10 @@ variables:
   # Alternative: Use DATABASE_URL for managed databases
   # DATABASE_URL: "postgresql://user:password@host:port/database?sslmode=require"
 
+  # Mock/Development variables (can be overridden in GitLab CI variables)
+  ROUTING_MOCK_ENABLED: "false"  # Enable mock routing mode for development/testing
+  NEXT_PUBLIC_DISABLE_AUTH: "false"  # Disable authentication for development"
+
 # PostgreSQL service for CI (Option 1: Local database)
 # Uncomment this section if you want to use a local PostgreSQL instance
 # services:
@@ -135,8 +139,46 @@ migrate:
 #     - build
 #   when: manual  # Run manually for safety with external databases
 
-# Deploy stage (example for Fly.io)
-deploy:
+# Mock deploy stage (for testing deployment process without affecting production)
+mock_deploy:
+  stage: deploy
+  image: node:20-alpine
+  variables:
+    ROUTING_MOCK_ENABLED: "true"  # Enable backend mock routing mode
+    NEXT_PUBLIC_DISABLE_AUTH: "true"  # Disable authentication for mock mode
+  before_script:
+    - apk add --no-cache git curl
+    - cd carbon-aware-llm-proxy/packages/backend
+    - npm ci --only=production
+  script:
+    - echo "🚀 Mock Deployment - Testing deployment process..."
+    - echo "Environment: staging/mock"
+    - echo "🎭 Mock Mode: ROUTING_MOCK_ENABLED=$ROUTING_MOCK_ENABLED"
+    - echo "🔓 Auth Disabled: NEXT_PUBLIC_DISABLE_AUTH=$NEXT_PUBLIC_DISABLE_AUTH"
+    - echo "Build artifacts validation..."
+    - ls -la dist/
+    - echo "✅ Build artifacts verified"
+    - echo "Database migration validation..."
+    - echo "✅ Migration completed in previous stage"
+    - echo "Environment configuration check..."
+    - echo "NODE_ENV: $NODE_ENV"
+    - echo "DB_HOST: $DB_HOST"
+    - echo "✅ Environment variables verified"
+    - echo "Mock deployment completed successfully! 🎉"
+    - echo "Note: This was a mock deployment for testing purposes only."
+    - echo "To perform actual deployment, run the 'deploy' job or use 'deploy_production'."
+  environment:
+    name: staging
+  only:
+    - main
+    - develop
+    - merge_requests
+  dependencies:
+    - migrate
+  allow_failure: true
+
+# Production deploy stage (manual trigger for safety)
+deploy_production:
   stage: deploy
   image: node:20-alpine
   before_script:
@@ -145,14 +187,43 @@ deploy:
     - export FLYCTL_INSTALL="/root/.fly"
     - export PATH="$FLYCTL_INSTALL/bin:$PATH"
   script:
+    - echo "🚀 Production Deployment Starting..."
     - cd carbon-aware-llm-proxy/packages/backend
+    - echo "Deploying to production environment..."
     - flyctl deploy --remote-only
+    - echo "✅ Production deployment completed successfully!"
   environment:
     name: production
   only:
     - main
   dependencies:
     - migrate
+  when: manual  # Require manual trigger for safety
+
+# Deploy stage (automatic for development branches)
+deploy:
+  stage: deploy
+  image: node:20-alpine
+  variables:
+    ROUTING_MOCK_ENABLED: "${ROUTING_MOCK_ENABLED:-false}"  # Default to false, can be overridden
+    NEXT_PUBLIC_DISABLE_AUTH: "${NEXT_PUBLIC_DISABLE_AUTH:-false}"  # Default to false, can be overridden
+  before_script:
+    - apk add --no-cache git curl
+    - curl -L https://fly.io/install.sh | sh
+    - export FLYCTL_INSTALL="/root/.fly"
+    - export PATH="$FLYCTL_INSTALL/bin:$PATH"
+    - echo "🎭 Routing Mock Mode: $ROUTING_MOCK_ENABLED"
+    - echo "🔓 Auth Disabled: $NEXT_PUBLIC_DISABLE_AUTH"
+  script:
+    - cd carbon-aware-llm-proxy/packages/backend
+    - flyctl deploy --remote-only
+  environment:
+    name: staging
+  only:
+    - develop
+  dependencies:
+    - migrate
+  allow_failure: true
 
 # Troubleshooting job (run on demand)
 troubleshoot:

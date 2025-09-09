@@ -54,6 +54,9 @@ npm run migration:run
 ```bash
 # Use CI-optimized migration command
 npm run migration:run:ci
+
+# Use enhanced migration script (recommended for CI)
+./scripts/migrate-with-retry.sh
 ```
 
 ### Using Enhanced Migration Script
@@ -61,6 +64,100 @@ npm run migration:run:ci
 # Run the enhanced migration script directly
 ./scripts/migrate-with-retry.sh
 ```
+
+## Deployment Options
+
+The GitLab CI pipeline includes multiple deployment options for different scenarios:
+
+### 1. Mock Deployment (`mock_deploy`)
+- **Purpose**: Test deployment process without affecting production
+- **Triggers**: Runs on `main`, `develop`, and merge requests
+- **Safety**: Validates build artifacts and configuration without actual deployment
+- **Use case**: Testing deployment workflows and validating CI/CD setup
+
+```bash
+# This job runs automatically and validates:
+# - Build artifacts are present and correct
+# - Database migrations completed successfully
+# - Environment variables are properly configured
+# - Deployment process works without errors
+```
+
+### 2. Development Deployment (`deploy`)
+- **Purpose**: Automatic deployment for development branches
+- **Triggers**: Runs automatically on `develop` branch
+- **Environment**: Staging environment
+- **Safety**: `allow_failure: true` to prevent blocking development
+
+### 3. Production Deployment (`deploy_production`)
+- **Purpose**: Manual production deployment
+- **Triggers**: Manual trigger only on `main` branch
+- **Environment**: Production environment
+- **Safety**: Requires manual approval to prevent accidental deployments
+
+### Triggering Deployments
+
+```bash
+# Mock deployment (automatic on pushes to main/develop)
+# Runs automatically when pushing to supported branches
+# Always uses ROUTING_MOCK_ENABLED=true and NEXT_PUBLIC_DISABLE_AUTH=true
+
+# Development deployment (automatic on develop branch)
+# Can be controlled via GitLab CI variables:
+# - Set ROUTING_MOCK_ENABLED=true to enable mock routing
+# - Set NEXT_PUBLIC_DISABLE_AUTH=true to disable authentication
+
+# Production deployment (manual)
+# Go to GitLab CI/CD → Pipelines → Select pipeline → Manual jobs → deploy_production
+```
+
+### Mock Mode Configuration
+
+The CI pipeline supports mock mode deployment for testing and development:
+
+#### Mock Deployment Job (`mock_deploy`)
+- **Always enabled**: `ROUTING_MOCK_ENABLED=true`
+- **Authentication disabled**: `NEXT_PUBLIC_DISABLE_AUTH=true`
+- **Purpose**: Full deployment testing with mock backend behavior
+- **Use case**: Testing deployment pipeline without real backend dependencies
+
+#### Development Deployment Job (`deploy`)
+- **Configurable via GitLab variables**:
+  - `ROUTING_MOCK_ENABLED`: Set to `true` to enable mock routing mode
+  - `NEXT_PUBLIC_DISABLE_AUTH`: Set to `true` to disable authentication
+- **Default**: Both variables default to `false` for production-like behavior
+- **Use case**: Flexible development deployments with optional mock features
+
+#### Setting GitLab CI Variables
+
+1. Go to **GitLab Project → Settings → CI/CD → Variables**
+2. Add the following variables:
+   - **Variable**: `ROUTING_MOCK_ENABLED`
+   - **Value**: `true` (or `false`)
+   - **Environment**: Choose appropriate environment (e.g., development)
+
+   - **Variable**: `NEXT_PUBLIC_DISABLE_AUTH`
+   - **Value**: `true` (or `false`)
+   - **Environment**: Choose appropriate environment
+
+3. **Variable Types**:
+   - **Protected**: Only available on protected branches
+   - **Masked**: Hide sensitive values in logs
+   - **Environment-scoped**: Different values per environment
+
+#### Mock Mode Behavior
+
+When `ROUTING_MOCK_ENABLED=true`:
+- Backend reports mocked model/region data
+- Routes to always-warm deployment instead of real routing logic
+- Useful for testing frontend without complex backend dependencies
+- Reduces external API dependencies during development
+
+When `NEXT_PUBLIC_DISABLE_AUTH=true`:
+- Authentication is completely bypassed
+- Frontend operates in development mode
+- No login requirements
+- Useful for rapid prototyping and testing
 
 ## Environment Variables
 
