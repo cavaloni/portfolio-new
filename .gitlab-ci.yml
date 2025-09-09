@@ -17,30 +17,12 @@ variables:
   NODE_ENV: "production"
 
   # Database settings for CI
-  # Use a PostgreSQL service or external database
-  DB_HOST: "postgres"  # For local PostgreSQL service
+  DB_HOST: "postgres"
   DB_PORT: "5432"
   DB_USERNAME: "postgres"
   DB_PASSWORD: "postgres"
   DB_NAME: "carbon_aware_llm"
   DB_SSL: "false"
-
-  # Alternative: Use DATABASE_URL for managed databases
-  # DATABASE_URL: "postgresql://user:password@host:port/database?sslmode=require"
-
-  # Mock/Development variables (can be overridden in GitLab CI variables)
-  ROUTING_MOCK_ENABLED: "false"  # Enable mock routing mode for development/testing
-  NEXT_PUBLIC_DISABLE_AUTH: "false"  # Disable authentication for development"
-
-# PostgreSQL service for CI (Option 1: Local database)
-# Uncomment this section if you want to use a local PostgreSQL instance
-# services:
-#   - postgres:15-alpineFix 
-
-#   variables:
-#     POSTGRES_DB: $DB_NAME
-#     POSTGRES_USER: $DB_USERNAME
-#     POSTGRES_PASSWORD: $DB_PASSWORD
 
 # Build stage
 build:
@@ -48,11 +30,10 @@ build:
   image: node:20-alpine
   before_script:
     - apk add --no-cache git
-    - cd carbon-aware-llm-proxy
-    - yarn install --frozen-lockfile
-    - cd packages/backend
+    - cd carbon-aware-llm-proxy/packages/backend
+    - npm ci --only=production
   script:
-    - yarn build
+    - npm run build
   artifacts:
     paths:
       - carbon-aware-llm-proxy/packages/backend/dist/
@@ -73,18 +54,28 @@ test:
     POSTGRES_PASSWORD: $DB_PASSWORD
   before_script:
     - apk add --no-cache git postgresql-client
-    - cd carbon-aware-llm-proxy
-    - yarn install --frozen-lockfile
-    - cd packages/backend
- 
+    - cd carbon-aware-llm-proxy/packages/backend
+    - npm ci
+  script:
+    - echo "CI/CD is working!"
+    - echo "Current branch $CI_COMMIT_BRANCH"
+    - echo "Commit SHA $CI_COMMIT_SHA"
+    - echo "Project $CI_PROJECT_NAME"
+    - npm run lint
+    - npm test
   only:
     - main
     - develop
     - merge_requests
 
 # Migration stage
-migrate:
+migrate_production:
   stage: migrate
+  rules:
+    - if: 
+'$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+      allow_failure: false
   image: node:20-alpine
   services:
     - postgres:15-alpine
@@ -93,130 +84,139 @@ migrate:
     POSTGRES_USER: $DB_USERNAME
     POSTGRES_PASSWORD: $DB_PASSWORD
   before_script:
-    - apk add --no-cache git postgresql-client
+    # The retry script needs bash
+    - apk add --no-cache bash
+    # The retry script installs dependencies, but we need yarn available
     - cd carbon-aware-llm-proxy
-    - yarn install --frozen-lockfile
-    - cd packages/backend
-
-    # Wait for PostgreSQL to be ready
-    - |
-      for i in {1..30}; do
-        if pg_isready -h postgres -U $DB_USERNAME -d $DB_NAME; then
-          echo "PostgreSQL is ready!"
-          break
-        fi
-        echo "Waiting for PostgreSQL... ($i/30)"
-        sleep 2
-      done
-
-    # Run database migrations using enhanced script
-    - ../../scripts/migrate-with-retry.sh
+    - corepack enable
+    - yarn --version
+    - yarn install --immutable
+    - cd ..
   script:
-    - echo "Migration completed successfully"
-  only:
-    - main
-    - develop
-  dependencies:
-    - build
+    - echo "Running production database migrations..."
+    - bash scripts/migrate-with-retry.sh
 
-# Alternative migration job using DATABASE_URL (Option 2: External database)
-# Uncomment and modify this if using an external database service
-# migrate_external_db:
-#   stage: migrate
-#   image: node:20-alpine
-#   before_script:
-#     - apk add --no-cache git
-#     - cd carbon-aware-llm-proxy/packages/backend
-#     - npm ci
-#   script:
-#     - npm run migration:run
-#   environment:
-#     name: production
-#   only:
-#     - main
-#   dependencies:
-#     - build
-#   when: manual  # Run manually for safety with external databases
-
-# Mock deploy stage (actually deploys app with mock routing enabled)
-mock_deploy:
+deploy_modal_production:
   stage: deploy
-  image: node:20-alpine
+  rules:
+    - if: 
+'$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+      allow_failure: false
+  image: python:3.10
   variables:
-    ROUTING_MOCK_ENABLED: "true"  # Enable backend mock routing mode
-    NEXT_PUBLIC_DISABLE_AUTH: "true"  # Disable authentication for mock mode
+    NODE_ENV: production
+  needs:
+    - migrate_production
   before_script:
-    - apk add --no-cache git curl yarn
-    - curl -L https://fly.io/install.sh | sh
-    - export FLYCTL_INSTALL="/root/.fly"
-    - export PATH="$FLYCTL_INSTALL/bin:$PATH"
-    - echo "🎭 Deploying with Mock Routing Mode ROUTING_MOCK_ENABLED=$ROUTING_MOCK_ENABLED"
-    - echo "🔓 Auth Disabled NEXT_PUBLIC_DISABLE_AUTH=$NEXT_PUBLIC_DISABLE_AUTH"
+    - apt-get update && apt-get install -y curl
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash - 
+    - apt-get install -y nodejs
+    - pip install modal
+    - cd carbon-aware-llm-proxy
+    - corepack enable
+    - yarn --version
+    - yarn install --immutable
   script:
-    - echo "🚀 Starting mock deployment to staging environment..."
-    - cd carbon-aware-llm-proxy/packages/backend
-    - echo "Deploying backend with mock routing enabled..."
-    - flyctl deploy --remote-only
-    - echo "✅ Mock deployment completed successfully!"
-    - echo "🎭 App deployed with mock routing mode active"
-    - echo "🔓 Authentication disabled for development/testing"
-  environment:
-    name: staging
-  only:
-    - main
-    - develop
-    - merge_requests
-  dependencies:
-    - migrate
-  allow_failure: true
+    - echo "Deploying Modal workers to production..."
+    - test -n "$DATABASE_URL" || (echo "❌ DATABASE_URL not set" && exit 1)
+    - test -n "$MODAL_API_KEY" || (echo "❌ MODAL_API_KEY not set" && exit 1)
+    - yarn workspace @carbon-aware-llm/backend deploy:modal
+    - echo "✅ Modal deployment completed successfully"
 
-# Production deploy stage (manual trigger for safety)
-deploy_production:
-  stage: deploy
-  image: node:20-alpine
+# Shared configuration for Fly.io deployments
+.flyctl_setup: &flyctl_setup
+  image: alpine:3.19
   before_script:
-    - apk add --no-cache git curl yarn
-    - curl -L https://fly.io/install.sh | sh
-    - export FLYCTL_INSTALL="/root/.fly"
-    - export PATH="$FLYCTL_INSTALL/bin:$PATH"
+    - apk add --no-cache curl bash ca-certificates jq
+    - curl -L https://fly.io/install.sh | FLYCTL_INSTALL=/usr/local bash
+    - export FLYCTL_INSTALL=/usr/local
+    - export PATH="/usr/local/bin:$PATH"
+    - flyctl version
+
+# Deploy stage (example for Fly.io)
+deploy_backend_prod:
+  stage: deploy
+  rules:
+    - if: 
+'$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+      allow_failure: false
+  needs:
+    - migrate_production
+  variables:
+    FLY_APP: "$FLY_APP_NAME"
+  <<: *flyctl_setup
   script:
-    - echo "🚀 Production Deployment Starting..."
+    - test -n "$FLY_API_TOKEN" || { echo "FLY_API_TOKEN is required"; exit 1; }
+    - test -n "$FLY_APP_NAME" || { echo "FLY_APP_NAME is required"; exit 1; }
+    - echo "Logging into Fly.io"
+    - flyctl auth token "$FLY_API_TOKEN"
+    # Ensure we do NOT override CORS via secrets; rely on fly.toml
+    - flyctl secrets unset CORS_ORIGINS --app "$FLY_APP" --yes || true
+    - |
+      flyctl secrets set \
+        NODE_ENV=production \
+        PORT=3001 \
+        JWT_SECRET="$JWT_SECRET" \
+        ${REDIS_URL:+REDIS_URL="$REDIS_URL"} \
+        ${DB_HOST:+DB_HOST="$DB_HOST"} \
+        ${DB_PORT:+DB_PORT="$DB_PORT"} \
+        ${DB_USERNAME:+DB_USERNAME="$DB_USERNAME"} \
+        DB_PASSWORD="$DB_PASSWORD" \
+        ${DB_NAME:+DB_NAME="$DB_NAME"} \
+        LLM_PROVIDER="${LLM_PROVIDER:-modal}" \
+        MODAL_ENDPOINT_URL="$MODAL_ENDPOINT_URL" \
+        MODAL_API_KEY="$MODAL_API_KEY" \
+        ROUTING_MOCK_ENABLED=false \
+        --app "$FLY_APP" --stage
+    - echo "Deploying backend to Fly app $FLY_APP"
     - cd carbon-aware-llm-proxy/packages/backend
-    - echo "Deploying to production environment..."
-    - flyctl deploy --remote-only
-    - echo "✅ Production deployment completed successfully!"
+    - flyctl deploy --app "$FLY_APP" --remote-only
   environment:
     name: production
-  only:
-    - main
-  dependencies:
-    - migrate
-  when: manual  # Require manual trigger for safety
 
-# Deploy stage (automatic for development branches)
-deploy:
+deploy_backend_mock:
   stage: deploy
-  image: node:20-alpine
+  rules:
+    - if: 
+'$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+      allow_failure: false
+  needs:
+    - migrate_production
   variables:
-    ROUTING_MOCK_ENABLED: "${ROUTING_MOCK_ENABLED:-false}"  # Default to false, can be overridden
-    NEXT_PUBLIC_DISABLE_AUTH: "${NEXT_PUBLIC_DISABLE_AUTH:-false}"  # Default to false, can be overridden
-  before_script:
-    - apk add --no-cache git curl yarn
-    - curl -L https://fly.io/install.sh | sh
-    - export FLYCTL_INSTALL="/root/.fly"
-    - export PATH="$FLYCTL_INSTALL/bin:$PATH"
-    - echo "🎭 Routing Mock Mode $ROUTING_MOCK_ENABLED"
-    - echo "🔓 Auth Disabled $NEXT_PUBLIC_DISABLE_AUTH"
+    FLY_APP: "$FLY_APP_NAME"
+  <<: *flyctl_setup
   script:
+    - test -n "$FLY_API_TOKEN" || { echo "FLY_API_TOKEN is required"; exit 1; }
+    - test -n "$FLY_APP_NAME" || { echo "FLY_APP_NAME is required"; exit 1; }
+    - test -n "$OPENROUTER_API_KEY" || { echo "OPENROUTER_API_KEY is required for mock mode"; exit 1; }
+    - echo "Logging into Fly.io"
+    - flyctl auth token "$FLY_API_TOKEN"
+    # Ensure we do NOT override CORS via secrets; rely on fly.toml
+    - flyctl secrets unset CORS_ORIGINS --app "$FLY_APP" --yes || true
+    # Set/refresh mock-mode secrets. This switches routing + chat to mock path.
+    - |
+      flyctl secrets set \
+        NODE_ENV=production \
+        PORT=3001 \
+        ROUTING_MOCK_ENABLED=true \
+        OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
+        JWT_SECRET="$JWT_SECRET" \
+        ${REDIS_URL:+REDIS_URL="$REDIS_URL"} \
+        ${DB_HOST:+DB_HOST="$DB_HOST"} \
+        ${DB_PORT:+DB_PORT="$DB_PORT"} \
+        ${DB_USERNAME:+DB_USERNAME="$DB_USERNAME"} \
+        DB_PASSWORD="$DB_PASSWORD" \
+        ${DB_NAME:+DB_NAME="$DB_NAME"} \
+        LLM_PROVIDER="${LLM_PROVIDER:-modal}" \
+        MODAL_ENDPOINT_URL="${MODAL_ENDPOINT_URL}" \
+        MODAL_API_KEY="${MODAL_API_KEY}" \
+        --app "$FLY_APP" --stage
+    - echo "Deploying backend (mock mode) to Fly app $FLY_APP"
     - cd carbon-aware-llm-proxy/packages/backend
-    - flyctl deploy --remote-only
-  environment:
-    name: staging
-  only:
-    - develop
-  dependencies:
-    - migrate
-  allow_failure: true
+    - flyctl deploy --app "$FLY_APP" --detach
 
 # Troubleshooting job (run on demand)
 troubleshoot:
@@ -244,11 +244,11 @@ troubleshoot:
 
     # Environment variables check
     - echo "Environment variables:"
-    - echo "DB_HOST $DB_HOST"
-    - echo "DB_PORT $DB_PORT"
-    - echo "DB_USERNAME $DB_USERNAME"
-    - echo "DB_NAME $DB_NAME"
-    - echo "DATABASE_URL $DATABASE_URL"
+    - echo "DB_HOST: $DB_HOST"
+    - echo "DB_PORT: $DB_PORT"
+    - echo "DB_USERNAME: $DB_USERNAME"
+    - echo "DB_NAME: $DB_NAME"
+    - echo "DATABASE_URL: $DATABASE_URL"
 
     # Network connectivity test
     - echo "Testing network connectivity..."
