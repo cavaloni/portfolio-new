@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`glass-theme min-h-screen bg-background font-sans antialiased ${manrope.variable}`}
+        className={`glass-theme min-h-screen bg-background font-sans antialiased overflow-x-hidden max-h-screen ${manrope.variable}`}
       >
         <Providers
           attribute="class"
@@ -39,7 +39,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <div className="min-h-screen flex flex-col">
-            <div className="w-full border-b absolute top-0 z-50">
+            <div className="w-full border-b sticky top-0 z-40 lg:z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <div className="container flex h-16 items-center justify-between">
                 <BrandLogo scale={3} leftOffsetPx={35} className="ml-1" zIndexClass="-z-10" />
                 <div className="flex items-center gap-2">

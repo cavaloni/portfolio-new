@@ -11,6 +11,8 @@ import { ModelDeployment } from "../entities/ModelDeployment";
 
 dotenv.config();
 
+const isCompiled = !__filename.endsWith('.ts');
+
 export const dbConfig: DataSourceOptions = {
   type: "postgres",
   // Prefer a single DATABASE_URL if provided (e.g., from Fly Postgres attach)
@@ -40,7 +42,8 @@ export const dbConfig: DataSourceOptions = {
     CarbonFootprint,
     ModelDeployment,
   ],
-  migrations: ["src/migrations/*.ts"],
+  // Use TS migrations in dev, JS migrations in production builds
+  migrations: isCompiled ? ["dist/migrations/*.js"] : ["src/migrations/*.ts"],
   subscribers: [],
 };
 

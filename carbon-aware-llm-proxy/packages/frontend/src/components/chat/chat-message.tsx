@@ -106,7 +106,7 @@ export function ChatMessage({
     }
 
     return (
-      <div className="prose prose-invert max-w-none">
+      <div className="prose prose-invert max-w-none break-words">
         {message.isStreaming && !message.content ? (
           <div className="flex items-center space-x-1">
             <div className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-pulse" />
@@ -269,10 +269,10 @@ export function ChatMessage({
   return (
     <div
       className={cn(
-        "group relative flex items-start gap-4 py-6 px-6 mx-4 my-3",
+        "group relative flex items-start gap-3 py-4 px-4 mx-3 my-3 max-w-full overflow-x-hidden",
         isCurrentUser
-          ? "glass glass-hover glass-glow ml-8"
-          : "glass-panel glass-hover mr-8",
+          ? "glass glass-hover glass-glow sm:ml-8"
+          : "glass-panel glass-hover sm:mr-8",
         className
       )}
       onMouseEnter={() => setIsHovered(true)}

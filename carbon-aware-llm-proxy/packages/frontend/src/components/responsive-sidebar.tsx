@@ -22,7 +22,7 @@ interface ResponsiveSidebarProps {
 
 export function ResponsiveSidebar({
   children,
-  title = "Menu",
+  title = "",
   description = "Navigation and controls",
   className,
 }: ResponsiveSidebarProps) {
@@ -33,20 +33,22 @@ export function ResponsiveSidebar({
       {/* Mobile: Drawer with trigger button */}
       <div className="lg:hidden">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="fixed top-20 left-4 z-40 bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-background/90"
-              aria-label="Open sidebar"
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
+          {!isOpen && (
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="fixed top-4 left-4 z-[60] bg-background/80 backdrop-blur-sm border border-border/50 hover:bg-background/90"
+                aria-label="Open sidebar"
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+          )}
           <SheetContent side="left" className="w-80 p-0">
             <SheetHeader className="p-4 border-b">
               <SheetTitle>{title}</SheetTitle>
-              <SheetDescription>{description}</SheetDescription>
+              {/* <SheetDescription>{description}</SheetDescription> */}
             </SheetHeader>
             <div className="flex-1 overflow-auto">
               {children}

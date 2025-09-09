@@ -13,6 +13,7 @@ import { QuadrantJoystick } from "@/components/quadrant-joystick";
 import { QuadrantPosition } from "@/components/quadrant-joystick/QuadrantJoystick.types";
 import { ResponsiveSidebar, SidebarContent } from "@/components/responsive-sidebar";
 import { useChatHistory } from "@/hooks/use-chat-history";
+import { useRandomPlaceholder } from "@/hooks/use-random-placeholder";
 import { Message, MessageRole } from "@/types/chat";
 import {
   ChevronDown,
@@ -57,6 +58,8 @@ interface TimeoutState {
 export default function ChatPageClient() {
   const router = useRouter();
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const initialPlaceholder = useRandomPlaceholder('initial');
+  const bottomPlaceholder = useRandomPlaceholder('bottom');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isJoystickExpanded, setIsJoystickExpanded] = useState(true);
@@ -465,11 +468,11 @@ export default function ChatPageClient() {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-screen bg-background relative top-16 h-[94vh]">
+    <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
       {/* Dynamic background fog effect */}
       <BackgroundFog joystickPosition={joystickPosition} />
 
-      <main className="flex-1 overflow-hidden flex relative z-10">
+      <main className="flex-1 overflow-hidden flex relative">
         {/* Subtle rotated arrows background */}
         <div
           aria-hidden
@@ -486,7 +489,7 @@ export default function ChatPageClient() {
           }}
         />
         {/* Responsive sidebar with joystick and status */}
-        <ResponsiveSidebar title="Routly">
+        <ResponsiveSidebar >
           <SidebarContent className="glass-panel border-r-0 p-0 glass-glow h-[91vh] lg:h-[91vh]">
             {/* Collapsible header */}
             <button
@@ -593,12 +596,12 @@ export default function ChatPageClient() {
         </ResponsiveSidebar>
 
         {/* Chat area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col w-full max-w-[100vw] overflow-x-hidden">
           <div
             ref={messagesContainerRef}
             className="flex-1 overflow-y-auto pb-8 pt-8"
           >
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-4xl mx-auto px-3 sm:px-0">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8">
                   <h2 className="text-3xl mb-4 text-primary">
@@ -616,7 +619,7 @@ export default function ChatPageClient() {
                             ? routingStatus.isRouting
                               ? "Routing..."
                               : "AI is responding..."
-                            : "Ask anything about carbon-aware AI deployment..."
+                            : initialPlaceholder
                         }
                       />
                     </div>
@@ -677,7 +680,7 @@ export default function ChatPageClient() {
           {/* Input area - enhanced with glassmorphism - only show when there are messages */}
           {messages.length > 0 && (
             <div className="glass-panel border-0 m-4 mt-0 p-6 glass-glow">
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-4xl mx-auto px-3 sm:px-0">
                 <ChatInput
                   onSendMessage={handleSendMessage}
                   disabled={isLoading}
@@ -686,7 +689,7 @@ export default function ChatPageClient() {
                       ? routingStatus.isRouting
                         ? "Routing..."
                         : "AI is responding..."
-                      : "Type your message..."
+                      : bottomPlaceholder
                   }
                 />
                 <div className="mt-3 text-xs text-muted-foreground text-center">

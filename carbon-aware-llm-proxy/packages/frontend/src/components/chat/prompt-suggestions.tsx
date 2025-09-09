@@ -1,16 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Globe, Zap, Leaf, DollarSign, Star, Lightbulb, Brain, Rocket } from "lucide-react";
+import { Globe, Zap, Leaf, DollarSign, Star, Lightbulb, Brain, Rocket, Cpu, Cloud, Target, TrendingUp, Shield, Users, Database, Clock } from "lucide-react";
 
 interface PromptSuggestionsProps {
   onPromptSelect: (prompt: string) => void;
   className?: string;
 }
 
-const promptSuggestions = [
+const allPromptSuggestions = [
   {
     text: "What's the carbon footprint of AI models?",
     icon: Leaf,
@@ -51,13 +51,62 @@ const promptSuggestions = [
     icon: Lightbulb,
     color: "text-yellow-400",
   },
+  {
+    text: "What's the difference between CPU and GPU inference?",
+    icon: Cpu,
+    color: "text-red-400",
+  },
+  {
+    text: "How do cloud providers compare for AI workloads?",
+    icon: Cloud,
+    color: "text-slate-400",
+  },
+  {
+    text: "What are the latency requirements for real-time AI?",
+    icon: Target,
+    color: "text-emerald-400",
+  },
+  {
+    text: "How can I monitor AI model performance over time?",
+    icon: TrendingUp,
+    color: "text-teal-400",
+  },
+  {
+    text: "What security considerations are there for AI deployments?",
+    icon: Shield,
+    color: "text-gray-400",
+  },
+  {
+    text: "How does user load affect AI model selection?",
+    icon: Users,
+    color: "text-violet-400",
+  },
+  {
+    text: "What's the best way to store AI model artifacts?",
+    icon: Database,
+    color: "text-amber-400",
+  },
+  {
+    text: "How do I handle AI model versioning and updates?",
+    icon: Clock,
+    color: "text-lime-400",
+  },
 ];
 
 export function PromptSuggestions({ onPromptSelect, className }: PromptSuggestionsProps) {
+  const [displaySuggestions, setDisplaySuggestions] = useState(allPromptSuggestions.slice(0, 4));
+
+  // Randomly select 4 suggestions on component mount
+  useEffect(() => {
+    const shuffled = [...allPromptSuggestions].sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, 4);
+    setDisplaySuggestions(selected);
+  }, []);
+
   return (
     <div className={cn("mt-6 space-y-3", className)}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
-        {promptSuggestions.map((prompt, index) => {
+        {displaySuggestions.map((prompt, index) => {
           const IconComponent = prompt.icon;
           return (
             <Button
