@@ -1,5 +1,9 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
+function makeRequestId(prefix: string = "fe"): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export interface ApiResponse<T = any> {
   id?: string;
   data?: T;
@@ -55,16 +59,24 @@ export async function apiGet<T = any>(
   options: RequestInit = {},
 ): Promise<ApiResponse<T>> {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const requestId = makeRequestId("get");
+    const started = Date.now();
+    console.log("[apiGet] ->", { url, endpoint, options: { ...options, headers: undefined }, requestId });
+
+    const response = await fetch(url, {
       ...options,
       method: "GET",
       headers: {
         "Content-Type": "application/json",
+        "X-Request-Id": requestId,
         ...options.headers,
       },
       credentials: "include",
     });
 
+    const duration = Date.now() - started;
+    console.log("[apiGet] <-", { url, status: response.status, requestId, durationMs: duration });
     return handleResponse<T>(response);
   } catch (error) {
     console.error("API GET request failed:", error);
@@ -83,17 +95,32 @@ export async function apiPost<T = any>(
   try {
     const isFormData = data instanceof FormData;
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const requestId = makeRequestId("post");
+    const started = Date.now();
+    console.log("[apiPost] ->", {
+      url,
+      endpoint,
+      isFormData,
+      dataPreview: isFormData ? "FormData" : JSON.stringify(data).slice(0, 500),
+      options: { ...options, headers: undefined },
+      requestId,
+    });
+
+    const response = await fetch(url, {
       ...options,
       method: "POST",
       headers: {
         ...(!isFormData && { "Content-Type": "application/json" }),
+        "X-Request-Id": requestId,
         ...options.headers,
       },
       body: isFormData ? data : JSON.stringify(data),
       credentials: "include",
     });
 
+    const duration = Date.now() - started;
+    console.log("[apiPost] <-", { url, status: response.status, requestId, durationMs: duration });
     return handleResponse<T>(response);
   } catch (error) {
     console.error("API POST request failed:", error);
@@ -110,17 +137,31 @@ export async function apiPut<T = any>(
   options: RequestInit = {},
 ): Promise<ApiResponse<T>> {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const requestId = makeRequestId("put");
+    const started = Date.now();
+    console.log("[apiPut] ->", {
+      url,
+      endpoint,
+      dataPreview: JSON.stringify(data).slice(0, 500),
+      options: { ...options, headers: undefined },
+      requestId,
+    });
+
+    const response = await fetch(url, {
       ...options,
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        "X-Request-Id": requestId,
         ...options.headers,
       },
       body: JSON.stringify(data),
       credentials: "include",
     });
 
+    const duration = Date.now() - started;
+    console.log("[apiPut] <-", { url, status: response.status, requestId, durationMs: duration });
     return handleResponse<T>(response);
   } catch (error) {
     console.error("API PUT request failed:", error);
@@ -136,16 +177,24 @@ export async function apiDelete<T = any>(
   options: RequestInit = {},
 ): Promise<ApiResponse<T>> {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const requestId = makeRequestId("del");
+    const started = Date.now();
+    console.log("[apiDelete] ->", { url, endpoint, options: { ...options, headers: undefined }, requestId });
+
+    const response = await fetch(url, {
       ...options,
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
+        "X-Request-Id": requestId,
         ...options.headers,
       },
       credentials: "include",
     });
 
+    const duration = Date.now() - started;
+    console.log("[apiDelete] <-", { url, status: response.status, requestId, durationMs: duration });
     return handleResponse<T>(response);
   } catch (error) {
     console.error("API DELETE request failed:", error);

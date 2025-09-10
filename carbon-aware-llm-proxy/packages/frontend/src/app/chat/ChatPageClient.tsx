@@ -120,10 +120,11 @@ export default function ChatPageClient() {
   }, [isJoystickExpanded, isDeploymentExpanded, isModelLocationExpanded]);
 
   // Start presence service on mount
-  useEffect(() => {
-    presenceService.start();
-    return () => presenceService.stop();
-  }, []);
+  // Note to agent: temporarily disabling presence service. Reenable when truly keeping things warm.
+  // useEffect(() => {
+  //   presenceService.start();
+  //   return () => presenceService.stop();
+  // }, []);
 
   // Handle joystick changes
   const handleJoystickChange = useCallback((position: QuadrantPosition) => {

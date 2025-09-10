@@ -24,6 +24,10 @@ variables:
   DB_NAME: "carbon_aware_llm"
   DB_SSL: "false"
 
+  # Supabase settings for CI
+  SUPABASE_URL: "https://ttyezboapfpyvlyxiqjw.supabase.co"
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0eWV6Ym9hcGZweXZseXhpcWp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0NTQ3NzIsImV4cCI6MjA3MzAzMDc3Mn0.BX8WjVExYR0W5NhMGLumIaoYh4dvD2bl_ItZVQIWTfE"
+
 # Build stage
 build:
   stage: build
@@ -68,11 +72,29 @@ test:
     - develop
     - merge_requests
 
+# Test Supabase integration
+test_supabase:
+  stage: test
+  image: node:20-alpine
+  before_script:
+    - apk add --no-cache git
+    - cd carbon-aware-llm-proxy/packages/backend
+    - npm ci
+  script:
+    - echo "Testing Supabase integration..."
+    - npm run lint
+    - npm test -- --testNamePattern="supabase"
+  only:
+    - main
+    - develop
+    - merge_requests
+  allow_failure: true  # Allow failure during migration period
+
 # Migration stage
 migrate_production:
   stage: migrate
   rules:
-    - if: 
+    - if:
 '$CI_COMMIT_REF_NAME == "main"'
       when: manual
       allow_failure: false
@@ -95,6 +117,31 @@ migrate_production:
   script:
     - echo "Running production database migrations..."
     - bash scripts/migrate-with-retry.sh
+
+migrate_to_supabase:
+  stage: migrate
+  rules:
+    - if:
+'$CI_COMMIT_REF_NAME == "main"'
+      when: manual
+      allow_failure: false
+  image: node:20-alpine
+  variables:
+    DATABASE_MODE: "hybrid"
+  needs:
+    - migrate_production
+  before_script:
+    - apk add --no-cache bash
+    - cd carbon-aware-llm-proxy
+    - corepack enable
+    - yarn --version
+    - yarn install --immutable
+  script:
+    - echo "Migrating data from PostgreSQL to Supabase..."
+    - test -n "$SUPABASE_URL" || (echo "❌ SUPABASE_URL not set" && exit 1)
+    - test -n "$SUPABASE_ANON_KEY" || (echo "❌ SUPABASE_ANON_KEY not set" && exit 1)
+    - ts-node scripts/migrate-data-to-supabase.ts --batch-size=500
+    - echo "✅ Data migration to Supabase completed successfully"
 
 deploy_modal_production:
   stage: deploy

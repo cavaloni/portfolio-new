@@ -33,4 +33,4 @@ router.post(
 // Protected routes
 router.get("/me", authenticate, authController.getCurrentUser);
 
-export default router;
+export { router as authRouter };

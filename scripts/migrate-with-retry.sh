@@ -80,6 +80,13 @@ test_database_connection() {
 
 # Function to wait for services
 wait_for_services() {
+    # If DATABASE_URL is set, we skip the granular checks and let the migration command handle it.
+    # The URL is expected to be correct and the service reachable.
+    if [ -n "$DATABASE_URL" ]; then
+        echo "✅ DATABASE_URL is set. Skipping manual service checks and proceeding directly to migration."
+        return 0
+    fi
+
     local attempt=1
     local max_attempts=30
 

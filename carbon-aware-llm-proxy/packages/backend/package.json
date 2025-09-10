@@ -19,9 +19,13 @@
     "migration:revert": "npm run typeorm -- -d src/config/database.ts migration:revert",
     "migration:create": "npm run typeorm -- migration:create",
     "deploy:modal": "ts-node scripts/deploy-modal.ts",
-    "sync:modal": "ts-node scripts/sync-modal-deployments.ts"
+    "sync:modal": "ts-node scripts/sync-modal-deployments.ts",
+    "migrate:supabase": "ts-node ../../scripts/migrate-data-to-supabase.ts",
+    "migrate:supabase:dry": "ts-node ../../scripts/migrate-data-to-supabase.ts --dry-run",
+    "migrate:supabase:table": "ts-node ../../scripts/migrate-data-to-supabase.ts --table"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "commander": "^14.0.0",

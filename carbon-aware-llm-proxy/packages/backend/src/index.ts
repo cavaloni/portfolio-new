@@ -4,14 +4,15 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import { createServer } from "http";
-import { logger } from "./utils/logger";
+import { logger, httpLogger } from "./utils/logger";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { rateLimiterMiddleware } from "./middleware/rateLimiter";
 import { healthCheckRouter } from "./routes/healthCheck";
 import { v1Router } from "./routes/v1";
-import { databaseService } from "./services/database.service";
+import { supabaseService } from "./services/supabase.service";
 import { webSocketService } from "./services/websocket.service";
 import { redisService } from "./services/redis.service";
+import { v4 as uuidv4 } from "uuid";
 // Removed RunPod integration and scheduler
 
 const app = express();
@@ -19,6 +20,20 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(helmet());
+
+// Attach/propagate a request ID for correlation across FE/BE
+app.use((req, res, next) => {
+  let reqId = (req.headers["x-request-id"] as string) || "";
+  if (!reqId) {
+    reqId = uuidv4();
+  }
+  res.setHeader("X-Request-Id", reqId);
+  (req as any).requestId = reqId;
+  next();
+});
+
+// Structured HTTP logging (method, url, status, timing) with request ID
+app.use(httpLogger);
 
 // CORS configuration with explicit origin function + logging for clarity
 const rawCorsOrigins = process.env.CORS_ORIGINS || "";
@@ -62,9 +77,12 @@ app.use(express.urlencoded({ extended: true }));
 // Apply rate limiting middleware
 app.use(rateLimiterMiddleware);
 
-// Request logging
+// Lightweight human-readable request log including origin and referer
 app.use((req, res, next) => {
-  logger.info(`${req.method} ${req.originalUrl}`);
+  const requestId = (req as any).requestId || req.headers["x-request-id"];
+  const origin = req.headers["origin"];
+  const referer = req.headers["referer"];
+  logger.info("HTTP request", { method: req.method, url: req.originalUrl, requestId, origin, referer });
   next();
 });
 
@@ -83,16 +101,15 @@ const server = createServer(app);
 
 const startServer = async () => {
   try {
-    // Initialize database connection
-    await databaseService.initialize();
+    // Initialize Supabase service (optional - don't fail if it fails)
+    try {
+      await supabaseService.initialize();
+    } catch (error) {
+      logger.warn("Supabase initialization failed, continuing without Supabase:", error);
+    }
 
     // Initialize Redis connection
     await redisService.connect();
-
-    // Run pending migrations
-    if (process.env.NODE_ENV !== "test") {
-      await databaseService.runMigrations();
-    }
 
     // Start the HTTP server - bind to 0.0.0.0 for Fly.io compatibility
     server.listen(Number(PORT), "0.0.0.0", () => {
@@ -119,8 +136,7 @@ const startServer = async () => {
 
       // Close HTTP server
       server.close(async () => {
-        // Close database connection
-        await databaseService.close();
+        // Supabase client doesn't need explicit cleanup
         logger.info("Server has been shut down");
         process.exit(0);
       });
@@ -137,12 +153,10 @@ const startServer = async () => {
     process.on("SIGINT", shutdown);
   } catch (error) {
     logger.error("Failed to start server:", error);
-    await databaseService
-      .close()
-      .catch((e) => logger.error("Error closing database connection:", e));
+
     await redisService
       .disconnect()
-      .catch((e) => logger.error("Error closing Redis connection:", e));
+      .catch((e: any) => logger.error("Error closing Redis connection:", e));
     process.exit(1);
   }
 };

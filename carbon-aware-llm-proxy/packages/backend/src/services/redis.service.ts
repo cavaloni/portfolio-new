@@ -108,6 +108,10 @@ class RedisService {
     }
   }
 
+  getConnectionStatus(): boolean {
+    return this.isConnected;
+  }
+
   async get(key: string) {
     try {
       if (!this.isConnected) await this.connect();

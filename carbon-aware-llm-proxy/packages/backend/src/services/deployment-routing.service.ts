@@ -401,11 +401,23 @@ export async function selectMockDeploymentAndWarm(input: {
     } as any;
   }
 
-  const realDeployment = await findAlwaysWarmQwenDeployment();
-  if (!realDeployment || !realDeployment.ingressUrl) {
+  // Try to find a real always-warm deployment, but gracefully fall back to env endpoint
+  let ingressUrl: string | null = null;
+  try {
+    const realDeployment = await findAlwaysWarmQwenDeployment();
+    if (realDeployment && realDeployment.ingressUrl) {
+      ingressUrl = realDeployment.ingressUrl;
+    }
+  } catch {
+    // ignore DB access errors in mock mode
+  }
+  if (!ingressUrl) {
+    ingressUrl = process.env.MODAL_ENDPOINT_URL || process.env.NEXT_PUBLIC_MODAL_ENDPOINT_URL || null;
+  }
+  if (!ingressUrl) {
     return {
       error: "no_available_deployments",
-      message: "No always-warm deployment available for dispatch.",
+      message: "No deployment endpoint available. Set MODAL_ENDPOINT_URL to enable mock routing.",
     } as any;
   }
 
@@ -615,7 +627,7 @@ export async function selectMockDeploymentAndWarm(input: {
       appName: `mock-${chosen.modelId}`,
       modelId: chosen.modelId,
       region: chosen.region,
-      ingressUrl: realDeployment.ingressUrl,
+      ingressUrl,
       co2_g_per_kwh: chosenCo2,
     },
     ideal: {
@@ -623,7 +635,7 @@ export async function selectMockDeploymentAndWarm(input: {
       appName: `mock-${ideal.modelId}`,
       modelId: ideal.modelId,
       region: ideal.region,
-      ingressUrl: realDeployment.ingressUrl,
+      ingressUrl,
       co2_g_per_kwh: idealCo2,
     },
     fallbackUsed,

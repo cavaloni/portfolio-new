@@ -77,9 +77,9 @@ const logger: {
 const httpLogger = pinoHttp({
   logger: baseLogger,
   customLogLevel: (res: Response, err: Error) => {
-    if (res.statusCode >= 500 || err) {
+    if ((res as any)?.statusCode >= 500 || err) {
       return "error";
-    } else if (res.statusCode >= 400) {
+    } else if ((res as any)?.statusCode >= 400) {
       return "warn";
     }
     return "info";
@@ -96,10 +96,25 @@ const httpLogger = pinoHttp({
       },
       body: req.body ? "[REDACTED]" : undefined,
     }),
-    res: (res: Response) => ({
-      statusCode: res.statusCode,
-      headers: res.getHeaders(),
-    }),
+    res: (res: Response) => {
+      const anyRes = res as any;
+      let headers: any = undefined;
+      try {
+        if (typeof anyRes?.getHeaders === "function") {
+          headers = anyRes.getHeaders();
+        } else if (anyRes?.headers) {
+          headers = anyRes.headers;
+        } else if (anyRes?._headers) {
+          headers = anyRes._headers;
+        }
+      } catch {
+        // ignore header serialization errors
+      }
+      return {
+        statusCode: anyRes?.statusCode,
+        headers,
+      };
+    },
   },
 });
 

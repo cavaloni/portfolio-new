@@ -22,13 +22,21 @@ export async function POST(request: Request) {
 
   console.log("🔐 Login successful, redirecting to:", next);
   const url = new URL(next || "/", request.url);
+
+  // Determine whether to set the cookie as Secure
+  // - Always secure in production
+  // - In dev, secure only when the request is effectively over HTTPS
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const isHttps = new URL(request.url).protocol === "https:" || forwardedProto === "https";
+  const secure = process.env.NODE_ENV === "production" ? true : isHttps;
+
   const response = NextResponse.redirect(url);
   response.cookies.set({
     name: AUTH_COOKIE,
     value: "ok",
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" || request.headers.get("x-forwarded-proto") === "https",
+    secure,
     path: "/",
     maxAge: 60 * 60 * 24 * 7, // 7 days
   });

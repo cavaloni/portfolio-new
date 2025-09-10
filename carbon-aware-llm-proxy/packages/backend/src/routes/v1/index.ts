@@ -4,10 +4,14 @@ import { modelsRouter } from "./models";
 import { carbonRouter } from "./carbon";
 import { routeRouter } from "./route";
 import { presenceRouter } from "./presence";
+import { authRouter } from "../auth.routes";
+import { usersRouter } from "./users";
 
 export const v1Router = Router();
 
 // API v1 routes
+v1Router.use("/auth", authRouter);
+v1Router.use("/users", usersRouter);
 v1Router.use("/chat", chatRouter);
 v1Router.use("/models", modelsRouter);
 v1Router.use("/carbon", carbonRouter);

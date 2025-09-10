@@ -25,7 +25,29 @@ class WebSocketService {
     }
 
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsHost = process.env.NEXT_PUBLIC_WS_URL || "localhost:3001";
+
+    // Prefer explicit WS host, else derive from API base, else fall back sensibly
+    const envWsHost = process.env.NEXT_PUBLIC_WS_URL;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL;
+    let wsHost: string | null = null;
+
+    if (envWsHost && envWsHost.trim().length > 0) {
+      wsHost = envWsHost.trim();
+    } else if (apiBase) {
+      try {
+        const u = new URL(apiBase);
+        wsHost = `${u.hostname}${u.port ? `:${u.port}` : ""}`;
+      } catch {
+        // ignore and continue to next fallback
+      }
+    }
+
+    if (!wsHost) {
+      // If frontend runs on 3000 in dev, assume backend mapped to 3002 as a safe default
+      const assumedPort = window.location.port === "3000" ? "3002" : window.location.port;
+      wsHost = `${window.location.hostname}${assumedPort ? `:${assumedPort}` : ""}`;
+    }
+
     this.url = `${wsProtocol}//${wsHost}/ws`;
 
     // Debug logging
@@ -33,7 +55,8 @@ class WebSocketService {
       wsProtocol,
       wsHost,
       fullUrl: this.url,
-      envVar: process.env.NEXT_PUBLIC_WS_URL,
+      envVar: envWsHost,
+      apiBase,
     });
 
     // Get token from localStorage

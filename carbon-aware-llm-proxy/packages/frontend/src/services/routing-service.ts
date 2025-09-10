@@ -64,6 +64,8 @@ export const routingService = {
     try {
       const response = await apiPost<RouteResponse>("/v1/route", request, {
         headers: withAuth(),
+        // Fail fast if routing takes too long (e.g., bad API base URL or server unreachable)
+        signal: AbortSignal.timeout(15000),
       });
 
       if (response.error) {

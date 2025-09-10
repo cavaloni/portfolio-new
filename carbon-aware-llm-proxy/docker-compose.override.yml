@@ -7,20 +7,18 @@ services:
     # Override environment variables
     environment:
       LOG_LEVEL: debug
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: ${DB_USERNAME:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME:-carbon_aware_llm}
+      # Supabase Configuration
+      SUPABASE_URL: ${SUPABASE_URL:-https://ttyezboapfpyvlyxiqjw.supabase.co}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0eWV6Ym9hcGZweXZseXhpcWp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0NTQ3NzIsImV4cCI6MjA3MzAzMDc3Mn0.BX8WjVExYR0W5NhMGLumIaoYh4dvD2bl_ItZVQIWTfE}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
       WATT_TIME_EMAIL: ${WATT_TIME_EMAIL}
       WATT_TIME_API_KEY: ${WATT_TIME_API_KEY}
       ELECTRICITY_MAP_API_KEY: ${ELECTRICITY_MAP_API_KEY}
       MODAL_TOKEN_ID: ${MODAL_TOKEN_ID}
-      MODAL_TOKEN_SECRET: ${MODAL_TOKEN_SECRET} 
+      MODAL_TOKEN_SECRET: ${MODAL_TOKEN_SECRET}
       # Modal Configuration
       LLM_PROVIDER: ${LLM_PROVIDER:-modal}
       MODAL_ENDPOINT_URL: ${MODAL_ENDPOINT_URL}
@@ -29,7 +27,8 @@ services:
       HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
       # Mock routing flag (optional). Enable by running:
       #   ROUTING_MOCK_ENABLED=true docker compose ... up -d
-      ROUTING_MOCK_ENABLED: ${ROUTING_MOCK_ENABLED}
+      # Force mock routing in dev to avoid DB dependency while we fix DB config
+      ROUTING_MOCK_ENABLED: "true"
       # Add your custom environment variables here
     
     # Add additional volumes for development
@@ -68,23 +67,7 @@ services:
     # ports:
     #   - "3001:3000"  # Map to different host port
 
-  # Database customizations
-  postgres:
-    # Override environment variables
-    environment:
-      # Add custom PostgreSQL configuration
-      POSTGRES_SHARED_PRELOAD_LIBRARIES: "pg_stat_statements"
-    
-    # Add additional volumes
-    volumes:
-      - postgres_data_dev:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
-      # Add custom SQL scripts
-      # - ./scripts/custom-init.sql:/docker-entrypoint-initdb.d/02-custom-init.sql:ro
-    
-    # Expose PostgreSQL port for external tools
-    ports:
-      - "5433:5432"  # Map to different host port to avoid conflicts
+
 
   # Redis customizations
   redis:
@@ -95,20 +78,7 @@ services:
     ports:
       - "6380:6379"  # Map to different host port to avoid conflicts
 
-  # Database admin tool - Adminer for PostgreSQL
-  adminer:
-    image: adminer:latest
-    container_name: carbon-aware-adminer-dev
-    ports:
-      - "8080:8080"
-    networks:
-      - carbon-aware-network
-    depends_on:
-      - postgres
-    environment:
-      ADMINER_DEFAULT_SERVER: postgres
-      ADMINER_DESIGN: pepa-linha-dark
-    restart: unless-stopped
+
 
   # Redis admin tool - Redis Commander
   redis-commander:
@@ -132,5 +102,4 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data_dev:
-  redis_data_dev: 
+  redis_data_dev:

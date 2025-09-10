@@ -105,6 +105,32 @@ migrate: ## Run database migrations (development - inside Docker)
 	@echo "🗄️ Running database migrations..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run migration:run
 
+# Supabase commands
+supabase-schema: ## Apply Supabase schema (run this in Supabase SQL editor)
+	@echo "📋 Supabase schema script location: scripts/supabase-schema.sql"
+	@echo "📝 Copy the contents of this file and run it in your Supabase SQL editor"
+	@echo "🔗 Supabase SQL Editor: https://ttyezboapfpyvlyxiqjw.supabase.co/project/ttyezboapfpyvlyxiqjw/sql"
+
+migrate-to-supabase: ## Migrate data from PostgreSQL to Supabase
+	@echo "🔄 Migrating data from PostgreSQL to Supabase..."
+	@cd carbon-aware-llm-proxy && ts-node scripts/migrate-data-to-supabase.ts
+
+migrate-to-supabase-dry: ## Preview data migration to Supabase (dry run)
+	@echo "🔍 Previewing data migration to Supabase (dry run)..."
+	@cd carbon-aware-llm-proxy && ts-node scripts/migrate-data-to-supabase.ts --dry-run
+
+migrate-to-supabase-table: ## Migrate specific table to Supabase (requires TABLE variable)
+	@if [ -z "$(TABLE)" ]; then \
+		echo "❌ Please specify TABLE variable: make migrate-to-supabase-table TABLE=users"; \
+		exit 1; \
+	fi
+	@echo "🔄 Migrating $(TABLE) table to Supabase..."
+	@cd carbon-aware-llm-proxy && ts-node scripts/migrate-data-to-supabase.ts --table=$(TABLE)
+
+test-supabase: ## Test Supabase connection and basic operations
+	@echo "🧪 Testing Supabase connection..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm test -- --testNamePattern="supabase"
+
 migrate-local: ## Run database migrations against LOCAL DB from host
 	@echo "🗄️ Running database migrations (local DB from host)..."
 	@DB_USER=${DB_USERNAME:-postgres} \
@@ -118,6 +144,11 @@ migrate-prod: ## Run database migrations (production - requires DATABASE_URL)
 	@if [ -z "$$DATABASE_URL" ]; then echo "❌ Please set DATABASE_URL for production migrations"; exit 1; fi
 	@echo "🗄️ Running database migrations (production)..."
 	@DATABASE_URL="$$DATABASE_URL" yarn workspace @carbon-aware-llm/backend migration:run
+
+migrate-prod-ci: ## Run database migrations for production using the CI script
+	@echo "🗄️ Running production database migrations via local proxy..."
+	@echo "❗️ Assumes 'fly proxy 5432 -a <pg-app-name>' is running in another terminal."
+	@cd .. && DATABASE_URL="postgres://<postgres>:<th2YABc7XXj3yEr>@localhost:5432/<carbon_aware_llm>" bash scripts/migrate-with-retry.sh
 
 migrate-generate: ## Generate new migration
 	@echo "📝 Generating new migration..."
@@ -186,6 +217,18 @@ sync-modal: ## Sync Modal deployments with database
 sync-modal-docker: ## Sync Modal deployments with database (inside Docker)
 	@echo "🔄 Syncing Modal deployments with database (Docker)..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run sync:modal
+
+# Cloud Deployment Commands
+deploy-fly: ## Deploy backend to Fly.io (requires FLY_APP_NAME and FLY_API_TOKEN)
+	@if [ -z "$FLY_APP_NAME" ]; then echo "❌ Please set FLY_APP_NAME to deploy"; exit 1; fi
+	@echo "🚀 Deploying backend to Fly.io app: $FLY_APP_NAME..."
+	@cd packages/backend && flyctl deploy --remote-only --app "$FLY_APP_NAME"
+	@echo "✅ Backend deployment to Fly.io completed."
+
+deploy-vercel: ## Deploy frontend to Vercel
+	@echo "🚀 Deploying frontend to Vercel..."
+	@cd packages/frontend && vercel --prod
+	@echo "✅ Frontend deployment to Vercel completed."
 
 # Backup and restore
 backup: ## Create database backup

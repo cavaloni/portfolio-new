@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { authService } from "../services/auth.service";
+import { databaseService } from "../services/database.service";
+import { User } from "../entities/User";
+import { UserPreferences } from "../entities/UserPreferences";
 import { logger } from "../utils/logger";
 
 export class AuthController {
@@ -128,6 +131,150 @@ export class AuthController {
       res.status(500).json({
         success: false,
         message: "Failed to fetch user data",
+      });
+    }
+  }
+
+  async updateProfile(req: Request, res: Response) {
+    try {
+      const user = (req as any).user;
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated",
+        });
+      }
+
+      const { name, avatar_url } = req.body;
+      const userRepository = databaseService.getDataSource().getRepository(User);
+
+      if (name !== undefined) user.name = name;
+      if (avatar_url !== undefined) user.avatarUrl = avatar_url;
+
+      const updatedUser = await userRepository.save(user);
+
+      const { passwordHash, ...sanitizedUser } = updatedUser;
+      res.json({
+        success: true,
+        data: sanitizedUser,
+      });
+    } catch (error) {
+      logger.error("Update profile error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update profile",
+      });
+    }
+  }
+
+  async getUserPreferences(req: Request, res: Response) {
+    try {
+      const user = (req as any).user;
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated",
+        });
+      }
+
+      const preferencesRepository = databaseService.getDataSource().getRepository(UserPreferences);
+      const preferences = await preferencesRepository.findOne({
+        where: { userId: user.id },
+      });
+
+      if (!preferences) {
+        return res.status(404).json({
+          success: false,
+          message: "User preferences not found",
+        });
+      }
+
+      res.json({
+        success: true,
+        data: preferences,
+      });
+    } catch (error) {
+      logger.error("Get user preferences error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch user preferences",
+      });
+    }
+  }
+
+  async updateUserPreferences(req: Request, res: Response) {
+    try {
+      const user = (req as any).user;
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated",
+        });
+      }
+
+      const updates = req.body;
+      const preferencesRepository = databaseService.getDataSource().getRepository(UserPreferences);
+
+      let preferences = await preferencesRepository.findOne({
+        where: { userId: user.id },
+      });
+
+      if (!preferences) {
+        preferences = new UserPreferences();
+        preferences.userId = user.id;
+        preferences.user = user;
+      }
+
+      // Update preferences with provided values
+      Object.keys(updates).forEach(key => {
+        if (updates[key] !== undefined) {
+          preferences[key] = updates[key];
+        }
+      });
+
+      const updatedPreferences = await preferencesRepository.save(preferences);
+
+      res.json({
+        success: true,
+        data: updatedPreferences,
+      });
+    } catch (error) {
+      logger.error("Update user preferences error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update user preferences",
+      });
+    }
+  }
+
+  async getUserCarbonStats(req: Request, res: Response) {
+    try {
+      const user = (req as any).user;
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated",
+        });
+      }
+
+      // For now, return mock data - in a real implementation, this would query actual usage data
+      const carbonStats = {
+        total_carbon_footprint_kg: 0,
+        carbon_saved_kg: 0,
+        carbon_intensity_avg: 0,
+        usage_by_model: [],
+        usage_by_time: [],
+      };
+
+      res.json({
+        success: true,
+        data: carbonStats,
+      });
+    } catch (error) {
+      logger.error("Get user carbon stats error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch carbon stats",
       });
     }
   }
