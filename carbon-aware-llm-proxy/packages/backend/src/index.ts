@@ -33,7 +33,7 @@ app.use((req, res, next) => {
 });
 
 // Structured HTTP logging (method, url, status, timing) with request ID
-app.use(httpLogger);
+app.use(httpLogger as any);
 
 // CORS configuration with explicit origin function + logging for clarity
 const rawCorsOrigins = process.env.CORS_ORIGINS || "";

@@ -220,9 +220,8 @@ sync-modal-docker: ## Sync Modal deployments with database (inside Docker)
 
 # Cloud Deployment Commands
 deploy-fly: ## Deploy backend to Fly.io (requires FLY_APP_NAME and FLY_API_TOKEN)
-	@if [ -z "$FLY_APP_NAME" ]; then echo "❌ Please set FLY_APP_NAME to deploy"; exit 1; fi
-	@echo "🚀 Deploying backend to Fly.io app: $FLY_APP_NAME..."
-	@cd packages/backend && flyctl deploy --remote-only --app "$FLY_APP_NAME"
+	@echo "🚀 Deploying backend to Fly.io app: routly-backend..."
+	@flyctl deploy --remote-only --dockerfile packages/backend/Dockerfile --config packages/backend/fly.toml --app "routly-backend"
 	@echo "✅ Backend deployment to Fly.io completed."
 
 deploy-vercel: ## Deploy frontend to Vercel

@@ -227,8 +227,8 @@ export class AuthController {
 
       // Update preferences with provided values
       Object.keys(updates).forEach(key => {
-        if (updates[key] !== undefined) {
-          preferences[key] = updates[key];
+        if (updates[key] !== undefined && preferences) {
+          (preferences as any)[key] = updates[key];
         }
       });
 

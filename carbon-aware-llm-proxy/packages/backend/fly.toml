@@ -1,18 +1,31 @@
-app = "airth-carbon-aware-backend"
+app = "routly-backend"
 primary_region = "iad"
 
 [build]
   # Build from monorepo root so Dockerfile can access root Yarn files
   context = "../.."
-  dockerfile = "packages/backend/Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
+  # Minimal, valid TOML env for Fly. Set secrets via `flyctl secrets set ...`.
   NODE_ENV = "production"
   PORT = "3001"
   # Increase Modal provider timeout to avoid 30s client aborts in production
   MODAL_TIMEOUT_MS = "120000"
-  # CORS configuration for production
+  # CORS configuration for production and local dev
   CORS_ORIGINS = "https://routly-main.vercel.app,http://localhost:3000,http://127.0.0.1:3000"
+  # Logging
+  LOG_LEVEL = "info"
+  # Frontend Configuration
+  NEXT_PUBLIC_API_URL = "https://routly-main.vercel.app"
+  # Feature Flags
+  ENABLE_RATE_LIMITING = "true"
+  ENABLE_CARBON_ANALYTICS = "true"
+  # Development Settings
+  NEXT_TELEMETRY_DISABLED = "1"
+  # Note: Set sensitive values like DATABASE_URL, JWT_SECRET, SUPABASE_URL, SUPABASE_ANON_KEY,
+  # REDIS_URL, OPENROUTER_API_KEY, MODAL_* tokens, etc. with Fly secrets, e.g.:
+  #   flyctl secrets set DATABASE_URL=... JWT_SECRET=... --app <app-name>
 
 [http_service]
   internal_port = 3001

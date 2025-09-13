@@ -18,8 +18,8 @@ COPY .yarnrc.yml package.json yarn.lock ./
 COPY packages/backend/package.json packages/backend/package.json
 COPY packages/backend/tsconfig.json packages/backend/tsconfig.json
 
-# Install all workspaces (immutable for reproducibility)
-RUN yarn install --immutable
+# Install all workspaces 
+RUN yarn install
 
 # Copy backend source and scripts
 COPY packages/backend/src packages/backend/src
@@ -47,8 +47,8 @@ COPY .yarnrc.yml package.json yarn.lock ./
 # Copy backend workspace manifest
 COPY packages/backend/package.json packages/backend/package.json
 
-# Reuse dependencies from builder to avoid re-install
-COPY --from=builder /app/node_modules ./node_modules
+# Install dependencies for production
+RUN yarn workspaces focus @carbon-aware-llm/backend
 
 # Copy built application from builder stage
 COPY --from=builder /app/packages/backend/dist ./packages/backend/dist

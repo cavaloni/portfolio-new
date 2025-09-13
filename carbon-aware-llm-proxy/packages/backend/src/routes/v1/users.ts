@@ -24,3 +24,4 @@ router.get("/me/carbon-stats", authController.getUserCarbonStats);
 
 export { router as usersRouter };
 
+
