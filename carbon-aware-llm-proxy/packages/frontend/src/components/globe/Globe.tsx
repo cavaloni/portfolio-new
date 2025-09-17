@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import { GlobeProps } from "./Globe.types";
 import { useTheme } from "next-themes";
+import { CarbonIntensityBadge } from "@/components/chat/carbon-intensity-badge";
 import {
 	getRegionCoordinates,
 	getMarkerColor,
@@ -24,6 +25,7 @@ export const GlobeComponent: React.FC<GlobeProps> = ({
   rotationSpeed = 0.01,
   preference,
   selectedModel,
+  currentDeployment,
 }) => {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -33,7 +35,7 @@ export const GlobeComponent: React.FC<GlobeProps> = ({
   // Theme-aware visual tokens for the globe
   const globeImageUrl = isDark
     ? "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg"
-    : "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg";
+    : "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg";
   const atmosphereColor = isDark ? "#4f46e5" : "#60a5fa";
   const atmosphereAltitude = isDark ? 0.15 : 0.12;
 	const [isGlobeLoaded, setIsGlobeLoaded] = useState(false);
@@ -54,12 +56,9 @@ export const GlobeComponent: React.FC<GlobeProps> = ({
 	// Prepare label data for the selected model at the target region
 	const labelData = useMemo(() => {
 		if (selectedModel?.id && targetRegion) {
-			console.log('Globe: Creating label for model:', selectedModel.id, 'in region:', targetRegion);
 			const labels = createModelLabel(selectedModel.id, targetRegion);
-			console.log('Globe: Created labels:', labels);
 			return labels;
 		}
-		console.log('Globe: No model to display. selectedModel:', selectedModel, 'targetRegion:', targetRegion);
 		return [];
 	}, [selectedModel, targetRegion]);
 
@@ -181,7 +180,6 @@ export const GlobeComponent: React.FC<GlobeProps> = ({
 
 	const displayName = getRegionDisplayName(activeRegion || null);
 	const showLoading = isLoading || !isGlobeLoaded;
-
 	return (
 		<div className={cn("relative", className)}>
 			{/* Globe Container */}
@@ -270,19 +268,32 @@ export const GlobeComponent: React.FC<GlobeProps> = ({
 			</div>
 
 			{/* Region Status */}
-			{activeRegion && (
+			{/* {activeRegion && (
 				<div className="mt-2 text-center">
 					<div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
 						<div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
 						<span>Active in {displayName}</span>
 					</div>
 				</div>
-			)}
+			)} */}
 
 			{/* Model Indicator */}
 			{selectedModel && labelData.length > 0 && !showLoading && (
-				<div className="mt-1 text-center">
-					<span className="text-xs text-muted-foreground">Active: {labelData[0]?.name}</span>
+				<div className="mt-1 text-center space-y-1">
+					<div className="flex items-center justify-center gap-1 flex-wrap">
+						<span className="text-xs text-muted-foreground">Model: {labelData[0]?.name}</span>
+					</div>
+					{currentDeployment?.region && (
+						<div className="flex items-center justify-center gap-1 flex-wrap text-xs text-muted-foreground">
+							<span>{currentDeployment.region}</span>
+							{currentDeployment?.co2_g_per_kwh && (
+								<>
+									<span>•</span>
+									<CarbonIntensityBadge intensity={currentDeployment.co2_g_per_kwh} />
+								</>
+							)}
+						</div>
+					)}
 				</div>
 			)}
 		</div>

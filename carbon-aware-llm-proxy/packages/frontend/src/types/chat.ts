@@ -15,6 +15,7 @@ export interface Message {
     emissions: number;
     energy: number;
     intensity: number;
+    powerW?: number;
   };
   isStreaming?: boolean;
   tokens?: number;

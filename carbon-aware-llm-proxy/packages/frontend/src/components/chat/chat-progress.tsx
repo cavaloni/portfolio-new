@@ -120,13 +120,25 @@ export function ChatProgressIndicator({ progress }: ChatProgressIndicatorProps) 
                 {progress.deployment.region}
               </Badge>
             )}
-            {progress.deployment.co2_g_per_kwh > 0 && (
+            {progress.carbonFootprint !== undefined ? (
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 text-[9px] py-0 px-1.5 h-4 border-emerald-500/30 opacity-80"
+                title="Actual carbon emissions for this request"
+              >
+                <Leaf className="h-2 w-2" />
+                {progress.carbonFootprint < 1
+                  ? `${(progress.carbonFootprint * 1000).toFixed(1)}mg`
+                  : `${progress.carbonFootprint.toFixed(2)}g`
+                } CO₂e
+              </Badge>
+            ) : progress.deployment.co2_g_per_kwh > 0 && (
               <Badge
                 variant="outline"
                 className="text-[9px] py-0 px-1.5 h-4 border-muted-foreground/30 opacity-80"
-                title="Carbon intensity"
+                title="Carbon intensity for this region"
               >
-                {progress.deployment.co2_g_per_kwh}g CO₂/kWh
+                {Math.round(progress.deployment.co2_g_per_kwh)}g/kWh
               </Badge>
             )}
           </div>

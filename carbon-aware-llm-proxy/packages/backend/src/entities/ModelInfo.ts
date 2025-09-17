@@ -47,6 +47,9 @@ export class ModelInfo {
   @Column("float")
   flopsPerToken: number = 0;
 
+  @Column("decimal", { precision: 10, scale: 6, nullable: true })
+  energyPerToken: number | null = null; // Energy per token in Wh
+
   @Column("decimal", { precision: 10, scale: 2, nullable: true })
   tokensPerSecond: number | null = null;
 
@@ -110,6 +113,14 @@ export class ModelInfo {
   // Add costPer1kTokens getter with default value
   getCostPer1kTokens(): number {
     return this.costPer1kTokens || 0.01; // Default to $0.01/1k tokens if not specified
+  }
+
+  // Add energyPerToken getter with estimated default value
+  getEnergyPerToken(): number {
+    if (this.energyPerToken) return this.energyPerToken;
+    // Estimate energy from carbon intensity if not available
+    // Assume average grid intensity ~300 gCO2e/kWh
+    return this.carbonIntensity.avg / 300000; // Convert to Wh per token
   }
 
   // Helper methods

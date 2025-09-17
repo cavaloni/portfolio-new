@@ -230,11 +230,19 @@ export class ChatController {
       let carbonFootprint;
       if (role === "assistant" && modelId && tokens) {
         try {
+          // Get region from request headers or body, fallback to null for global average
+          const region = req.headers['x-routly-region'] as string || req.body.region || null;
           carbonFootprint = await chatService.calculateCarbonFootprint(
             modelId,
             tokens,
-            conversation.carbonAware ? "auto" : undefined,
+            conversation.carbonAware && region ? region : null,
           );
+          logger.info('Calculated carbon footprint:', {
+            modelId,
+            tokens,
+            region,
+            carbonFootprint
+          });
         } catch (error) {
           logger.warn("Failed to calculate carbon footprint:", error);
         }

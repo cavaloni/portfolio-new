@@ -491,12 +491,13 @@ class CarbonService {
       usedRegion = "global";
     }
 
-    // Calculate energy usage (kWh per token)
-    const energyPerToken = model.carbonIntensity.avg / 1_000_000; // Convert gCO2eq to kgCO2eq per token
-    const energy = energyPerToken * tokens;
+    // Calculate energy usage per token (using model's energy data)
+    // Use model's energy per token if available, otherwise estimate from carbon intensity
+    const energyPerToken = model.getEnergyPerToken(); // Wh per token
+    const energy = (energyPerToken * tokens) / 1000; // Convert Wh to kWh
 
-    // Calculate emissions (gCO2eq)
-    const emissions = carbonIntensity * energy;
+    // Calculate emissions: energy (kWh) * carbon intensity (gCO2eq/kWh)
+    const emissions = energy * carbonIntensity;
 
     const result = {
       emissions,

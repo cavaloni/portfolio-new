@@ -10,12 +10,47 @@ export function useChatHistory() {
   return useQuery({
     queryKey: queryKeys.chat.history,
     queryFn: async () => {
-      // In a real app, this would fetch the chat history from the server
-      return [];
+      // Load chat history from localStorage
+      try {
+        const stored = localStorage.getItem('chat-history');
+        return stored ? JSON.parse(stored) : [];
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+        return [];
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
+
+export function useSaveToHistory() {
+  const queryClient = useQueryClient();
+
+  return useCallback((conversation: any) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem('chat-history') || '[]');
+      const existingIndex = existing.findIndex((c: any) => c.id === conversation.id);
+
+      if (existingIndex >= 0) {
+        existing[existingIndex] = conversation;
+      } else {
+        existing.unshift(conversation);
+      }
+
+      // Keep only last 50 conversations
+      const limited = existing.slice(0, 50);
+      localStorage.setItem('chat-history', JSON.stringify(limited));
+
+      // Invalidate query to refresh UI
+      queryClient.invalidateQueries({ queryKey: queryKeys.chat.history });
+    } catch (error) {
+      console.error('Failed to save conversation to history:', error);
+    }
+  }, [queryClient]);
+}
+
+import { modelService } from "../services/model-service";
+import { estimateCarbonGPU } from "../utils/carbon-estimator";
 
 export function useSendMessage() {
   return useMutation({
@@ -45,13 +80,47 @@ export function useSendMessage() {
         completionResponse.choices.length > 0
       ) {
         const message = completionResponse.choices[0].message;
+
+        // Gather token usage (fallback to rough estimates if missing)
+        const promptTokens = completionResponse.usage?.prompt_tokens;
+        const completionTokens = completionResponse.usage?.completion_tokens;
+
+        // If usage is unavailable, fall back to simple approximations
+        const approxTokensIn =
+          promptTokens ?? Math.ceil((messages.map(m => m.content).join(" ").length || 0) / 4);
+        const approxTokensOut =
+          completionTokens ?? Math.ceil((message.content?.length || 0) / 4);
+
+        // Get current grid carbon intensity (g/kWh) for EF; fallback to 67 g/kWh
+        const ci = await modelService.getCurrentCarbonIntensity();
+        const ef_g_per_kwh = ci?.carbon_intensity_gco2e_per_kwh ?? 67;
+
+        const est = estimateCarbonGPU({
+          tokensIn: approxTokensIn,
+          tokensOut: approxTokensOut,
+          ef: { value: ef_g_per_kwh, units: "g_per_kwh" },
+          // Use coefficients path by default (can be tuned later per SKU)
+          coeffs: { eInWhPerTok: 0.0003, eOutWhPerTok: 0.0004 },
+          multipliers: { sku: 1.0, quant: 1.0, batching: 1.0 },
+          idleWhPerPrompt: 0.02,
+          PUE: 1.2,
+          // Provide defaults to allow avg power estimation if no runtime
+          defaultsForPower: { tpsPrefill: 18000, tpsDecode: 450 },
+        });
+
+        const carbonFootprint = {
+          emissions: est.carbon_g, // grams
+          energy: est.energy_total_Wh / 1000, // kWh
+          intensity: ef_g_per_kwh, // g/kWh
+          powerW: est.avg_power_W,
+        } as const;
+
         return {
           ...message,
-          carbonFootprint:
-            completionResponse.carbon_footprint?.emissions_gco2e,
-          energyUsage:
-            completionResponse.carbon_footprint?.energy_consumed_kwh,
+          carbonFootprint,
           tokenCount: completionResponse.usage?.total_tokens,
+          // Keep these for any consumers expecting them
+          energyUsage: carbonFootprint.energy,
         };
       }
 

@@ -75,6 +75,14 @@ export interface GlobeProps {
     id: string;
     region: string | null;
   } | null;
+
+  /**
+   * Current deployment information for displaying carbon intensity and region
+   */
+  currentDeployment?: {
+    co2_g_per_kwh?: number;
+    region?: string;
+  };
 }
 
 export interface GlobeState {

@@ -4,7 +4,6 @@ import { BackgroundFog } from "@/components/background-fog";
 import { ChatHistorySidebar } from "@/components/chat/chat-history-sidebar";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessage } from "@/components/chat/chat-message";
-import { ChatProgressIndicator } from "@/components/chat/chat-progress";
 import { ChatScrollAnchor } from "@/components/chat/chat-scroll-anchor";
 import { JoystickGuideModal } from "@/components/chat/JoystickGuideModal";
 import { PromptSuggestions } from "@/components/chat/prompt-suggestions";
@@ -278,16 +277,16 @@ export default function ChatPageClient() {
                 });
               }
 
-              // Removed: Don't set progress message as chat content
-              // if (progress.status === "ready" && progress.message) {
-              //   setMessages((prev) =>
-              //     prev.map((msg) =>
-              //       msg.id === assistantMessageId
-              //         ? { ...msg, content: progress.message || "" }
-              //         : msg
-              //     )
-              //   );
-              // }
+              // Update message content incrementally during streaming
+              if (progress.status === "ready" && progress.message) {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === assistantMessageId
+                      ? { ...msg, content: progress.message || "" }
+                      : msg
+                  )
+                );
+              }
             },
           }
         );
@@ -581,6 +580,14 @@ export default function ChatPageClient() {
                             }
                           : null
                       }
+                      currentDeployment={
+                        currentDeployment
+                          ? {
+                              co2_g_per_kwh: currentDeployment.co2_g_per_kwh,
+                              region: currentDeployment.region ?? undefined,
+                            }
+                          : undefined
+                      }
                       size={180}
                       isLoading={routingStatus.isRouting}
                       className="glass-glow"
@@ -661,7 +668,7 @@ export default function ChatPageClient() {
 
               {/* Progress indicators (subtle and connected to message) */}
               <div className="px-0 pt-0 pb-4 space-y-2">
-                <ChatProgressIndicator progress={chatProgress} />
+                {/* Bubble section removed */}
 
                 {timeoutState.showTimeoutOptions && (
                   <TimeoutHandler

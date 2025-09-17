@@ -10,6 +10,7 @@ import { databaseService } from "../../services/database.service";
 import { carbonService } from "../../services/carbon.service";
 import { ModelDeployment } from "../../entities/ModelDeployment";
 import { calculateTimeoutMs, TimeoutStrategy } from "../../services/deployment-routing.service";
+import { estimateCarbonGPU } from "../../utils/carbon-estimator";
 
 // Define Zod schemas for request validation
 const chatCompletionSchema = z
@@ -340,6 +341,13 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
 
         const decoder = new TextDecoder();
         let buffer = '';
+        let totalPromptTokens = 0;
+        let totalCompletionTokens = 0;
+        let fullContent = '';
+
+        // Estimate prompt tokens (rough approximation)
+        const promptText = messages.map(m => m.content).join(' ');
+        totalPromptTokens = Math.ceil(promptText.length / 4); // ~4 chars per token
 
         try {
           while (true) {
@@ -360,6 +368,34 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
               if (line.startsWith('data: ')) {
                 const data = line.slice(6);
                 if (data === '[DONE]') {
+                  // Calculate final carbon footprint
+                  totalCompletionTokens = Math.ceil(fullContent.length / 4);
+
+                  const carbonFootprint = estimateCarbonGPU({
+                    tokensIn: totalPromptTokens,
+                    tokensOut: totalCompletionTokens,
+                    ef: { value: carbonIntensity, units: 'g_per_kwh' },
+                    coeffs: { eInWhPerTok: 0.0003, eOutWhPerTok: 0.0004 },
+                    multipliers: { sku: 1.0, quant: 1.0, batching: 1.0 },
+                    idleWhPerPrompt: 0.02,
+                    PUE: 1.2,
+                    defaultsForPower: { tpsPrefill: 18000, tpsDecode: 450 },
+                  });
+
+                  // Send carbon footprint metadata
+                  const carbonMetadata = {
+                    type: "carbon_footprint",
+                    emissions_gco2e: carbonFootprint.carbon_g,
+                    energy_consumed_kwh: carbonFootprint.energy_total_Wh / 1000,
+                    prompt_tokens: totalPromptTokens,
+                    completion_tokens: totalCompletionTokens,
+                    total_tokens: totalPromptTokens + totalCompletionTokens,
+                    model: selectedModelForDisplay,
+                    region: mockRegion,
+                    carbon_intensity: carbonIntensity,
+                  };
+                  res.write(`data: ${JSON.stringify(carbonMetadata)}\n\n`);
+
                   res.write('data: [DONE]\n\n');
                   res.end();
                   return;
@@ -369,6 +405,7 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
                   const parsed = JSON.parse(data);
                   const content = parsed.choices?.[0]?.delta?.content;
                   if (content) {
+                    fullContent += content; // Track full content for token counting
                     // Forward the chunk to the client
                     res.write(`data: ${data}\n\n`);
                   } else {

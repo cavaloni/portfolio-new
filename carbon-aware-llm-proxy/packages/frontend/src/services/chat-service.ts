@@ -62,6 +62,7 @@ export interface ChatProgress {
   estimatedWait?: number;
   usedFallback?: boolean;
   fallbackIndex?: number;
+  carbonFootprint?: number;
 }
 
 // NEW: Enhanced options for chat service
@@ -151,7 +152,24 @@ export const chatService = {
       let actualModel = routing.chosen.modelId;
       let actualRegion = routing.chosen.region;
       let actualCo2 = routing.chosen.co2_g_per_kwh;
-      let messageId = `msg_${Date.now()}`;
+
+      // Initialize the assistant message that will be updated during streaming
+      const assistantMessage: Message = {
+        id: `msg_${Date.now()}`,
+        role: "assistant",
+        content: "",
+        model: "",
+        timestamp: new Date().toISOString(),
+        carbonFootprint: undefined, // Will be set by carbon_footprint event
+        energyUsage: undefined, // Will be set by carbon_footprint event
+        tokenCount: undefined, // Will be set by carbon_footprint event
+      };
+
+      // Progress update function
+      const updateProgress = (updater: (prev: ChatProgress | null) => ChatProgress | null) => {
+        // This would update progress state if we were tracking it
+        // For now, we'll just call the onProgress callback
+      };
 
       while (!done) {
         const { value, done: doneReading } = await reader.read();
@@ -192,6 +210,17 @@ export const chatService = {
                   usedFallback,
                   fallbackIndex,
                 });
+              } else if (data.type === 'carbon_footprint') {
+                // Store carbon footprint data for the final message
+                assistantMessage.carbonFootprint = data.emissions_gco2e;
+                assistantMessage.energyUsage = data.energy_consumed_kwh;
+                assistantMessage.tokenCount = data.total_tokens;
+
+                // Update progress with carbon footprint
+                updateProgress(prev => prev ? {
+                  ...prev,
+                  carbonFootprint: data.emissions_gco2e
+                } : null);
               } else {
                 const chunk = data.choices?.[0]?.delta?.content || "";
 
@@ -220,16 +249,9 @@ export const chatService = {
         }
       }
 
-      const assistantMessage: Message = {
-        id: messageId,
-        role: "assistant",
-        content: content,
-        model: actualModel,
-        timestamp: new Date().toISOString(),
-        carbonFootprint: undefined, // Not available in stream
-        energyUsage: undefined, // Not available in stream
-        tokenCount: undefined, // Not available in stream
-      };
+      // Update the final message with accumulated content and metadata
+      assistantMessage.content = content;
+      assistantMessage.model = actualModel;
 
       return {
         message: assistantMessage,

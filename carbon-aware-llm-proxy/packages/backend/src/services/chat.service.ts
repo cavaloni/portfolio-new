@@ -297,12 +297,14 @@ class ChatService {
       ? await carbonService.getCarbonIntensity(region)
       : model.carbonIntensity.avg;
 
-    // Calculate energy usage (kWh per token)
-    const energyPerToken = model.carbonIntensity.avg / 1_000_000; // Convert gCO2e to kgCO2e per token
-    const energy = energyPerToken * tokens;
+    // Calculate energy usage per token (using model's energy consumption data)
+    // Model carbonIntensity.avg represents baseline energy per token in Wh
+    // Convert to kWh: divide by 1000
+    const energyPerToken = model.getEnergyPerToken(); // Use model's energy method
+    const energy = (energyPerToken * tokens) / 1000; // Convert Wh to kWh
 
-    // Calculate emissions (gCO2e)
-    const emissions = carbonIntensity * tokens;
+    // Calculate emissions: energy (kWh) * carbon intensity (gCO2e/kWh)
+    const emissions = energy * carbonIntensity;
 
     return {
       emissions,

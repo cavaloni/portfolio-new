@@ -4,6 +4,7 @@ import {
   useCreateConversation,
   useSendMessage,
   useStreamMessage,
+  useSaveToHistory,
 } from "@/hooks/use-chat";
 import { useCarbonAwareModels } from "@/hooks/use-models";
 import { Message } from "@/services/chat-service";
@@ -83,6 +84,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const { mutateAsync: sendMessage, isPending: isSending } = useSendMessage();
   const streamMessage = useStreamMessage();
   const { mutateAsync: createConversation } = useCreateConversation();
+  const saveToHistory = useSaveToHistory();
 
   // Handle form submission
   const handleSubmit = useCallback(
@@ -176,6 +178,25 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             }
 
             return updated;
+          });
+
+          // Save conversation to localStorage
+          const finalMessages = [...messages, userMessage, {
+            ...assistantMessage,
+            content: response.content || "",
+            carbonFootprint: response.carbonFootprint,
+            energyUsage: response.energyUsage,
+            tokenCount: response.tokenCount,
+            isStreaming: false,
+          }];
+
+          saveToHistory({
+            id: currentConversationId || `conv_${Date.now()}`,
+            title: input.substring(0, 30) + (input.length > 30 ? '...' : ''),
+            messages: finalMessages,
+            model: selectedModel.id,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           });
         }
       } catch (err) {

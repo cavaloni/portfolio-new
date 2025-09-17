@@ -342,8 +342,11 @@ class RoutingService {
           ? carbonIntensity
           : footprint.carbonIntensityAvg;
 
-      // Calculate carbon emissions (simplified calculation)
-      const carbonGrams = intensity * tokenCount * 1e-6; // Convert to grams
+      // Calculate carbon emissions using proper formula
+      // Estimate energy usage per token (Wh) and convert to kWh, then multiply by intensity
+      const energyPerTokenWh = 'energy' in footprint ? (footprint.energy * 1000) / tokenCount : (intensity / 300); // Wh per token
+      const energyKwh = (energyPerTokenWh * tokenCount) / 1000; // Convert to kWh
+      const carbonGrams = energyKwh * intensity; // gCO2e = kWh * gCO2e/kWh
 
       // Calculate cost
       const costDollars = (tokenCount / 1000) * model.getCostPer1kTokens();

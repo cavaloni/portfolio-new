@@ -4,15 +4,130 @@ import { Icons } from "@/components/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Message, MessageRole } from "@/types/chat";
+import { MessageAnalyticsFooter } from "./message-analytics-footer";
+import type { Message as ChatMessage } from "@/types/chat";
+import { MessageRole } from "@/types/chat";
+import type { Message as ServiceMessage } from "@/services/chat-service";
 import { formatDistanceToNow } from "date-fns";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 
+// Component for streaming text with fade-in animation for new content only
+const StreamingText = ({ content, isStreaming }: { content: string; isStreaming: boolean }) => {
+  const [previousContent, setPreviousContent] = useState('');
+  const [displayContent, setDisplayContent] = useState('');
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    if (isStreaming && content && content !== previousContent) {
+      // Find the new characters that were added
+      const newChars = content.slice(previousContent.length);
+      
+      if (newChars) {
+        // Start animation
+        setIsAnimating(true);
+        setDisplayContent(content);
+        setPreviousContent(content);
+        
+        // Clear animation after it completes
+        const timer = setTimeout(() => {
+          setIsAnimating(false);
+        }, 500);
+
+        return () => clearTimeout(timer);
+      } else {
+        setDisplayContent(content);
+        setPreviousContent(content);
+      }
+    } else if (!isStreaming) {
+      setDisplayContent(content);
+      setPreviousContent(content);
+      setIsAnimating(false);
+    }
+  }, [content, previousContent, isStreaming]);
+
+  return (
+    <div className={`streaming-text-container ${isAnimating ? 'streaming-text-active' : ''}`}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight]}
+        components={{
+          a: ({ node, ...props }) => (
+            <a
+              {...props}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:underline"
+            />
+          ),
+          code: ({ node, className, children, ...props }) => {
+            const isInline = !className?.includes('language-');
+            if (isInline) {
+              return (
+                <code className="bg-gray-800 rounded px-1.5 py-0.5 text-sm">
+                  {children}
+                </code>
+              );
+            }
+            return (
+              <div className="bg-gray-800 rounded-md p-4 my-2 overflow-x-auto">
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              </div>
+            );
+          },
+          ul: ({ node, ...props }) => (
+            <ul className="list-disc pl-6 my-2" {...props} />
+          ),
+          ol: ({ node, ...props }) => (
+            <ol className="list-decimal pl-6 my-2" {...props} />
+          ),
+          blockquote: ({ node, ...props }) => (
+            <blockquote
+              className="border-l-4 border-gray-600 pl-4 my-2 text-gray-300 italic"
+              {...props}
+            />
+          ),
+          h1: ({ node, ...props }) => (
+            <h1 className="text-2xl font-bold my-3" {...props} />
+          ),
+          h2: ({ node, ...props }) => (
+            <h2 className="text-xl font-bold my-3" {...props} />
+          ),
+          h3: ({ node, ...props }) => (
+            <h3 className="text-lg font-semibold my-2" {...props} />
+          ),
+          p: ({ node, ...props }) => <p className="my-2" {...props} />,
+          table: ({ node, ...props }) => (
+            <div className="overflow-x-auto">
+              <table
+                className="min-w-full border border-gray-700"
+                {...props}
+              />
+            </div>
+          ),
+          th: ({ node, ...props }) => (
+            <th
+              className="border border-gray-600 px-4 py-2 text-left bg-gray-800"
+              {...props}
+            />
+          ),
+          td: ({ node, ...props }) => (
+            <td className="border border-gray-600 px-4 py-2" {...props} />
+          ),
+        }}
+      >
+        {displayContent}
+      </ReactMarkdown>
+    </div>
+  );
+};
+
 export interface ChatMessageProps {
-  message: Message;
+  message: ChatMessage | ServiceMessage;
   isCurrentUser: boolean;
   onRegenerate?: () => void;
   onEdit?: (content: string) => void;
@@ -28,7 +143,6 @@ export function ChatMessage({
   onDelete,
   className,
 }: ChatMessageProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -114,126 +228,25 @@ export function ChatMessage({
             <div className="h-2 w-2 rounded-full bg-muted-foreground/50 animate-pulse delay-200" />
           </div>
         ) : message.content ? (
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeHighlight]}
-            components={{
-              a: ({ node, ...props }) => (
-                <a
-                  {...props}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline"
-                />
-              ),
-              code: ({ node, className, children, ...props }) => {
-                const isInline = !className?.includes('language-');
-                if (isInline) {
-                  return (
-                    <code className="bg-gray-800 rounded px-1.5 py-0.5 text-sm">
-                      {children}
-                    </code>
-                  );
-                }
-                return (
-                  <div className="bg-gray-800 rounded-md p-4 my-2 overflow-x-auto">
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  </div>
-                );
-              },
-              ul: ({ node, ...props }) => (
-                <ul className="list-disc pl-6 my-2" {...props} />
-              ),
-              ol: ({ node, ...props }) => (
-                <ol className="list-decimal pl-6 my-2" {...props} />
-              ),
-              blockquote: ({ node, ...props }) => (
-                <blockquote
-                  className="border-l-4 border-gray-600 pl-4 my-2 text-gray-300 italic"
-                  {...props}
-                />
-              ),
-              h1: ({ node, ...props }) => (
-                <h1 className="text-2xl font-bold my-3" {...props} />
-              ),
-              h2: ({ node, ...props }) => (
-                <h2 className="text-xl font-bold my-3" {...props} />
-              ),
-              h3: ({ node, ...props }) => (
-                <h3 className="text-lg font-semibold my-2" {...props} />
-              ),
-              p: ({ node, ...props }) => <p className="my-2" {...props} />,
-              table: ({ node, ...props }) => (
-                <div className="overflow-x-auto">
-                  <table
-                    className="min-w-full border border-gray-700"
-                    {...props}
-                  />
-                </div>
-              ),
-              th: ({ node, ...props }) => (
-                <th
-                  className="border border-gray-600 px-4 py-2 text-left bg-gray-800"
-                  {...props}
-                />
-              ),
-              td: ({ node, ...props }) => (
-                <td className="border border-gray-600 px-4 py-2" {...props} />
-              ),
-            }}
-          >
-            {message.content}
-          </ReactMarkdown>
+          <StreamingText
+            content={message.content}
+            isStreaming={message.isStreaming || false}
+          />
         ) : null}
       </div>
     );
   };
 
-  const getCarbonInfo = () => {
-    if (!message.carbonFootprint) return null;
-
-    const { emissions, energy, intensity } = message.carbonFootprint;
-    const emissionsText =
-      emissions < 1
-        ? `${(emissions * 1000).toFixed(2)} mg CO₂e`
-        : `${emissions.toFixed(2)} g CO₂e`;
-
-    return (
-      <div className="mt-2 text-xs text-muted-foreground flex items-center space-x-2">
-        <span title="Carbon emissions">
-          <Icons.droplet className="inline h-3 w-3 mr-1 text-emerald-500" />
-          {emissionsText}
-        </span>
-        <span className="text-muted-foreground/50">•</span>
-        <span title="Energy consumption">
-          <Icons.zap className="inline h-3 w-3 mr-1 text-amber-500" />
-          {energy.toFixed(6)} kWh
-        </span>
-        {intensity && (
-          <>
-            <span className="text-muted-foreground/50">•</span>
-            <span title="Carbon intensity">
-              <Icons.activity className="inline h-3 w-3 mr-1 text-rose-500" />
-              {intensity.toFixed(0)} g/kWh
-            </span>
-          </>
-        )}
-      </div>
-    );
-  };
-
   const getMessageActions = () => {
-    if (!isHovered || isEditing) return null;
+    if (isEditing) return null;
 
     return (
-      <div className="absolute -top-2 right-3 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity glass-strong rounded-2xl p-2 shadow-lg">
+      <div className="absolute -top-2 right-3 flex space-x-1 glass-strong rounded-2xl p-2 shadow-lg">
         {!isCurrentUser && onRegenerate && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 glass-hover rounded-xl"
+            className="h-7 w-7 rounded-xl"
             onClick={onRegenerate}
             title="Regenerate response"
           >
@@ -244,7 +257,7 @@ export function ChatMessage({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 glass-hover rounded-xl"
+            className="h-7 w-7 rounded-xl"
             onClick={handleEdit}
             title="Edit message"
           >
@@ -255,7 +268,7 @@ export function ChatMessage({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 glass-hover rounded-xl text-destructive hover:text-destructive"
+            className="h-7 w-7 rounded-xl text-destructive hover:text-destructive"
             onClick={onDelete}
             title="Delete message"
           >
@@ -266,17 +279,22 @@ export function ChatMessage({
     );
   };
 
+  // Only show analytics footer for assistant messages
+  const shouldShowAnalytics = !isCurrentUser && (
+    ('carbonFootprint' in message && message.carbonFootprint) ||
+    ('model' in message && message.model) ||
+    ('tokens' in message && message.tokens)
+  );
+
   return (
     <div
       className={cn(
         "group relative flex items-start gap-3 py-4 px-4 mx-3 my-3 max-w-full overflow-x-hidden",
         isCurrentUser
-          ? "glass glass-hover glass-glow sm:ml-8"
-          : "glass-panel glass-hover sm:mr-8",
+          ? "glass glass-glow sm:ml-8"
+          : "glass-panel sm:mr-8",
         className
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex-shrink-0">{getAvatar()}</div>
       <div className="flex-1 min-w-0">
@@ -289,15 +307,14 @@ export function ChatMessage({
                 : "System"}
           </span>
           <span className="text-xs text-muted-foreground">
-            {formatDistanceToNow(new Date(message.timestamp), {
+            {message.timestamp ? formatDistanceToNow(new Date(message.timestamp), {
               addSuffix: true,
-            })}
-            {/* {message.model && ` • ${message.model}`} */}
+            }) : 'Just now'}
           </span>
         </div>
         <div className="mt-1">
           {getMessageContent()}
-          {getCarbonInfo()}
+          {shouldShowAnalytics && <MessageAnalyticsFooter message={message} />}
         </div>
       </div>
       {getMessageActions()}
