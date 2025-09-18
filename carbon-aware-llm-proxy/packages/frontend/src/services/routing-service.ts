@@ -1,4 +1,4 @@
-import { apiPost, withAuth } from "@/lib/api-client";
+import { apiPost } from "@/lib/api-client";
 
 export interface JoystickPosition {
   x: number;
@@ -63,7 +63,6 @@ export const routingService = {
   async getRouting(request: RouteRequest): Promise<RouteResponse | RouteError> {
     try {
       const response = await apiPost<RouteResponse>("/v1/route", request, {
-        headers: withAuth(),
         // Fail fast if routing takes too long (e.g., bad API base URL or server unreachable)
         signal: AbortSignal.timeout(15000),
       });

@@ -10,6 +10,7 @@ services:
       # Supabase Configuration
       SUPABASE_URL: ${SUPABASE_URL:-https://ttyezboapfpyvlyxiqjw.supabase.co}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0eWV6Ym9hcGZweXZseXhpcWp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0NTQ3NzIsImV4cCI6MjA3MzAzMDc3Mn0.BX8WjVExYR0W5NhMGLumIaoYh4dvD2bl_ItZVQIWTfE}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR0eWV6Ym9hcGZweXZseXhpcWp3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NzQ1NDc3MiwiZXhwIjoyMDczMDMwNzcyfQ.example}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
@@ -28,7 +29,13 @@ services:
       # Mock routing flag (optional). Enable by running:
       #   ROUTING_MOCK_ENABLED=true docker compose ... up -d
       # Force mock routing in dev to avoid DB dependency while we fix DB config
-      ROUTING_MOCK_ENABLED: "true"
+      ROUTING_MOCK_ENABLED: "false"
+      # Mock authentication flag (separate from routing)
+      MOCK_AUTH: ${MOCK_AUTH:-false}
+      # Skip TypeORM database initialization during development
+      SKIP_DB: "true"
+      # Use Supabase only for development
+      DATABASE_MODE: "supabase"
       # Add your custom environment variables here
     
     # Add additional volumes for development

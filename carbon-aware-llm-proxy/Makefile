@@ -50,6 +50,31 @@ dev-rebuild: ## Rebuild development images without cache
 	@echo "🔨 Rebuilding development images..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml build --no-cache
 
+# Backend dependency maintenance
+backend-refresh-deps: ## Refresh deps after adding packages (reset backend node_modules volume, rebuild backend+frontend images, start both)
+	@echo "🧰 Refreshing dependencies (backend node_modules volume reset + rebuild backend & frontend)..."
+	@echo "⏹️  Stopping services..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml stop backend frontend || true
+	@echo "🗑️  Removing containers (if exist)..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml rm -f backend frontend || true
+	@echo "🧹 Removing persistent backend node_modules volume..."
+	@docker volume rm carbon-aware-backend-node-modules || true
+	@echo "🔨 Rebuilding images without cache (backend & frontend)..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml build --no-cache backend frontend
+	@echo "🚀 Starting services (backend & frontend)..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d backend frontend
+	@echo "✅ Dependencies refreshed (backend & frontend)"
+
+backend-refresh-deps-mock: ## Same as backend-refresh-deps but starts both services with routing mock enabled for backend
+	@echo "🧰 Refreshing dependencies (mock mode)..."
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml stop backend frontend || true
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml rm -f backend frontend || true
+	@docker volume rm carbon-aware-backend-node-modules || true
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml build --no-cache backend frontend
+	@echo "🎭 Starting services (backend mock enabled + frontend)..."
+	@ROUTING_MOCK_ENABLED=true docker compose -f docker-compose.yml -f docker-compose.override.yml up -d backend frontend
+	@echo "✅ Dependencies refreshed (mock mode)"
+
 # Production commands
 prod: ## Deploy to production
 	@echo "🚀 Deploying to production..."

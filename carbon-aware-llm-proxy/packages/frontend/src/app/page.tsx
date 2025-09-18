@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const AUTH_COOKIE = "demo_auth";
+const AUTH_COOKIE = "auth_token";
 
 export default function Home() {
   // Check authentication on server side
@@ -12,11 +12,11 @@ export default function Home() {
 
   console.log("🏠 Home page auth check:", {
     hasCookie: !!authCookie,
-    cookieValue: authCookie?.value
+    cookieValue: authCookie?.value ? 'JWT token present' : undefined
   });
 
   // If no valid auth cookie, redirect to login
-  if (!authCookie || authCookie.value !== "ok") {
+  if (!authCookie || !authCookie.value) {
     console.log("🏠 No valid auth, redirecting to login");
     redirect("/login?next=/");
   }

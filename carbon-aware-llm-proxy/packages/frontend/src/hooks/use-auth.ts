@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { userService } from "@/services/user-service";
 import { queryKeys } from "@/lib/query-client";
 import { useRouter } from "next/navigation";
+import { apiPost } from "@/lib/api-client";
 
 export function useUser() {
   const queryClient = useQueryClient();
@@ -34,17 +35,19 @@ export function useLogin() {
       email: string;
       password: string;
     }) => {
-      // For demo purposes, we'll simulate a successful login
-      // In a real app, this would call your authentication API
-      return { success: true };
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        // Invalidate the user query to refetch the user data
-        queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
-        // Redirect to the dashboard
-        router.push("/dashboard");
+      const res = await apiPost<{ success: boolean; data?: { user: any } }>(
+        "/v1/auth/login",
+        { email, password }
+      );
+      if (res.error || !res.data?.success) {
+        throw new Error(res.error?.message || "Login failed");
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      // Cookie set by backend; just refetch user and route
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+      router.push("/dashboard");
     },
   });
 }
@@ -55,13 +58,11 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/logout", {
-        method: "POST",
-      });
-      if (!response.ok) {
-        throw new Error("Logout failed");
+      const res = await apiPost<{ success: boolean }>("/v1/auth/logout", {});
+      if (res.error || !res.data?.success) {
+        throw new Error(res.error?.message || "Logout failed");
       }
-      return response.json();
+      return res.data;
     },
     onSuccess: () => {
       // Clear the user data from the cache
@@ -88,17 +89,19 @@ export function useSignup() {
       password: string;
       name: string;
     }) => {
-      // In a real app, this would call your signup API
-      // For now, we'll simulate a successful signup
-      return { success: true };
-    },
-    onSuccess: (data) => {
-      if (data.success) {
-        // Invalidate the user query to refetch the user data
-        queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
-        // Redirect to the dashboard
-        router.push("/dashboard");
+      const res = await apiPost<{ success: boolean; data?: { user: any } }>(
+        "/v1/auth/register",
+        { email, password, name }
+      );
+      if (res.error || !res.data?.success) {
+        throw new Error(res.error?.message || "Signup failed");
       }
+      return res.data;
+    },
+    onSuccess: () => {
+      // Cookie set by backend
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.me });
+      router.push("/dashboard");
     },
   });
 }

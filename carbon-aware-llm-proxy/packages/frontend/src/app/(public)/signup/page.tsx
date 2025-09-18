@@ -42,6 +42,36 @@ function SignupPageContent() {
       return;
     }
 
+    // Validate password requirements
+    if (password.length < 8) {
+      toast.error({
+        title: "Error",
+        description: "Password must be at least 8 characters long",
+      });
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      toast.error({
+        title: "Error",
+        description: "Password must contain at least one lowercase letter",
+      });
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      toast.error({
+        title: "Error",
+        description: "Password must contain at least one uppercase letter",
+      });
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      toast.error({
+        title: "Error",
+        description: "Password must contain at least one number",
+      });
+      return;
+    }
+
     if (!termsAccepted) {
       toast.error({
         title: "Error",
@@ -69,20 +99,10 @@ function SignupPageContent() {
     }
   };
 
-  const handleGoogleSignup = async () => {
-    // In a real app, this would redirect to your OAuth provider
-    toast.info({
-      title: "Coming soon",
-      description: "Google signup will be available soon",
-    });
-  };
-
-  const handleGithubSignup = async () => {
-    // In a real app, this would redirect to your OAuth provider
-    toast.info({
-      title: "Coming soon",
-      description: "GitHub signup will be available soon",
-    });
+  const redirectToProvider = (provider: "google" | "microsoft" | "facebook") => {
+    const next = encodeURIComponent(redirectTo);
+    const base = process.env.NEXT_PUBLIC_API_URL || "";
+    window.location.href = `${base}/v1/auth/oauth/${provider}?next=${next}`;
   };
 
   return (
@@ -142,7 +162,7 @@ function SignupPageContent() {
                 onChange={(e) => setPassword(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Must be at least 8 characters long
+                Must be at least 8 characters with uppercase, lowercase, and number
               </p>
             </div>
 
@@ -212,33 +232,30 @@ function SignupPageContent() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Button
             variant="outline"
             type="button"
             disabled={isLoading}
-            onClick={handleGoogleSignup}
+            onClick={() => redirectToProvider("google")}
           >
-            {isLoading ? (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Icons.mail className="mr-2 h-4 w-4" />
-            )}
-            Email
+            Continue with Google
           </Button>
-
           <Button
             variant="outline"
             type="button"
             disabled={isLoading}
-            onClick={handleGithubSignup}
+            onClick={() => redirectToProvider("microsoft")}
           >
-            {isLoading ? (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Icons.github className="mr-2 h-4 w-4" />
-            )}
-            GitHub
+            Continue with Microsoft
+          </Button>
+          <Button
+            variant="outline"
+            type="button"
+            disabled={isLoading}
+            onClick={() => redirectToProvider("facebook")}
+          >
+            Continue with Facebook
           </Button>
         </div>
       </div>

@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import { authService } from "../services/auth.service";
-import { databaseService } from "../services/database.service";
-import { User } from "../entities/User";
+import { supabaseService } from "../services/supabase.service";
 import { logger } from "../utils/logger";
 
 type AuthMiddleware = {
@@ -10,7 +9,7 @@ type AuthMiddleware = {
 };
 
 export interface AuthenticatedRequest extends Request {
-  user?: Partial<User>;
+  user?: Partial<any>;
 }
 
 // Authentication middleware
@@ -20,16 +19,38 @@ export const authenticate: RequestHandler = async (
   next: NextFunction,
 ) => {
   try {
+    let token: string | null = null;
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    // Debug logging for cookie inspection
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('Auth middleware debug:', {
+        cookies: (req as any).cookies,
+        authHeader: authHeader ? 'Bearer token present' : 'No auth header',
+        userAgent: req.headers['user-agent'],
+        origin: req.headers.origin,
+        referer: req.headers.referer
+      });
+    }
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    } else if ((req as any).cookies?.auth_token) {
+      token = (req as any).cookies.auth_token as string;
+    }
+
+    if (!token) {
+      logger.warn('Authentication failed: No token found', {
+        hasCookies: !!(req as any).cookies,
+        cookieKeys: (req as any).cookies ? Object.keys((req as any).cookies) : [],
+        hasAuthHeader: !!authHeader
+      });
       return res.status(401).json({
         success: false,
         message: "Authentication required",
       });
     }
 
-    const token = authHeader.split(" ")[1];
     const decoded = authService.verifyToken(token);
 
     if (!decoded) {
@@ -39,17 +60,39 @@ export const authenticate: RequestHandler = async (
       });
     }
 
-    // Get user from database
-    const userRepository = databaseService.getDataSource().getRepository(User);
-    const user = await userRepository.findOne({
-      where: { id: decoded.id },
-      relations: ["preferences"],
-    });
+    // Get user from JWT token data (since login already validates with Supabase Auth)
+    let user;
+    const isMockAuth = process.env.MOCK_AUTH === "true";
 
-    if (!user) {
+    if (isMockAuth && decoded.id.startsWith('mock-')) {
+      // For mock auth, reconstruct the user from the token
+      user = {
+        id: decoded.id,
+        email: decoded.email,
+        name: decoded.email.split('@')[0],
+        email_verified: true,
+        role: decoded.role || 'user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    } else {
+      // For real auth, use the user data from the JWT token
+      // (login process already validated with Supabase Auth)
+      user = {
+        id: decoded.id,
+        email: decoded.email,
+        name: decoded.name || decoded.email.split('@')[0],
+        email_verified: decoded.email_verified || true,
+        role: decoded.role || 'user',
+        created_at: decoded.created_at || new Date().toISOString(),
+        updated_at: decoded.updated_at || new Date().toISOString()
+      };
+    }
+
+    if (!user || !user.id || !user.email) {
       return res.status(401).json({
         success: false,
-        message: "User not found",
+        message: "Invalid user data in token",
       });
     }
 

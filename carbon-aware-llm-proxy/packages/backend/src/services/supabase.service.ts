@@ -39,7 +39,9 @@ export class SupabaseService {
 
   // User operations
   public async createUser(userData: any) {
-    const { data, error } = await this.client!
+    // Use service role client for user creation to bypass RLS policies
+    const serviceClient = supabaseConfig.getServiceRoleClient();
+    const { data, error } = await serviceClient
       .from('users')
       .insert(userData)
       .select()

@@ -1,4 +1,4 @@
-import { apiPost, withAuth } from "@/lib/api-client";
+import { apiPost } from "@/lib/api-client";
 
 export interface PresenceRequest {
   region?: string;
@@ -73,7 +73,6 @@ class PresenceService {
       const response = await apiPost<PresenceResponse>(
         "/v1/presence",
         { region },
-        { headers: withAuth() },
       );
 
       if (response.error) {
@@ -91,7 +90,6 @@ class PresenceService {
       const response = await apiPost<PresenceResponse>(
         "/v1/presence",
         { region },
-        { headers: withAuth() },
       );
 
       if (response.error) {

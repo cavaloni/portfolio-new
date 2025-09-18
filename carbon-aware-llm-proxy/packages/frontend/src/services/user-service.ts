@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, withAuth } from "@/lib/api-client";
+import { apiGet, apiPost, apiPut } from "@/lib/api-client";
 
 export interface UserPreferences {
   id: string;
@@ -32,9 +32,7 @@ export const userService = {
   // Get current user's profile
   async getCurrentUser(): Promise<UserProfile | null> {
     try {
-      const response = await apiGet<{ user: UserProfile }>("/v1/users/me", {
-        headers: withAuth(),
-      });
+      const response = await apiGet<{ user: UserProfile }>("/v1/users/me");
 
       if (response.error || !response.data) {
         console.warn(
@@ -56,7 +54,6 @@ export const userService = {
     try {
       const response = await apiGet<{ preferences: UserPreferences }>(
         "/v1/users/me/preferences",
-        { headers: withAuth() },
       );
 
       if (response.error || !response.data) {
@@ -84,7 +81,6 @@ export const userService = {
       const response = await apiPut<{ preferences: UserPreferences }>(
         "/v1/users/me/preferences",
         updates,
-        { headers: withAuth() },
       );
 
       if (response.error || !response.data) {
@@ -118,7 +114,7 @@ export const userService = {
           request_count: number;
           carbon_footprint_kg: number;
         }>;
-      }>("/v1/users/me/carbon-stats", { headers: withAuth() });
+      }>("/v1/users/me/carbon-stats");
 
       if (response.error || !response.data) {
         console.warn("Error fetching carbon stats:", response.error?.message);
@@ -141,7 +137,6 @@ export const userService = {
       const response = await apiPut<{ user: UserProfile }>(
         "/v1/users/me",
         updates,
-        { headers: withAuth() },
       );
 
       if (response.error || !response.data) {

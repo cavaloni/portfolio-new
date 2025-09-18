@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const AUTH_COOKIE = "demo_auth";
+const AUTH_COOKIE = "auth_token";
 
 // Export metadata for SEO
 export const metadata: Metadata = {
@@ -31,11 +31,11 @@ export default function ChatPage() {
 
   console.log("💬 Chat page auth check:", {
     hasCookie: !!authCookie,
-    cookieValue: authCookie?.value
+    cookieValue: authCookie?.value ? 'JWT token present' : undefined
   });
 
   // If no valid auth cookie, redirect to login
-  if (!authCookie || authCookie.value !== "ok") {
+  if (!authCookie || !authCookie.value) {
     console.log("💬 No valid auth, redirecting to login");
     redirect("/login?next=/chat");
   }

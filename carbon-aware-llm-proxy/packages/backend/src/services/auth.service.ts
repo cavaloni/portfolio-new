@@ -1,9 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
-import { User } from "../entities/User";
-import { UserPreferences } from "../entities/UserPreferences";
-import { databaseService } from "./database.service";
+import { supabaseService } from "./supabase.service";
+import { supabaseConfig } from "../config/supabase";
 import { logger } from "../utils/logger";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_here";
@@ -11,49 +10,77 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
 class AuthService {
   async register(email: string, password: string, name?: string) {
-    const userRepository = databaseService.getDataSource().getRepository(User);
-    const existingUser = await userRepository.findOne({ where: { email } });
+    // Check if mock authentication mode is enabled (separate from routing mock)
+    const mockAuth = process.env.MOCK_AUTH === "true";
 
-    if (existingUser) {
-      throw new Error("User with this email already exists");
+    if (mockAuth) {
+      logger.info("Using mock auth mode for registration");
+
+      // Mock user creation - simulate successful registration
+      const mockUser = {
+        id: `mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        email,
+        name: name || email.split("@")[0],
+        email_verified: true,
+        role: 'user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Generate JWT token
+      const token = this.generateToken(mockUser);
+
+      logger.info(`Mock user registered: ${email}`);
+
+      return {
+        user: this.sanitizeUser(mockUser),
+        token,
+      };
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const emailVerificationToken = uuidv4();
-
-    // Start a transaction
-    const queryRunner = databaseService.getDataSource().createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    // For development, skip checking existing users in database
+    // In production, you might want to check if the user already exists
 
     try {
-      // Create user
-      const user = new User();
-      user.email = email;
-      user.passwordHash = hashedPassword;
-      user.name = name || email.split("@")[0];
-      user.emailVerificationToken = emailVerificationToken;
-      user.emailVerificationExpires = new Date(
-        Date.now() + 24 * 60 * 60 * 1000,
-      ); // 24 hours
+      // Use regular Supabase Auth sign up
+      const supabaseClient = supabaseConfig.getClient();
 
-      const savedUser = await queryRunner.manager.save(user);
+      // Create user using Supabase Auth sign up
+      const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name || email.split("@")[0],
+            role: 'user'
+          }
+        }
+      });
 
-      // Create default preferences
-      const preferences = new UserPreferences();
-      preferences.user = savedUser;
-      preferences.userId = savedUser.id;
-      preferences.theme = "system";
-      preferences.carbonAware = true;
-      preferences.showCarbonImpact = true;
-      preferences.emailNotifications = true;
+      if (authError) {
+        logger.error("Supabase Auth error:", authError);
+        throw new Error(`Failed to create user: ${authError.message}`);
+      }
 
-      await queryRunner.manager.save(preferences);
+      if (!authData.user) {
+        throw new Error("Failed to create user: No user returned from Supabase Auth");
+      }
 
-      await queryRunner.commitTransaction();
+      const userRecord = authData.user;
 
-      // Send verification email (implementation would go here)
-      logger.info(`Verification email sent to ${email}`);
+      // For development, we'll use auth user data directly
+      // In production, you might want to create a record in the users table
+      const savedUser = {
+        id: userRecord.id,
+        email: userRecord.email!,
+        name: userRecord.user_metadata?.name || name || email.split("@")[0],
+        email_verified: userRecord.email_confirmed_at !== null,
+        role: userRecord.user_metadata?.role || 'user',
+        created_at: userRecord.created_at,
+        updated_at: userRecord.updated_at || userRecord.created_at
+      };
+
+      logger.info(`User registered successfully: ${email}`);
 
       // Generate JWT token
       const token = this.generateToken(savedUser);
@@ -63,72 +90,122 @@ class AuthService {
         token,
       };
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       logger.error("Error during user registration:", error);
       throw new Error("Failed to register user");
-    } finally {
-      await queryRunner.release();
     }
   }
 
   async login(email: string, password: string) {
-    const userRepository = databaseService.getDataSource().getRepository(User);
-    const user = await userRepository.findOne({
-      where: { email },
-      select: ["id", "email", "passwordHash", "role", "emailVerified"],
-    });
+    // Check if mock authentication mode is enabled (separate from routing mock)
+    const mockAuth = process.env.MOCK_AUTH === "true";
 
-    if (!user) {
-      throw new Error("Invalid credentials");
+    if (mockAuth) {
+      logger.info("Using mock auth mode for login");
+
+      // Mock login - accept any password for mock users
+      if (email && password) {
+        const mockUser = {
+          id: `mock-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          email,
+          name: email.split("@")[0],
+          email_verified: true,
+          role: 'user',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        // Generate JWT token
+        const token = this.generateToken(mockUser);
+
+        logger.info(`Mock user logged in: ${email}`);
+
+        return {
+          user: this.sanitizeUser(mockUser),
+          token,
+        };
+      } else {
+        throw new Error("Email and password are required");
+      }
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!isPasswordValid) {
-      throw new Error("Invalid credentials");
+    try {
+      // Use Supabase Auth for authentication
+      const supabaseClient = supabaseConfig.getClient();
+
+      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (authError) {
+        // For development, if email is not confirmed, provide helpful error message
+        if (authError.message?.includes('Email not confirmed') || authError.code === 'email_not_confirmed') {
+          logger.warn(`Login failed for ${email}: Email not confirmed`);
+          throw new Error('Please confirm your email address before logging in. Check your email for the confirmation link.');
+        }
+
+        logger.error("Supabase Auth error:", authError);
+        throw new Error("Invalid credentials");
+      }
+
+      if (!authData.user) {
+        throw new Error("Failed to authenticate user");
+      }
+
+      // Use auth user data directly
+      const user = {
+        id: authData.user.id,
+        email: authData.user.email!,
+        name: authData.user.user_metadata?.name || email.split("@")[0],
+        email_verified: authData.user.email_confirmed_at !== null,
+        role: authData.user.user_metadata?.role || 'user',
+        created_at: authData.user.created_at,
+        updated_at: authData.user.updated_at || authData.user.created_at
+      };
+
+      // Generate JWT token
+      const token = this.generateToken(user);
+
+      logger.info(`User logged in successfully: ${email}`);
+
+      return {
+        user: this.sanitizeUser(user),
+        token,
+      };
+    } catch (error) {
+      logger.error("Error during user login:", error);
+      throw error; // Re-throw the original error for better error messages
     }
-
-    if (!user.emailVerified) {
-      throw new Error("Please verify your email address");
-    }
-
-    // Generate JWT token
-    const token = this.generateToken(user);
-
-    return {
-      user: this.sanitizeUser(user),
-      token,
-    };
   }
 
   async verifyEmail(token: string) {
-    const userRepository = databaseService.getDataSource().getRepository(User);
-    const user = await userRepository.findOne({
-      where: { emailVerificationToken: token },
-    });
+    const user = await supabaseService.getClient().from('users').select('*').eq('email_verification_token', token).single();
 
-    if (!user) {
+    if (!user.data) {
       throw new Error("Invalid verification token");
     }
 
     if (
-      user.emailVerificationExpires &&
-      user.emailVerificationExpires < new Date()
+      user.data.email_verification_expires &&
+      new Date(user.data.email_verification_expires) < new Date()
     ) {
       throw new Error("Verification token has expired");
     }
 
-    user.emailVerified = true;
-    user.emailVerificationToken = null;
-    user.emailVerificationExpires = null;
+    const updates = {
+      email_verified: true,
+      email_verification_token: null,
+      email_verification_expires: null,
+      updated_at: new Date().toISOString()
+    };
 
-    await userRepository.save(user);
+    await supabaseService.updateUser(user.data.id, updates);
 
     return { success: true };
   }
 
   async requestPasswordReset(email: string) {
-    const userRepository = databaseService.getDataSource().getRepository(User);
-    const user = await userRepository.findOne({ where: { email } });
+    const user = await supabaseService.getUserByEmail(email);
 
     if (!user) {
       // Don't reveal that the email doesn't exist
@@ -136,10 +213,13 @@ class AuthService {
     }
 
     const resetToken = uuidv4();
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const updates = {
+      reset_password_token: resetToken,
+      reset_password_expires: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      updated_at: new Date().toISOString()
+    };
 
-    await userRepository.save(user);
+    await supabaseService.updateUser(user.id, updates);
 
     // Send password reset email (implementation would go here)
     logger.info(`Password reset email sent to ${email}`);
@@ -148,31 +228,32 @@ class AuthService {
   }
 
   async resetPassword(token: string, newPassword: string) {
-    const userRepository = databaseService.getDataSource().getRepository(User);
-    const user = await userRepository.findOne({
-      where: { resetPasswordToken: token },
-    });
+    const userResponse = await supabaseService.getClient().from('users').select('*').eq('reset_password_token', token).single();
 
-    if (!user) {
+    if (!userResponse.data) {
       throw new Error("Invalid or expired reset token");
     }
 
-    if (user.resetPasswordExpires && user.resetPasswordExpires < new Date()) {
+    const user = userResponse.data;
+    if (user.reset_password_expires && new Date(user.reset_password_expires) < new Date()) {
       throw new Error("Reset token has expired");
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    user.passwordHash = hashedPassword;
-    user.resetPasswordToken = null;
-    user.resetPasswordExpires = null;
+    const updates = {
+      password_hash: hashedPassword,
+      reset_password_token: null,
+      reset_password_expires: null,
+      updated_at: new Date().toISOString()
+    };
 
-    await userRepository.save(user);
+    await supabaseService.updateUser(user.id, updates);
 
     return { success: true };
   }
 
-  generateToken(user: User): string {
+  generateToken(user: any): string {
     if (!JWT_SECRET) {
       throw new Error("JWT_SECRET is not defined");
     }
@@ -221,8 +302,8 @@ class AuthService {
     }
   }
 
-  private sanitizeUser(user: User) {
-    const { passwordHash, ...sanitizedUser } = user;
+  private sanitizeUser(user: any) {
+    const { password_hash, passwordHash, ...sanitizedUser } = user;
     return sanitizedUser;
   }
 }

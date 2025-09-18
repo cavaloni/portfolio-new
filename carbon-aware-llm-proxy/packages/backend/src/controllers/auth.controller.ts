@@ -1,10 +1,9 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { authService } from "../services/auth.service";
-import { databaseService } from "../services/database.service";
-import { User } from "../entities/User";
-import { UserPreferences } from "../entities/UserPreferences";
+import { supabaseService } from "../services/supabase.service";
 import { logger } from "../utils/logger";
+import { setAuthCookie, clearAuthCookie } from "../utils/cookie-config";
 
 export class AuthController {
   async register(req: Request, res: Response) {
@@ -17,9 +16,12 @@ export class AuthController {
       const { email, password, name } = req.body;
       const result = await authService.register(email, password, name);
 
+      // Set HttpOnly auth cookie with smart configuration
+      setAuthCookie(res, result.token);
+
       res.status(201).json({
         success: true,
-        data: result,
+        data: { user: result.user },
       });
     } catch (error: any) {
       logger.error("Registration error:", error);
@@ -40,9 +42,12 @@ export class AuthController {
       const { email, password } = req.body;
       const result = await authService.login(email, password);
 
+      // Set HttpOnly auth cookie with smart configuration
+      setAuthCookie(res, result.token);
+
       res.json({
         success: true,
-        data: result,
+        data: { user: result.user },
       });
     } catch (error: any) {
       logger.error("Login error:", error);
@@ -146,12 +151,11 @@ export class AuthController {
       }
 
       const { name, avatar_url } = req.body;
-      const userRepository = databaseService.getDataSource().getRepository(User);
+      const updates: any = { updatedAt: new Date() };
+      if (name !== undefined) updates.name = name;
+      if (avatar_url !== undefined) updates.avatarUrl = avatar_url;
 
-      if (name !== undefined) user.name = name;
-      if (avatar_url !== undefined) user.avatarUrl = avatar_url;
-
-      const updatedUser = await userRepository.save(user);
+      const updatedUser = await supabaseService.updateUser(user.id, updates);
 
       const { passwordHash, ...sanitizedUser } = updatedUser;
       res.json({
@@ -177,12 +181,14 @@ export class AuthController {
         });
       }
 
-      const preferencesRepository = databaseService.getDataSource().getRepository(UserPreferences);
-      const preferences = await preferencesRepository.findOne({
-        where: { userId: user.id },
-      });
+      const { data, error } = await supabaseService.getClient().from('user_preferences').select('*').eq('userId', user.id).single();
 
-      if (!preferences) {
+      if (error && error.code !== 'PGRST116') {
+        logger.error('Error fetching user preferences:', error);
+        throw error;
+      }
+
+      if (!data) {
         return res.status(404).json({
           success: false,
           message: "User preferences not found",
@@ -191,7 +197,7 @@ export class AuthController {
 
       res.json({
         success: true,
-        data: preferences,
+        data: data,
       });
     } catch (error) {
       logger.error("Get user preferences error:", error);
@@ -213,30 +219,30 @@ export class AuthController {
       }
 
       const updates = req.body;
-      const preferencesRepository = databaseService.getDataSource().getRepository(UserPreferences);
+      const { data: preferences, error } = await supabaseService.getClient().from('user_preferences').select('*').eq('userId', user.id).single();
 
-      let preferences = await preferencesRepository.findOne({
-        where: { userId: user.id },
-      });
-
-      if (!preferences) {
-        preferences = new UserPreferences();
-        preferences.userId = user.id;
-        preferences.user = user;
+      if (error && error.code !== 'PGRST116') {
+        logger.error('Error fetching user preferences:', error);
+        throw error;
       }
 
-      // Update preferences with provided values
-      Object.keys(updates).forEach(key => {
-        if (updates[key] !== undefined && preferences) {
-          (preferences as any)[key] = updates[key];
-        }
-      });
+      const updatedPreferences = { ...updates, updatedAt: new Date() };
 
-      const updatedPreferences = await preferencesRepository.save(preferences);
+      let result;
+      if (preferences) {
+        result = await supabaseService.getClient().from('user_preferences').update(updatedPreferences).eq('userId', user.id).select().single();
+      } else {
+        result = await supabaseService.getClient().from('user_preferences').insert({ ...updatedPreferences, userId: user.id, createdAt: new Date() }).select().single();
+      }
+
+      if (result.error) {
+        logger.error('Error updating/inserting user preferences:', result.error);
+        throw result.error;
+      }
 
       res.json({
         success: true,
-        data: updatedPreferences,
+        data: result.data,
       });
     } catch (error) {
       logger.error("Update user preferences error:", error);
@@ -276,6 +282,43 @@ export class AuthController {
         success: false,
         message: "Failed to fetch carbon stats",
       });
+    }
+  }
+
+  async logout(req: Request, res: Response) {
+    try {
+      // Clear auth cookie with smart configuration
+      clearAuthCookie(res);
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Logout error:", error);
+      res.status(500).json({ success: false, message: "Logout failed" });
+    }
+  }
+
+  // Development-only helper method
+  async getRecentRegistrations(req: Request, res: Response) {
+    try {
+      if (process.env.NODE_ENV !== 'development') {
+        return res.status(404).json({ success: false, message: "Not found" });
+      }
+
+      // This is a development helper to see what emails have been registered
+      // In a real application, you would implement proper email confirmation flow
+      res.json({
+        success: true,
+        message: "Development mode: Recent registrations require email confirmation",
+        registrations: [
+          {
+            email: "testuser@gmail.com",
+            status: "requires_email_confirmation",
+            note: "Check the Supabase dashboard to confirm emails or use a real email service"
+          }
+        ]
+      });
+    } catch (error) {
+      logger.error("Debug endpoint error:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
     }
   }
 }

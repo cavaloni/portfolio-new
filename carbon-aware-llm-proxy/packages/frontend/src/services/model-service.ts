@@ -1,4 +1,4 @@
-import { apiGet, withAuth } from "@/lib/api-client";
+import { apiGet } from "@/lib/api-client";
 
 export interface Model {
   id: string;
@@ -35,9 +35,7 @@ export interface ModelCarbonData {
 export const modelService = {
   async listAvailableModels(): Promise<Model[]> {
     try {
-      const response = await apiGet<{ models: Model[] }>("/v1/models", {
-        headers: withAuth(),
-      });
+      const response = await apiGet<{ models: Model[] }>("/v1/models");
 
       if (response.error) {
         throw new Error(response.error.message);
@@ -54,7 +52,6 @@ export const modelService = {
     try {
       const response = await apiGet<{ data: ModelCarbonData }>(
         `/v1/carbon/models/${encodeURIComponent(modelId)}`,
-        { headers: withAuth() },
       );
 
       if (response.error || !response.data?.data) {
@@ -79,7 +76,6 @@ export const modelService = {
     try {
       const response = await apiGet<{ model: Model }>(
         `/v1/models/recommended?criteria=${criteria}`,
-        { headers: withAuth() },
       );
 
       if (response.error || !response.data) {
@@ -109,7 +105,7 @@ export const modelService = {
         carbon_intensity_gco2e_per_kwh: number;
         region: string;
         timestamp: string;
-      }>(url, { headers: withAuth() });
+      }>(url);
 
       if (response.error || !response.data) {
         console.warn("No carbon intensity data available");

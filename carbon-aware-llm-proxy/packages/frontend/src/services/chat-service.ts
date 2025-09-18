@@ -1,4 +1,4 @@
-import { apiPost, withAuth } from "@/lib/api-client";
+import { apiPost } from "@/lib/api-client";
 
 export interface Message {
   id: string;
@@ -112,7 +112,6 @@ export const chatService = {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...withAuth(),
           },
           body: JSON.stringify({
             deploymentId: routing.chosen.id,
@@ -125,6 +124,7 @@ export const chatService = {
             max_tokens: maxTokens,
             stream: true,
           }),
+          credentials: "include",
           // Use custom timeout if provided, otherwise let backend handle it
           ...(timeoutOverride && { signal: AbortSignal.timeout(timeoutOverride) }),
         },
@@ -295,7 +295,6 @@ export const chatService = {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...withAuth(),
           },
           body: JSON.stringify({
             deploymentId,
@@ -304,6 +303,7 @@ export const chatService = {
             max_tokens: maxTokens,
             stream: true,
           }),
+          credentials: "include",
         },
       );
 

@@ -61,6 +61,40 @@ export class SupabaseConfig {
     }
   }
 
+  // Get a service role client that bypasses RLS policies
+  public getServiceRoleClient(): SupabaseClient<any> {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl) {
+      throw new Error('Missing SUPABASE_URL environment variable.');
+    }
+
+    // For development, if no service role key is provided, use the anon key with a warning
+    if (!serviceRoleKey) {
+      logger.warn('No SUPABASE_SERVICE_ROLE_KEY provided. Using anon key for service operations. This may fail due to RLS policies.');
+      return createClient(supabaseUrl, process.env.SUPABASE_ANON_KEY!, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        db: {
+          schema: 'public',
+        },
+      });
+    }
+
+    return createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      db: {
+        schema: 'public',
+      },
+    });
+  }
+
   public getClient(): SupabaseClient<any> {
     if (!this.client) {
       throw new Error('Supabase client not initialized. Call initialize() first.');

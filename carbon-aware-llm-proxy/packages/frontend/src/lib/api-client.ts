@@ -205,14 +205,3 @@ export async function apiDelete<T = any>(
   }
 }
 
-// Helper function to add auth headers
-export function withAuth(headers: HeadersInit = {}): HeadersInit {
-  // In a real app, you'd get the token from your auth store
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
-
-  return {
-    ...headers,
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useMemo, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useLogin, useLogout, useSignup } from "@/hooks/use-auth";
 import { UserProfile } from "@/types";
@@ -23,24 +17,12 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { user, isLoading, refetch } = useUser();
+  const { user, isLoading } = useUser();
   const loginMutation = useLogin();
   const logoutMutation = useLogout();
   const signupMutation = useSignup();
 
-  // Check if we have the demo auth cookie on initial load
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const cookieValue = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('demo_auth='))
-        ?.split('=')[1];
-
-      if (cookieValue === "ok") {
-        refetch();
-      }
-    }
-  }, [refetch]);
+  // No demo cookie handling; backend sets HttpOnly cookie and /v1/users/me responds accordingly.
 
   const login = async (email: string, password: string) => {
     await loginMutation.mutateAsync({ email, password });

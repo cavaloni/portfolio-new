@@ -1,6 +1,7 @@
 import "dotenv/config";
 import "reflect-metadata";
 import express from "express";
+import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import cors from "cors";
 import { createServer } from "http";
@@ -10,8 +11,11 @@ import { rateLimiterMiddleware } from "./middleware/rateLimiter";
 import { healthCheckRouter } from "./routes/healthCheck";
 import { v1Router } from "./routes/v1";
 import { supabaseService } from "./services/supabase.service";
+import { databaseService } from "./services/database.service";
 import { webSocketService } from "./services/websocket.service";
 import { redisService } from "./services/redis.service";
+import passport from "passport";
+import "./config/passport";
 import { v4 as uuidv4 } from "uuid";
 // Removed RunPod integration and scheduler
 
@@ -20,6 +24,8 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(helmet());
+// Parse cookies for session auth (JWT in HttpOnly cookie)
+app.use(cookieParser());
 
 // Attach/propagate a request ID for correlation across FE/BE
 app.use((req, res, next) => {
@@ -53,6 +59,13 @@ const corsOptions: cors.CorsOptions = {
     // Allow non-browser or same-origin requests with no Origin header
     if (!origin) return callback(null, true);
 
+    // In development, allow any localhost or 127.0.0.1 origin for flexibility
+    if (process.env.NODE_ENV === 'development') {
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        return callback(null, true);
+      }
+    }
+
     if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
@@ -69,11 +82,12 @@ const corsOptions: cors.CorsOptions = {
   optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
-// Handle CORS preflight for all routes
-app.options("*", cors(corsOptions));
-
-app.use(express.json());
+app.use(httpLogger);
+// Parse JSON bodies
+app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
+// Initialize passport (sessionless)
+app.use(passport.initialize());
 // Apply rate limiting middleware
 app.use(rateLimiterMiddleware);
 
@@ -106,6 +120,18 @@ const startServer = async () => {
       await supabaseService.initialize();
     } catch (error) {
       logger.warn("Supabase initialization failed, continuing without Supabase:", error);
+    }
+
+    // Initialize Postgres (TypeORM) database only if SKIP_DB is not set to true
+    if (process.env.SKIP_DB !== "true") {
+      try {
+        await databaseService.initialize();
+      } catch (error) {
+        logger.error("Failed to initialize database service:", error);
+        throw error;
+      }
+    } else {
+      logger.info("Skipping database initialization due to SKIP_DB=true");
     }
 
     // Initialize Redis connection
