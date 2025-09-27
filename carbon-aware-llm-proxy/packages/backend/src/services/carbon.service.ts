@@ -1,11 +1,8 @@
-import { Repository } from "typeorm";
-import { databaseService } from "./database.service";
-import { CarbonFootprint } from "../entities/CarbonFootprint";
-import { ModelInfo } from "../entities/ModelInfo";
-import { User } from "../entities/User";
 import { logger } from "../utils/logger";
 import axios, { AxiosInstance } from "axios";
 import { redisService } from "./redis.service";
+import { supabaseService } from "./supabase.service";
+import { supabaseConfig } from "../config/supabase";
 
 // Types for external API responses
 interface ElectricityMapResponse {
@@ -28,9 +25,6 @@ const CACHE_TTL = {
 };
 
 class CarbonService {
-  private carbonFootprintRepository!: Repository<CarbonFootprint>;
-  private modelRepository!: Repository<ModelInfo>;
-  private userRepository!: Repository<User>;
   private electricityMapApiKey: string | undefined;
   private wattTimeUsername: string | undefined;
   private wattTimePassword: string | undefined;
@@ -80,17 +74,8 @@ class CarbonService {
     }
   }
 
-  private initializeRepositories() {
-    if (!this.carbonFootprintRepository) {
-      this.carbonFootprintRepository = databaseService
-        .getDataSource()
-        .getRepository(CarbonFootprint);
-      this.modelRepository = databaseService
-        .getDataSource()
-        .getRepository(ModelInfo);
-      this.userRepository = databaseService.getDataSource().getRepository(User);
-    }
-  }
+  // No-op: repositories removed in Supabase-only refactor
+  private initializeRepositories() {}
 
   // Get carbon intensity for a region using Electricity Maps API with Redis caching
   async getCarbonIntensity(region: string): Promise<number> {
@@ -445,8 +430,6 @@ class CarbonService {
     modelName: string;
     provider: string;
   }> {
-    this.initializeRepositories();
-
     const cacheKey = `footprint:${modelId}:${tokens}:${region || "global"}`;
 
     // Try to get from cache first
@@ -460,11 +443,8 @@ class CarbonService {
       // Continue to calculate fresh if cache fails
     }
 
-    // Get model info
-    const model = await this.modelRepository.findOne({
-      where: { id: modelId },
-      relations: ["carbonFootprints"],
-    });
+    // Get model info via Supabase
+    const model: any = await supabaseService.getModelById(modelId);
 
     if (!model) {
       throw new Error(`Model ${modelId} not found`);
@@ -487,13 +467,20 @@ class CarbonService {
       }
     } else {
       // Use model's average carbon intensity if no region is specified
-      carbonIntensity = model.carbonIntensity.avg;
+      const avg = (model?.carbon_intensity?.avg ?? model?.carbonIntensity?.avg ?? null);
+      carbonIntensity = avg ?? 300; // fallback average
       usedRegion = "global";
     }
 
     // Calculate energy usage per token (using model's energy data)
-    // Use model's energy per token if available, otherwise estimate from carbon intensity
-    const energyPerToken = model.getEnergyPerToken(); // Wh per token
+    // Prefer energy_per_token (Wh/token); otherwise estimate from average carbon intensity
+    const energyPerToken = ((): number => {
+      const ept = Number(model?.energy_per_token ?? model?.energyPerToken ?? 0);
+      if (ept && !Number.isNaN(ept)) return ept;
+      const avg = Number(model?.carbon_intensity?.avg ?? model?.carbonIntensity?.avg ?? 300);
+      // Estimate Wh per token from avg gCO2e/kWh assuming ~300 g/kWh baseline
+      return avg / 300000;
+    })();
     const energy = (energyPerToken * tokens) / 1000; // Convert Wh to kWh
 
     // Calculate emissions: energy (kWh) * carbon intensity (gCO2eq/kWh)
@@ -550,8 +537,6 @@ class CarbonService {
     userId: string,
     timeRange: "day" | "week" | "month" | "year" = "month",
   ) {
-    this.initializeRepositories();
-
     const date = new Date();
     const startDate = new Date();
 
@@ -570,52 +555,96 @@ class CarbonService {
         break;
     }
 
-    const stats = await this.carbonFootprintRepository
-      .createQueryBuilder("footprint")
-      .select("SUM(footprint.emissions)", "totalEmissions")
-      .addSelect("SUM(footprint.energy)", "totalEnergy")
-      .innerJoin("footprint.message", "message")
-      .innerJoin("message.conversation", "conversation")
-      .where("conversation.userId = :userId", { userId })
-      .andWhere("footprint.createdAt >= :startDate", { startDate })
-      .getRawOne();
+    // Supabase path: conversations -> messages -> footprints
+    const client = supabaseConfig.getServiceRoleClient();
+    // Get conversations for this user
+    const { data: convos, error: convErr } = await client
+      .from('conversations')
+      .select('id')
+      .eq('user_id', userId);
+    if (convErr) {
+      logger.error('Error fetching conversations for user stats:', convErr);
+      throw convErr;
+    }
+    const convoIds = (convos || []).map((c: any) => c.id);
+    if (convoIds.length === 0) {
+      return {
+        period: timeRange,
+        startDate,
+        endDate: date,
+        totalEmissions: 0,
+        totalEnergy: 0,
+        avgEmissionsPerMessage: 0,
+        avgEnergyPerMessage: 0,
+        modelBreakdown: [],
+        equivalent: this.getCarbonEquivalence(0),
+      };
+    }
+    // Get messages in period for these conversations
+    const { data: messages, error: msgErr } = await client
+      .from('messages')
+      .select('id, created_at')
+      .in('conversation_id', convoIds)
+      .gte('created_at', startDate.toISOString());
+    if (msgErr) {
+      logger.error('Error fetching messages for user stats:', msgErr);
+      throw msgErr;
+    }
+    const messageIds = (messages || []).map((m: any) => m.id);
+    if (messageIds.length === 0) {
+      return {
+        period: timeRange,
+        startDate,
+        endDate: date,
+        totalEmissions: 0,
+        totalEnergy: 0,
+        avgEmissionsPerMessage: 0,
+        avgEnergyPerMessage: 0,
+        modelBreakdown: [],
+        equivalent: this.getCarbonEquivalence(0),
+      };
+    }
+    // Get footprints for these messages in period
+    const { data: fps, error: fpErr } = await client
+      .from('carbon_footprints')
+      .select('emissions, energy, model_name, created_at')
+      .in('message_id', messageIds)
+      .gte('created_at', startDate.toISOString());
+    if (fpErr) {
+      logger.error('Error fetching footprints for user stats:', fpErr);
+      throw fpErr;
+    }
+    const totalEmissions = (fps || []).reduce((sum: number, r: any) => sum + Number(r.emissions || 0), 0);
+    const totalEnergy = (fps || []).reduce((sum: number, r: any) => sum + Number(r.energy || 0), 0);
+    const count = (fps || []).length;
 
-    const averageStats = await this.carbonFootprintRepository
-      .createQueryBuilder("footprint")
-      .select("AVG(footprint.emissions)", "avgEmissionsPerMessage")
-      .addSelect("AVG(footprint.energy)", "avgEnergyPerMessage")
-      .innerJoin("footprint.message", "message")
-      .innerJoin("message.conversation", "conversation")
-      .where("conversation.userId = :userId", { userId })
-      .andWhere("footprint.createdAt >= :startDate", { startDate })
-      .getRawOne();
+    const avgEmissionsPerMessage = count ? totalEmissions / count : 0;
+    const avgEnergyPerMessage = count ? totalEnergy / count : 0;
 
-    const modelBreakdown = await this.carbonFootprintRepository
-      .createQueryBuilder("footprint")
-      .select("footprint.modelName", "model")
-      .addSelect("SUM(footprint.emissions)", "emissions")
-      .addSelect("SUM(footprint.energy)", "energy")
-      .addSelect("COUNT(footprint.id)", "messageCount")
-      .innerJoin("footprint.message", "message")
-      .innerJoin("message.conversation", "conversation")
-      .where("conversation.userId = :userId", { userId })
-      .andWhere("footprint.createdAt >= :startDate", { startDate })
-      .groupBy("footprint.modelName")
-      .orderBy("emissions", "DESC")
-      .getRawMany();
+    const breakdownMap = new Map<string, { emissions: number; energy: number; messageCount: number }>();
+    for (const r of fps || []) {
+      const model = r.model_name || 'unknown';
+      const entry = breakdownMap.get(model) || { emissions: 0, energy: 0, messageCount: 0 };
+      entry.emissions += Number(r.emissions || 0);
+      entry.energy += Number(r.energy || 0);
+      entry.messageCount += 1;
+      breakdownMap.set(model, entry);
+    }
+    const modelBreakdown = Array.from(breakdownMap.entries())
+      .map(([model, v]) => ({ model, emissions: v.emissions, energy: v.energy, messageCount: v.messageCount }))
+      .sort((a, b) => b.emissions - a.emissions);
 
     return {
       period: timeRange,
       startDate,
       endDate: date,
-      totalEmissions: parseFloat(stats.totalEmissions) || 0,
-      totalEnergy: parseFloat(stats.totalEnergy) || 0,
-      avgEmissionsPerMessage:
-        parseFloat(averageStats.avgEmissionsPerMessage) || 0,
-      avgEnergyPerMessage: parseFloat(averageStats.avgEnergyPerMessage) || 0,
+      totalEmissions,
+      totalEnergy,
+      avgEmissionsPerMessage,
+      avgEnergyPerMessage,
       modelBreakdown,
       equivalent: this.getCarbonEquivalence(
-        parseFloat(stats.totalEmissions) || 0,
+        totalEmissions,
       ),
     };
   }
@@ -645,29 +674,80 @@ class CarbonService {
         break;
     }
 
-    const leaderboard = await this.userRepository
-      .createQueryBuilder("user")
-      .select(["user.id", "user.name", "user.email"])
-      .addSelect("SUM(footprint.emissions)", "totalEmissions")
-      .addSelect("COUNT(DISTINCT conversation.id)", "conversationCount")
-      .addSelect("COUNT(footprint.id)", "messageCount")
-      .innerJoin("user.conversations", "conversation")
-      .innerJoin("conversation.messages", "message")
-      .innerJoin("message.carbonFootprint", "footprint")
-      .where("footprint.createdAt >= :startDate", { startDate })
-      .groupBy("user.id")
-      .orderBy("totalEmissions", "ASC")
-      .limit(limit)
-      .getRawMany();
+    // Supabase aggregation for leaderboard
+    const client = supabaseConfig.getServiceRoleClient();
+    // Fetch footprints in period
+    const { data: fpsLb, error: fpLbErr } = await client
+      .from('carbon_footprints')
+      .select('message_id, emissions, created_at, model_name')
+      .gte('created_at', startDate.toISOString());
+    if (fpLbErr) {
+      logger.error('Error fetching footprints for leaderboard:', fpLbErr);
+      throw fpLbErr;
+    }
+    if (!fpsLb || fpsLb.length === 0) return [];
+    const msgIds = Array.from(new Set(fpsLb.map((f: any) => f.message_id)));
+    const { data: msgsLb, error: msgsLbErr } = await client
+      .from('messages')
+      .select('id, conversation_id')
+      .in('id', msgIds);
+    if (msgsLbErr) {
+      logger.error('Error fetching messages for leaderboard:', msgsLbErr);
+      throw msgsLbErr;
+    }
+    const convoIdSet = new Set<string>((msgsLb || []).map((m: any) => m.conversation_id));
+    const { data: convosLb, error: convosLbErr } = await client
+      .from('conversations')
+      .select('id, user_id')
+      .in('id', Array.from(convoIdSet));
+    if (convosLbErr) {
+      logger.error('Error fetching conversations for leaderboard:', convosLbErr);
+      throw convosLbErr;
+    }
+    const convoToUser = new Map<string, string>();
+    for (const c of convosLb || []) convoToUser.set(c.id, c.user_id);
+    const msgToConvo = new Map<string, string>();
+    for (const m of msgsLb || []) msgToConvo.set(m.id, m.conversation_id);
 
-    return leaderboard.map((user: any) => ({
-      ...user,
-      totalEmissions: parseFloat(user.totalEmissions) || 0,
-      conversationCount: parseInt(user.conversationCount, 10) || 0,
-      messageCount: parseInt(user.messageCount, 10) || 0,
-      equivalent: this.getCarbonEquivalence(
-        parseFloat(user.totalEmissions) || 0,
-      ),
+    const userAgg = new Map<string, { totalEmissions: number; conversations: Set<string>; messageCount: number }>();
+    for (const f of fpsLb) {
+      const convoId = msgToConvo.get(f.message_id);
+      const userIdForMsg = convoId ? convoToUser.get(convoId) : undefined;
+      if (!userIdForMsg) continue;
+      const agg = userAgg.get(userIdForMsg) || { totalEmissions: 0, conversations: new Set<string>(), messageCount: 0 };
+      agg.totalEmissions += Number(f.emissions || 0);
+      if (convoId) agg.conversations.add(convoId);
+      agg.messageCount += 1;
+      userAgg.set(userIdForMsg, agg);
+    }
+    const rows = Array.from(userAgg.entries()).map(([uid, v]) => ({
+      id: uid,
+      totalEmissions: v.totalEmissions,
+      conversationCount: v.conversations.size,
+      messageCount: v.messageCount,
+    }));
+    rows.sort((a, b) => (a.totalEmissions ?? 0) - (b.totalEmissions ?? 0));
+    const limited = rows.slice(0, limit);
+    // Optionally fetch user info (name/email) for these users
+    const userIds = limited.map((r) => r.id);
+    let usersById = new Map<string, any>();
+    if (userIds.length) {
+      const { data: users, error: usersErr } = await client
+        .from('users')
+        .select('id, name, email')
+        .in('id', userIds);
+      if (!usersErr && users) {
+        usersById = new Map(users.map((u: any) => [u.id, u]));
+      }
+    }
+    return limited.map((u) => ({
+      id: u.id,
+      name: usersById.get(u.id)?.name ?? null,
+      email: usersById.get(u.id)?.email ?? null,
+      totalEmissions: u.totalEmissions,
+      conversationCount: u.conversationCount,
+      messageCount: u.messageCount,
+      equivalent: this.getCarbonEquivalence(u.totalEmissions),
     }));
   }
 

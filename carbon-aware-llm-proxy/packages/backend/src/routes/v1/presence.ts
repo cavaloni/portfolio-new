@@ -2,9 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import axios from "axios";
 import crypto from "crypto";
-import { databaseService } from "../../services/database.service";
 import { redisService } from "../../services/redis.service";
-import { ModelDeployment } from "../../entities/ModelDeployment";
+import { supabaseService } from "../../services/supabase.service";
 import { auth } from "../../middleware/auth";
 
 export const presenceRouter = Router();
@@ -16,6 +15,16 @@ const presenceSchema = z.object({
 // Require authentication for presence heartbeat
 presenceRouter.use(auth.authenticate);
 
+interface WarmableDeployment {
+  id: string;
+  appName: string;
+  modelId: string;
+  region: string | null;
+  ingressUrl: string | null;
+  secret: string | null;
+  scaledownWindowSec: number;
+}
+
 function createSignature(
   body: string,
   timestamp: string,
@@ -25,7 +34,7 @@ function createSignature(
   return crypto.createHmac("sha256", secret).update(message).digest("hex");
 }
 
-async function warmDeployment(deployment: ModelDeployment): Promise<boolean> {
+async function warmDeployment(deployment: WarmableDeployment): Promise<boolean> {
   if (!deployment.ingressUrl || !deployment.secret) {
     return false;
   }
@@ -64,6 +73,18 @@ async function warmDeployment(deployment: ModelDeployment): Promise<boolean> {
   }
 }
 
+function mapDeployment(row: any): WarmableDeployment {
+  return {
+    id: row.id,
+    appName: row.app_name,
+    modelId: row.model_id,
+    region: row.region ?? null,
+    ingressUrl: row.ingress_url ?? null,
+    secret: row.secret ?? null,
+    scaledownWindowSec: row.scaledown_window_sec ?? 180,
+  };
+}
+
 presenceRouter.post("/", async (req, res) => {
   try {
     const parsed = presenceSchema.safeParse(req.body || {});
@@ -74,16 +95,12 @@ presenceRouter.post("/", async (req, res) => {
     }
 
     const { region } = parsed.data;
-    const ds = databaseService.getDataSource();
-    const repo = ds.getRepository(ModelDeployment);
-
-    // Find deployments that should be kept warm (alwaysWarm=true)
-    const whereClause: any = { status: "deployed", alwaysWarm: true };
-    if (region) {
-      whereClause.region = region;
-    }
-
-    const deployments = await repo.find({ where: whereClause });
+    const rows = await supabaseService.getModelDeployments({
+      status: "deployed",
+      region: region || undefined,
+      alwaysWarm: true,
+    });
+    const deployments = (rows || []).map(mapDeployment);
 
     // Warm each deployment (with debouncing via Redis locks)
     const warmResults = await Promise.allSettled(

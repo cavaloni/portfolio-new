@@ -2,7 +2,7 @@ import { Request, Response, RequestHandler } from "express";
 import { validationResult } from "express-validator";
 import { routingService } from "../services/routing.service";
 import { logger } from "../utils/logger";
-import { User } from "../entities/User";
+import { User } from "../types/user";
 
 // Extend Express Request type to include user
 declare global {

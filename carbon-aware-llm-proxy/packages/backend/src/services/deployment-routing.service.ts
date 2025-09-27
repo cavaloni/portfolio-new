@@ -1,11 +1,10 @@
 import axios from "axios";
-import { DataSource } from "typeorm";
-import { databaseService } from "./database.service";
+import { supabaseService } from "./supabase.service";
 import { redisService } from "./redis.service";
-import { ModelDeployment } from "../entities/ModelDeployment";
 import { carbonService } from "./carbon.service";
 import fs from "fs";
 import path from "path";
+import { ModelDeployment } from "../types/model-deployment";
 
 export type Joystick = { x: number; y: number };
 export type Weights = {
@@ -104,9 +103,32 @@ export async function selectDeploymentAndWarm(input: {
   if (process.env.ROUTING_MOCK_ENABLED === "true") {
     return await selectMockDeploymentAndWarm(input);
   }
-  const ds: DataSource = databaseService.getDataSource();
-  const repo = ds.getRepository(ModelDeployment);
-  const deployments = await repo.find({ where: { status: "deployed" } as any });
+
+  // Fetch deployments from Supabase (Supabase-only mode)
+  const rows = await supabaseService.getModelDeployments({ status: "deployed" });
+  // Map Supabase snake_case to ModelDeployment-like objects expected by the logic below
+  const deployments: ModelDeployment[] = (rows || []).map((r: any) => ({
+    id: r.id,
+    modelId: r.model_id,
+    appName: r.app_name,
+    functionName: r.function_name,
+    region: r.region,
+    gpuClass: r.gpu_class,
+    alwaysWarm: Boolean(r.always_warm),
+    warmDepth: (r.warm_depth || "light") as any,
+    scaledownWindowSec: r.scaledown_window_sec ?? 180,
+    status: r.status,
+    ingressUrl: r.ingress_url,
+    preference: r.preference,
+    scoreCost: r.score_cost ?? 0,
+    scoreSpeed: r.score_speed ?? 0,
+    scoreQuality: r.score_quality ?? 0,
+    scoreGreen: r.score_green ?? 0,
+    secret: r.secret,
+    metadata: r.metadata,
+    createdAt: r.created_at ? new Date(r.created_at) : new Date(),
+    updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
+  })) as any;
 
   if (!deployments.length) {
     return {
@@ -368,9 +390,31 @@ function loadMockModels(): MockModel[] {
 }
 
 async function findAlwaysWarmQwenDeployment(): Promise<ModelDeployment | null> {
-  const ds: DataSource = databaseService.getDataSource();
-  const repo = ds.getRepository(ModelDeployment);
-  const all = await repo.find({ where: { status: "deployed", alwaysWarm: true } as any });
+  const rows = await supabaseService.getModelDeployments({ status: "deployed" });
+  const all: ModelDeployment[] = (rows || [])
+    .filter((r: any) => !!r.always_warm)
+    .map((r: any) => ({
+      id: r.id,
+      modelId: r.model_id,
+      appName: r.app_name,
+      functionName: r.function_name,
+      region: r.region,
+      gpuClass: r.gpu_class,
+      alwaysWarm: Boolean(r.always_warm),
+      warmDepth: (r.warm_depth || "light") as any,
+      scaledownWindowSec: r.scaledown_window_sec ?? 180,
+      status: r.status,
+      ingressUrl: r.ingress_url,
+      preference: r.preference,
+      scoreCost: r.score_cost ?? 0,
+      scoreSpeed: r.score_speed ?? 0,
+      scoreQuality: r.score_quality ?? 0,
+      scoreGreen: r.score_green ?? 0,
+      secret: r.secret,
+      metadata: r.metadata,
+      createdAt: r.created_at ? new Date(r.created_at) : new Date(),
+      updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
+    })) as any;
   if (!all.length) return null;
   const qwen = all.find((d) => /qwen/i.test(d.modelId));
   return qwen || all[0];

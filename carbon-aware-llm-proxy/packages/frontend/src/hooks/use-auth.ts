@@ -70,7 +70,7 @@ export function useLogout() {
       // Clear all queries
       queryClient.clear();
       // Redirect to the login page
-      router.push("/login");
+      router.push("/");
     },
   });
 }

@@ -103,123 +103,33 @@ prod-rebuild: ## Rebuild production images without cache
 	@echo "🔨 Rebuilding production images..."
 	@docker compose -f docker-compose.prod.yml build --no-cache
 
-# Development Tools Commands
-adminer: ## Start adminer database admin tool
-	@echo "🗄️ Starting adminer..."
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d adminer
-	@echo "✅ Adminer available at http://localhost:8080"
-
 redis-admin: ## Start Redis Commander admin tool
 	@echo "📊 Starting Redis Commander..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d redis-commander
 	@echo "✅ Redis Commander available at http://localhost:8081 (admin/admin123)"
 
-dev-tools: ## Start all development tools (adminer, redis-commander)
+dev-tools: ## Start development tools (Redis Commander)
 	@echo "🛠️ Starting development tools..."
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d adminer redis-commander
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml up -d redis-commander
 	@echo "✅ Development tools started:"
-	@echo "   - Adminer: http://localhost:8080"
 	@echo "   - Redis Commander: http://localhost:8081 (admin/admin123)"
-
 dev-tools-down: ## Stop development tools
 	@echo "🛑 Stopping development tools..."
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml stop adminer redis-commander
-
-# Database commands
-migrate: ## Run database migrations (development - inside Docker)
-	@echo "🗄️ Running database migrations..."
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run migration:run
-
+	@docker compose -f docker-compose.yml -f docker-compose.override.yml stop redis-commander
 # Supabase commands
 supabase-schema: ## Apply Supabase schema (run this in Supabase SQL editor)
 	@echo "📋 Supabase schema script location: scripts/supabase-schema.sql"
 	@echo "📝 Copy the contents of this file and run it in your Supabase SQL editor"
 	@echo "🔗 Supabase SQL Editor: https://ttyezboapfpyvlyxiqjw.supabase.co/project/ttyezboapfpyvlyxiqjw/sql"
 
-migrate-to-supabase: ## Migrate data from PostgreSQL to Supabase
-	@echo "🔄 Migrating data from PostgreSQL to Supabase..."
-	@cd carbon-aware-llm-proxy && ts-node scripts/migrate-data-to-supabase.ts
-
-migrate-to-supabase-dry: ## Preview data migration to Supabase (dry run)
-	@echo "🔍 Previewing data migration to Supabase (dry run)..."
-	@cd carbon-aware-llm-proxy && ts-node scripts/migrate-data-to-supabase.ts --dry-run
-
-migrate-to-supabase-table: ## Migrate specific table to Supabase (requires TABLE variable)
-	@if [ -z "$(TABLE)" ]; then \
-		echo "❌ Please specify TABLE variable: make migrate-to-supabase-table TABLE=users"; \
-		exit 1; \
-	fi
-	@echo "🔄 Migrating $(TABLE) table to Supabase..."
-	@cd carbon-aware-llm-proxy && ts-node scripts/migrate-data-to-supabase.ts --table=$(TABLE)
-
-test-supabase: ## Test Supabase connection and basic operations
-	@echo "🧪 Testing Supabase connection..."
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm test -- --testNamePattern="supabase"
-
-migrate-local: ## Run database migrations against LOCAL DB from host
-	@echo "🗄️ Running database migrations (local DB from host)..."
-	@DB_USER=${DB_USERNAME:-postgres} \
-	DB_PASS=${DB_PASSWORD:-postgres} \
-	DB_PORT=${DB_PORT:-5433} \
-	DB_NAME=${DB_NAME:-postgres} \
-	DATABASE_URL=postgres://$$DB_USER:$$DB_PASS@127.0.0.1:$$DB_PORT/$$DB_NAME \
-	yarn workspace @carbon-aware-llm/backend migration:run
-
-migrate-prod: ## Run database migrations (production - requires DATABASE_URL)
-	@if [ -z "$$DATABASE_URL" ]; then echo "❌ Please set DATABASE_URL for production migrations"; exit 1; fi
-	@echo "🗄️ Running database migrations (production)..."
-	@DATABASE_URL="$$DATABASE_URL" yarn workspace @carbon-aware-llm/backend migration:run
-
-migrate-prod-ci: ## Run database migrations for production using the CI script
-	@echo "🗄️ Running production database migrations via local proxy..."
-	@echo "❗️ Assumes 'fly proxy 5432 -a <pg-app-name>' is running in another terminal."
-	@cd .. && DATABASE_URL="postgres://<postgres>:<th2YABc7XXj3yEr>@localhost:5432/<carbon_aware_llm>" bash scripts/migrate-with-retry.sh
-
-migrate-generate: ## Generate new migration
-	@echo "📝 Generating new migration..."
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run migration:generate
-
-migrate-revert: ## Revert last migration
-	@echo "⏪ Reverting last migration..."
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run migration:revert
-
 # Modal deployment
-# Local flow: make migrate-local && make deploy-modal-local
-# Prod flow: Set DATABASE_URL and MODAL_API_KEY, then make migrate-prod && make deploy-modal-prod
-deploy-modal-local: ## Deploy Modal workers against LOCAL DB (override DB_* to customize)
-	@echo "🪄 Deploying Modal workers (local DB)..."
-	@DB_USER=${DB_USERNAME:-postgres} \
-	DB_PASS=${DB_PASSWORD:-postgres} \
-	DB_PORT=${DB_PORT:-5433} \
-	DB_NAME=${DB_NAME:-postgres} \
-	DATABASE_URL=postgres://$$DB_USER:$$DB_PASS@127.0.0.1:$$DB_PORT/$$DB_NAME \
-	yarn workspace @carbon-aware-llm/backend deploy:modal
+deploy-modal: ## Deploy Modal workers using Supabase metadata
+	@echo "🪄 Deploying Modal workers via Supabase metadata..."
+	@yarn workspace @carbon-aware-llm/backend deploy:modal
 
-deploy-modal-local-force: ## Force redeploy Modal workers against LOCAL DB (ignores current deployment status)
-	@echo "🪄 Force deploying Modal workers (local DB)..."
-	@DB_USER=${DB_USERNAME:-postgres} \
-	DB_PASS=${DB_PASSWORD:-postgres} \
-	DB_PORT=${DB_PORT:-5433} \
-	DB_NAME=${DB_NAME:-postgres} \
-	DATABASE_URL=postgres://$$DB_USER:$$DB_PASS@127.0.0.1:$$DB_PORT/$$DB_NAME \
-	yarn workspace @carbon-aware-llm/backend deploy:modal -- --force
-
-deploy-modal-prod: ## Deploy Modal workers against PROD DB (requires DATABASE_URL and MODAL_API_KEY)
-	@if [ -z "$$DATABASE_URL" ]; then echo "❌ Please set DATABASE_URL for production deployment"; exit 1; fi
-	@echo "🪄 Deploying Modal workers (prod DB)..."
-	@env -u DB_HOST -u DB_PORT -u DB_USERNAME -u DB_PASSWORD -u DB_NAME \
-	DATABASE_URL="$$DATABASE_URL" \
-	npm --prefix packages/backend run deploy:modal
-
-deploy-modal-prod-force: ## Force redeploy Modal workers against PROD DB (ignores current deployment status)
-	@if [ -z "$$DATABASE_URL" ]; then echo "❌ Please set DATABASE_URL for production deployment"; exit 1; fi
-	@echo "🪄 Force deploying Modal workers (prod DB)..."
-	@env -u DB_HOST -u DB_PORT -u DB_USERNAME -u DB_PASSWORD -u DB_NAME \
-	DATABASE_URL="$$DATABASE_URL" \
-	npm --prefix packages/backend run deploy:modal -- --force
-
-deploy-modal: ## Alias to deploy-modal-local (back-compat)
-	@$(MAKE) deploy-modal-local
+deploy-modal-force: ## Force redeploy Modal workers regardless of status
+	@echo "🪄 Force deploying Modal workers via Supabase metadata..."
+	@yarn workspace @carbon-aware-llm/backend deploy:modal -- --force
 
 deploy-modal-docker: ## Deploy Modal workers inside backend container (requires Modal CLI in container)
 	@echo "🪄 Deploying Modal workers (docker exec)..."
@@ -229,18 +139,12 @@ deploy-modal-docker-force: ## Force redeploy Modal workers inside backend contai
 	@echo "🪄 Force deploying Modal workers (docker exec)..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run deploy:modal -- --force
 
-sync-modal: ## Sync Modal deployments with database
-	@echo "🔄 Syncing Modal deployments with database..."
-	@DB_HOST=127.0.0.1 \
-	DB_PORT=${DB_PORT:-5432} \
-	DB_USERNAME=${DB_USERNAME:-postgres} \
-	DB_PASSWORD=${DB_PASSWORD:-postgres} \
-	DB_NAME=${DB_NAME:-postgres} \
-	DATABASE_URL=postgres://$${DB_USERNAME}:$${DB_PASSWORD}@$${DB_HOST}:$${DB_PORT}/$${DB_NAME} \
-	npm --prefix packages/backend run sync:modal
+sync-modal: ## Sync Modal deployments with Supabase state
+	@echo "🔄 Syncing Modal deployments with Supabase..."
+	@yarn workspace @carbon-aware-llm/backend sync:modal
 
-sync-modal-docker: ## Sync Modal deployments with database (inside Docker)
-	@echo "🔄 Syncing Modal deployments with database (Docker)..."
+sync-modal-docker: ## Sync Modal deployments with Supabase (inside Docker)
+	@echo "🔄 Syncing Modal deployments with Supabase (Docker)..."
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec backend npm run sync:modal
 
 # Cloud Deployment Commands
@@ -253,28 +157,6 @@ deploy-vercel: ## Deploy frontend to Vercel
 	@echo "🚀 Deploying frontend to Vercel..."
 	@cd packages/frontend && vercel --prod
 	@echo "✅ Frontend deployment to Vercel completed."
-
-# Backup and restore
-backup: ## Create database backup
-	@echo "💾 Creating database backup..."
-	@mkdir -p backups
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec postgres pg_dump -U postgres carbon_aware_llm > backups/backup_$(shell date +%Y%m%d_%H%M%S).sql
-	@echo "✅ Backup created in backups/ directory"
-
-backup-prod: ## Create production database backup
-	@echo "💾 Creating production database backup..."
-	@mkdir -p backups
-	@docker compose -f docker-compose.prod.yml exec postgres pg_dump -U postgres carbon_aware_llm > backups/prod_backup_$(shell date +%Y%m%d_%H%M%S).sql
-	@echo "✅ Production backup created in backups/ directory"
-
-restore: ## Restore database from backup (requires BACKUP_FILE variable)
-	@if [ -z "$(BACKUP_FILE)" ]; then \
-		echo "❌ Please specify BACKUP_FILE variable: make restore BACKUP_FILE=backups/backup_file.sql"; \
-		exit 1; \
-	fi
-	@echo "🔄 Restoring database from $(BACKUP_FILE)..."
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec -T postgres psql -U postgres carbon_aware_llm < $(BACKUP_FILE)
-	@echo "✅ Database restored successfully"
 
 # Testing commands
 test: ## Run tests in development environment
@@ -340,14 +222,8 @@ logs-backend: ## Show backend logs
 logs-frontend: ## Show frontend logs
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f frontend
 
-logs-db: ## Show database logs
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f postgres
-
 logs-redis: ## Show Redis logs
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f redis
-
-logs-adminer: ## Show adminer logs
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f adminer
 
 logs-redis-commander: ## Show Redis Commander logs
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml logs -f redis-commander
@@ -358,9 +234,6 @@ shell-backend: ## Access backend container shell
 
 shell-frontend: ## Access frontend container shell
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec frontend sh
-
-shell-db: ## Access database container shell
-	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec postgres psql -U postgres carbon_aware_llm
 
 shell-redis: ## Access Redis container shell
 	@docker compose -f docker-compose.yml -f docker-compose.override.yml exec redis redis-cli

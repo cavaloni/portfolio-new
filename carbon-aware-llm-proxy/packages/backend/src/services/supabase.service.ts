@@ -55,6 +55,161 @@ export class SupabaseService {
     return data;
   }
 
+  public async getCarbonFootprintsByModel(modelId: string) {
+    const { data, error } = await this.client!
+      .from('carbon_footprints')
+      .select('*')
+      .eq('model_id', modelId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('Error fetching carbon footprints by model:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  public async deleteCarbonFootprintsByModelId(modelId: string) {
+    const serviceClient = supabaseConfig.getServiceRoleClient();
+    const { error } = await serviceClient
+      .from('carbon_footprints')
+      .delete()
+      .eq('model_id', modelId);
+
+    if (error) {
+      logger.error('Error deleting carbon footprints by model:', error);
+      throw error;
+    }
+
+    return { success: true };
+  }
+
+  public async getCarbonFootprintByModelAndRegion(modelId: string, region?: string) {
+    let query = this.client!
+      .from('carbon_footprints')
+      .select('*')
+      .eq('model_id', modelId)
+      .order('created_at', { ascending: false });
+
+    if (region) {
+      query = query.eq('region', region);
+    }
+
+    // Get the most recent record
+    const { data, error } = await query.limit(1).maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      logger.error('Error fetching carbon footprint by model/region:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  public async updateCarbonFootprint(id: string, updates: any) {
+    const serviceClient = supabaseConfig.getServiceRoleClient();
+    const { data, error } = await serviceClient
+      .from('carbon_footprints')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('Error updating carbon footprint:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  public async getModelByProviderAndId(provider: string, id: string) {
+    const { data, error } = await this.client!
+      .from('model_info')
+      .select('*')
+      .eq('provider', provider)
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      logger.error('Error fetching model by provider and id:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  // Messages with a "before" timestamp cursor (newest first)
+  public async getMessagesByConversationIdWithBefore(conversationId: string, limit: number = 100, before?: string) {
+    let query = this.client!
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (before) {
+      query = query.lt('created_at', before);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      logger.error('Error fetching messages with before cursor:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  // Variant that also returns total count for pagination UI
+  public async getConversationsByUserIdWithCount(userId: string, limit: number = 50, offset: number = 0) {
+    const { data, error, count } = await this.client!
+      .from('conversations')
+      .select('*', { count: 'exact' })
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      logger.error('Error fetching conversations (with count):', error);
+      throw error;
+    }
+
+    return { data, count: count ?? 0 };
+  }
+
+  public async getModelDeploymentById(id: string) {
+    const { data, error } = await this.client!
+      .from('model_deployments')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      logger.error('Error fetching model deployment by id:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  public async getModelDeploymentsByIds(ids: string[]) {
+    if (!ids.length) return [] as any[];
+    const { data, error } = await this.client!
+      .from('model_deployments')
+      .select('*')
+      .in('id', ids);
+
+    if (error) {
+      logger.error('Error fetching model deployments by ids:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
   public async getUserById(id: string) {
     const { data, error } = await this.client!
       .from('users')
@@ -212,9 +367,53 @@ export class SupabaseService {
     return data;
   }
 
+  public async getMessageById(id: string) {
+    const { data, error } = await this.client!
+      .from('messages')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      logger.error('Error fetching message by id:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  public async deleteConversation(id: string) {
+    const { error } = await this.client!
+      .from('conversations')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      logger.error('Error deleting conversation:', error);
+      throw error;
+    }
+
+    return { success: true };
+  }
+
+  public async deleteMessage(id: string) {
+    const { error } = await this.client!
+      .from('messages')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      logger.error('Error deleting message:', error);
+      throw error;
+    }
+
+    return { success: true };
+  }
+
   // Model operations
   public async createModelInfo(modelData: any) {
-    const { data, error } = await this.client!
+    const serviceClient = supabaseConfig.getServiceRoleClient();
+    const { data, error } = await serviceClient
       .from('model_info')
       .insert(modelData)
       .select()
@@ -247,6 +446,8 @@ export class SupabaseService {
     provider?: string;
     isActive?: boolean;
     isRecommended?: boolean;
+    capability?: string;
+    search?: string;
     limit?: number;
     offset?: number;
   }) {
@@ -260,6 +461,17 @@ export class SupabaseService {
     }
     if (filters?.isRecommended !== undefined) {
       query = query.eq('is_recommended', filters.isRecommended);
+    }
+    if (filters?.capability) {
+      // For array columns, supabase-js supports .contains([...])
+      // If capabilities is jsonb or text[], this should work
+      query = (query as any).contains('capabilities', [filters.capability]);
+    }
+    if (filters?.search) {
+      const term = `%${filters.search}%`;
+      query = query.or(
+        `name.ilike.${term},description.ilike.${term},provider.ilike.${term}`,
+      );
     }
 
     query = query.order('updated_at', { ascending: false });
@@ -279,8 +491,56 @@ export class SupabaseService {
     return data;
   }
 
+  public async getModelsWithCount(filters?: {
+    provider?: string;
+    isActive?: boolean;
+    isRecommended?: boolean;
+    capability?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    let query = this.client!.from('model_info').select('*', { count: 'exact' });
+
+    if (filters?.provider) {
+      query = query.eq('provider', filters.provider);
+    }
+    if (filters?.isActive !== undefined) {
+      query = query.eq('is_active', filters.isActive);
+    }
+    if (filters?.isRecommended !== undefined) {
+      query = query.eq('is_recommended', filters.isRecommended);
+    }
+    if (filters?.capability) {
+      query = (query as any).contains('capabilities', [filters.capability]);
+    }
+    if (filters?.search) {
+      const term = `%${filters.search}%`;
+      query = query.or(
+        `name.ilike.${term},description.ilike.${term},provider.ilike.${term}`,
+      );
+    }
+
+    query = query.order('updated_at', { ascending: false });
+
+    if (filters?.limit) {
+      const offset = filters.offset || 0;
+      query = query.range(offset, offset + filters.limit - 1);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      logger.error('Error fetching models (with count):', error);
+      throw error;
+    }
+
+    return { data, count: count ?? 0 };
+  }
+
   public async updateModelInfo(id: string, updates: any) {
-    const { data, error } = await this.client!
+    const serviceClient = supabaseConfig.getServiceRoleClient();
+    const { data, error } = await serviceClient
       .from('model_info')
       .update(updates)
       .eq('id', id)
@@ -295,9 +555,25 @@ export class SupabaseService {
     return data;
   }
 
+  public async deleteModelInfo(id: string) {
+    const serviceClient = supabaseConfig.getServiceRoleClient();
+    const { error } = await serviceClient
+      .from('model_info')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      logger.error('Error deleting model info:', error);
+      throw error;
+    }
+
+    return { success: true };
+  }
+
   // Carbon footprint operations
   public async createCarbonFootprint(footprintData: any) {
-    const { data, error } = await this.client!
+    const serviceClient = supabaseConfig.getServiceRoleClient();
+    const { data, error } = await serviceClient
       .from('carbon_footprints')
       .insert(footprintData)
       .select()
@@ -346,6 +622,7 @@ export class SupabaseService {
     modelId?: string;
     region?: string;
     status?: string;
+    alwaysWarm?: boolean;
     limit?: number;
     offset?: number;
   }) {
@@ -359,6 +636,9 @@ export class SupabaseService {
     }
     if (filters?.status) {
       query = query.eq('status', filters.status);
+    }
+    if (filters?.alwaysWarm !== undefined) {
+      query = query.eq('always_warm', filters.alwaysWarm);
     }
 
     query = query.order('preference', { ascending: true });

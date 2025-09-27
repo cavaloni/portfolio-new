@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, ReactNode } from "react";
+import { createContext, useContext, useMemo, ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useLogin, useLogout, useSignup } from "@/hooks/use-auth";
 import { UserProfile } from "@/types";

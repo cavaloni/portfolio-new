@@ -1,25 +1,7 @@
-import { In, Like, Repository } from "typeorm";
-import { databaseService } from "./database.service";
-import { ModelInfo } from "../entities/ModelInfo";
 import { logger } from "../utils/logger";
-import { CarbonFootprint } from "../entities/CarbonFootprint";
-
+import { supabaseService } from "./supabase.service";
 class ModelService {
-  private modelRepository!: Repository<ModelInfo>;
-  private carbonFootprintRepository!: Repository<CarbonFootprint>;
-
-  constructor() {
-    this.initializeRepositories();
-  }
-
-  private initializeRepositories() {
-    this.modelRepository = databaseService
-      .getDataSource()
-      .getRepository(ModelInfo);
-    this.carbonFootprintRepository = databaseService
-      .getDataSource()
-      .getRepository(CarbonFootprint);
-  }
+  constructor() {}
 
   async getAllModels(
     filters: {
@@ -33,90 +15,90 @@ class ModelService {
     const { provider, capability, search, page = 1, limit = 20 } = filters;
     const skip = (page - 1) * limit;
 
-    const query = this.modelRepository.createQueryBuilder("model");
-
-    // Apply filters
-    if (provider) {
-      query.andWhere("model.provider = :provider", { provider });
-    }
-
-    if (capability) {
-      query.andWhere(":capability = ANY(model.capabilities)", { capability });
-    }
-
-    if (search) {
-      query.andWhere(
-        `(
-        model.name ILIKE :search OR 
-        model.description ILIKE :search OR
-        model.provider ILIKE :search
-      )`,
-        { search: `%${search}%` },
-      );
-    }
-
-    // Get total count for pagination
-    const total = await query.getCount();
-
-    // Get paginated results
-    const models = await query
-      .orderBy("model.updatedAt", "DESC")
-      .skip(skip)
-      .take(limit)
-      .getMany();
+    const { data, count } = await supabaseService.getModelsWithCount({
+      provider,
+      capability,
+      search,
+      limit,
+      offset: skip,
+    });
 
     return {
-      data: models,
+      data: data || [],
       meta: {
-        total,
+        total: count || 0,
         page,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil(((count || 0) as number) / limit),
         limit,
       },
     };
   }
 
   async getModelById(id: string) {
-    return await this.modelRepository.findOne({
-      where: { id },
-      relations: ["carbonFootprints"],
-    });
+    return await supabaseService.getModelById(id);
   }
 
   async getModelByProviderId(provider: string, modelId: string) {
-    return await this.modelRepository.findOne({
-      where: { provider, id: modelId },
-      relations: ["carbonFootprints"],
-    });
+    return await supabaseService.getModelByProviderAndId(provider, modelId);
   }
 
-  async createModel(data: Partial<ModelInfo>) {
-    const model = this.modelRepository.create(data);
-    return await this.modelRepository.save(model);
+  async createModel(data: Record<string, any>) {
+    const mapped: any = {
+      ...data,
+      // camelCase to snake_case mappings
+      context_window: (data as any).contextWindow,
+      max_tokens: (data as any).maxTokens,
+      training_data: (data as any).trainingData,
+      knowledge_cutoff: (data as any).knowledgeCutoff,
+      flops_per_token: (data as any).flopsPerToken,
+      energy_per_token: (data as any).energyPerToken,
+      tokens_per_second: (data as any).tokensPerSecond,
+      cost_per_1k_tokens: (data as any).costPer1kTokens,
+      is_recommended: (data as any).isRecommended,
+      is_active: (data as any).isActive,
+      last_updated: (data as any).lastUpdated,
+      published_date: (data as any).publishedDate,
+    };
+    // Remove undefined values to avoid overwriting with null unintentionally
+    Object.keys(mapped).forEach((k) =>
+      mapped[k] === undefined ? delete mapped[k] : null,
+    );
+    return await supabaseService.createModelInfo(mapped);
   }
 
-  async updateModel(id: string, updates: Partial<ModelInfo>) {
-    await this.modelRepository.update(id, updates);
+  async updateModel(id: string, updates: Record<string, any>) {
+    const mapped: any = {
+      ...updates,
+      context_window: (updates as any).contextWindow,
+      max_tokens: (updates as any).maxTokens,
+      training_data: (updates as any).trainingData,
+      knowledge_cutoff: (updates as any).knowledgeCutoff,
+      flops_per_token: (updates as any).flopsPerToken,
+      energy_per_token: (updates as any).energyPerToken,
+      tokens_per_second: (updates as any).tokensPerSecond,
+      cost_per_1k_tokens: (updates as any).costPer1kTokens,
+      is_recommended: (updates as any).isRecommended,
+      is_active: (updates as any).isActive,
+      last_updated: (updates as any).lastUpdated,
+      published_date: (updates as any).publishedDate,
+    };
+    Object.keys(mapped).forEach((k) =>
+      mapped[k] === undefined ? delete mapped[k] : null,
+    );
+    await supabaseService.updateModelInfo(id, mapped);
     return await this.getModelById(id);
   }
 
   async deleteModel(id: string) {
-    const result = await this.modelRepository.delete(id);
-    return (result.affected ?? 0) > 0;
+    await supabaseService.deleteModelInfo(id);
+    return true;
   }
 
   async getModelCarbonFootprint(modelId: string, region?: string) {
-    const query = this.carbonFootprintRepository
-      .createQueryBuilder("footprint")
-      .where("footprint.modelId = :modelId", { modelId });
-
-    if (region) {
-      query.andWhere("footprint.region = :region", { region });
-    }
-
-    query.orderBy("footprint.updatedAt", "DESC");
-
-    return await query.getOne();
+    return await supabaseService.getCarbonFootprintByModelAndRegion(
+      modelId,
+      region,
+    );
   }
 
   async updateModelCarbonFootprint(
@@ -132,43 +114,34 @@ class ModelService {
   ) {
     const { region, emissions, energy, intensity, modelName, provider } = data;
 
-    // Find the model first to ensure it exists and get its data
-    const model = await this.modelRepository.findOne({
-      where: { id: modelId },
-    });
+    // Ensure model exists
+    const model = await supabaseService.getModelById(modelId);
+    if (!model) throw new Error(`Model with ID ${modelId} not found`);
 
-    if (!model) {
-      throw new Error(`Model with ID ${modelId} not found`);
-    }
+    const existing = await supabaseService.getCarbonFootprintByModelAndRegion(
+      modelId,
+      region,
+    );
 
-    // Find existing footprint for this model and region
-    let footprint = await this.carbonFootprintRepository.findOne({
-      where: { model: { id: modelId }, region },
-      relations: ["model"],
-    });
-
-    if (footprint) {
-      // Update existing footprint
-      footprint.emissions = emissions;
-      footprint.energy = energy;
-      if (intensity !== undefined) footprint.intensity = intensity;
-      if (modelName) footprint.modelName = modelName;
-      if (provider) footprint.provider = provider;
+    if (existing) {
+      return await supabaseService.updateCarbonFootprint(existing.id, {
+        emissions,
+        energy,
+        ...(intensity !== undefined ? { intensity } : {}),
+        ...(modelName ? { model_name: modelName } : {}),
+        ...(provider ? { provider } : {}),
+      });
     } else {
-      // Create new footprint with the model relationship
-      footprint = this.carbonFootprintRepository.create({
-        modelId: modelId, // Set the model relationship using modelId
+      return await supabaseService.createCarbonFootprint({
+        model_id: modelId,
         region,
         emissions,
         energy,
-        intensity: intensity, // Can be undefined, which is fine since the column is nullable
-        modelName: modelName || model.name, // Use provided name or fallback to model's name
-        provider: provider || model.provider, // Use provided provider or fallback to model's provider
-        model: model, // Also set the relation object for type safety
+        intensity: intensity,
+        model_name: modelName || model.name,
+        provider: provider || model.provider,
       });
     }
-
-    return this.carbonFootprintRepository.save(footprint);
   }
 
   async getRecommendedModels(
@@ -176,27 +149,20 @@ class ModelService {
     region?: string,
     limit: number = 5,
   ) {
-    // Base query to find models with the required capability
-    const query = this.modelRepository
-      .createQueryBuilder("model")
-      .where(":capability = ANY(model.capabilities)", { capability })
-      .orderBy("model.updatedAt", "DESC")
-      .take(limit);
+    // Fetch by capability and sort by carbon intensity if region provided
+    const models =
+      (await supabaseService.getModels({ capability, isActive: true, limit })) || [];
 
-    // If region is provided, join with carbon footprints and order by carbon efficiency
     if (region) {
-      query
-        .leftJoin(
-          "model.carbonFootprints",
-          "footprint",
-          "footprint.region = :region",
-          { region },
-        )
-        .orderBy("footprint.emissions", "ASC")
-        .addOrderBy("model.updatedAt", "DESC");
+      // Prefer lower carbon_intensity.avg
+      models.sort(
+        (a: any, b: any) =>
+          (a?.carbon_intensity?.avg ?? Number.POSITIVE_INFINITY) -
+          (b?.carbon_intensity?.avg ?? Number.POSITIVE_INFINITY),
+      );
     }
 
-    return await query.getMany();
+    return models.slice(0, limit);
   }
 
   async syncWithProvider(
@@ -211,15 +177,10 @@ class ModelService {
       isActive?: boolean;
     }>,
   ) {
-    const queryRunner = databaseService.getDataSource().createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
     try {
       // Get existing models for this provider
-      const existingModels = await queryRunner.manager.find(ModelInfo, {
-        where: { provider },
-      });
+      const existingModels =
+        (await supabaseService.getModels({ provider })) || [];
 
       const processedIds = new Set<string>();
       const results = {
@@ -228,62 +189,62 @@ class ModelService {
         deactivated: 0,
       };
 
-      // Process each model from the provider
       for (const modelData of models) {
         const { providerModelId, ...modelProps } = modelData;
-        const modelId = `${provider}:${providerModelId}`; // Create a unique ID using provider and model ID
+        const modelId = `${provider}:${providerModelId}`;
 
-        // Find existing model by ID (which is now provider:providerModelId)
-        let model = await queryRunner.manager.findOne(ModelInfo, {
-          where: { id: modelId },
-        });
+        const existing = await supabaseService.getModelById(modelId);
+        const mapped: any = {
+          id: modelId,
+          provider,
+          provider_model_id: providerModelId,
+          ...modelProps,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        };
 
-        if (model) {
-          // Update existing model
-          Object.assign(model, {
-            ...modelProps,
-            providerModelId,
-            isActive: true,
-            updatedAt: new Date(),
-          });
+        // Snake-case mapping for known fields in modelProps
+        if ((modelProps as any).contextWindow !== undefined)
+          mapped.context_window = (modelProps as any).contextWindow;
+        if ((modelProps as any).maxTokens !== undefined)
+          mapped.max_tokens = (modelProps as any).maxTokens;
+        if ((modelProps as any).flopsPerToken !== undefined)
+          mapped.flops_per_token = (modelProps as any).flopsPerToken;
+        if ((modelProps as any).energyPerToken !== undefined)
+          mapped.energy_per_token = (modelProps as any).energyPerToken;
+        if ((modelProps as any).tokensPerSecond !== undefined)
+          mapped.tokens_per_second = (modelProps as any).tokensPerSecond;
+        if ((modelProps as any).costPer1kTokens !== undefined)
+          mapped.cost_per_1k_tokens = (modelProps as any).costPer1kTokens;
+
+        if (existing) {
+          await supabaseService.updateModelInfo(modelId, mapped);
           results.updated++;
         } else {
-          // Create new model
-          model = queryRunner.manager.create(ModelInfo, {
-            id: modelId,
-            provider,
-            providerModelId,
-            ...modelProps,
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
+          mapped.created_at = new Date().toISOString();
+          await supabaseService.createModelInfo(mapped);
           results.created++;
         }
-
-        await queryRunner.manager.save(ModelInfo, model);
 
         processedIds.add(providerModelId);
       }
 
       // Deactivate models that weren't in the sync data
       for (const model of existingModels) {
-        if (!processedIds.has(model.providerModelId) && model.isActive) {
-          model.isActive = false;
-          model.updatedAt = new Date();
-          await queryRunner.manager.save(ModelInfo, model);
+        const pmid = (model as any).provider_model_id || (model as any).providerModelId;
+        if (!processedIds.has(pmid) && model.is_active !== false) {
+          await supabaseService.updateModelInfo(model.id, {
+            is_active: false,
+            updated_at: new Date().toISOString(),
+          });
           results.deactivated++;
         }
       }
 
-      await queryRunner.commitTransaction();
       return results;
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       logger.error("Error syncing models with provider:", error);
       throw new Error("Failed to sync models with provider");
-    } finally {
-      await queryRunner.release();
     }
   }
 }

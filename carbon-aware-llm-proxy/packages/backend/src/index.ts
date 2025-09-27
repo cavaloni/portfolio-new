@@ -1,5 +1,4 @@
 import "dotenv/config";
-import "reflect-metadata";
 import express from "express";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -11,7 +10,6 @@ import { rateLimiterMiddleware } from "./middleware/rateLimiter";
 import { healthCheckRouter } from "./routes/healthCheck";
 import { v1Router } from "./routes/v1";
 import { supabaseService } from "./services/supabase.service";
-import { databaseService } from "./services/database.service";
 import { webSocketService } from "./services/websocket.service";
 import { redisService } from "./services/redis.service";
 import passport from "passport";
@@ -115,24 +113,7 @@ const server = createServer(app);
 
 const startServer = async () => {
   try {
-    // Initialize Supabase service (optional - don't fail if it fails)
-    try {
-      await supabaseService.initialize();
-    } catch (error) {
-      logger.warn("Supabase initialization failed, continuing without Supabase:", error);
-    }
-
-    // Initialize Postgres (TypeORM) database only if SKIP_DB is not set to true
-    if (process.env.SKIP_DB !== "true") {
-      try {
-        await databaseService.initialize();
-      } catch (error) {
-        logger.error("Failed to initialize database service:", error);
-        throw error;
-      }
-    } else {
-      logger.info("Skipping database initialization due to SKIP_DB=true");
-    }
+    await supabaseService.initialize();
 
     // Initialize Redis connection
     await redisService.connect();

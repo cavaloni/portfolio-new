@@ -1,9 +1,8 @@
 #!/usr/bin/env ts-node
 
 import { execSync } from 'child_process';
-import { dataSource } from '../src/config/database';
-import { ModelDeployment } from '../src/entities/ModelDeployment';
 import { logger } from '../src/utils/logger';
+import { supabaseService } from '../src/services/supabase.service';
 
 interface ModalApp {
   name: string;
@@ -81,14 +80,12 @@ async function getDeploymentIngress(appName: string, functionName: string): Prom
 
 async function syncDeployments() {
   try {
-    await dataSource.initialize();
-    logger.info('Database connected');
+    await supabaseService.initialize();
+    logger.info('Supabase connected');
 
-    const deploymentRepo = dataSource.getRepository(ModelDeployment);
-    
-    // Get all deployments from database
-    const dbDeployments = await deploymentRepo.find();
-    logger.info(`Found ${dbDeployments.length} deployments in database`);
+    const dbDeployments = await supabaseService.getModelDeployments();
+    const deployments = dbDeployments || [];
+    logger.info(`Found ${deployments.length} deployments in database`);
 
     // Get all Modal apps (best-effort; script will still try direct lookup per deployment)
     const modalApps = await getModalApps();
@@ -96,15 +93,22 @@ async function syncDeployments() {
     let updated = 0;
     let found = 0;
     
-    for (const deployment of dbDeployments) {
-      logger.info(`\nChecking deployment: ${deployment.appName}`);
-      logger.info(`  Model: ${deployment.modelId}`);
-      logger.info(`  Preference: ${deployment.preference}`);
-      logger.info(`  Current status: ${deployment.status}`);
-      logger.info(`  Current URL: ${deployment.ingressUrl || 'null'}`);
+    for (const deployment of deployments) {
+      const appName = deployment.app_name as string;
+      const modelId = deployment.model_id as string;
+      const preference = deployment.preference as string | null;
+      const status = deployment.status as string;
+      const ingressUrl = deployment.ingress_url as string | null;
+      const functionName = deployment.function_name as string | null;
+
+      logger.info(`\nChecking deployment: ${appName}`);
+      logger.info(`  Model: ${modelId}`);
+      logger.info(`  Preference: ${preference}`);
+      logger.info(`  Current status: ${status}`);
+      logger.info(`  Current URL: ${ingressUrl || 'null'}`);
       
       // Try to locate Modal app via list for visibility, but proceed regardless
-      const modalApp = modalApps.find(app => app.name === deployment.appName);
+      const modalApp = modalApps.find(app => app.name === appName);
       if (modalApp) {
         found++;
         logger.info(`  ✅ Found Modal app in list: ${modalApp.name} (${modalApp.status})`);
@@ -113,27 +117,27 @@ async function syncDeployments() {
       }
 
       // Get the ingress URL directly via Python helper
-      const ingressUrl = await getDeploymentIngress(deployment.appName, deployment.functionName);
+      const nextIngressUrl = await getDeploymentIngress(appName, functionName || '')
 
       let needsUpdate = false;
-      const updates: Partial<ModelDeployment> = {};
+      const updates: Record<string, any> = {};
 
       // If we got a URL, we can confidently mark as deployed
-      if (ingressUrl) {
-        if (deployment.status !== 'deployed') {
+      if (nextIngressUrl) {
+        if (status !== 'deployed') {
           updates.status = 'deployed';
           needsUpdate = true;
-          logger.info(`  📝 Status: ${deployment.status} → deployed`);
+          logger.info(`  📝 Status: ${status} → deployed`);
         }
-        if (ingressUrl !== deployment.ingressUrl) {
-          updates.ingressUrl = ingressUrl;
+        if (nextIngressUrl !== ingressUrl) {
+          updates.ingress_url = nextIngressUrl;
           needsUpdate = true;
-          logger.info(`  📝 URL: ${deployment.ingressUrl || 'null'} → ${ingressUrl}`);
+          logger.info(`  📝 URL: ${ingressUrl || 'null'} → ${nextIngressUrl}`);
         }
       }
 
       if (needsUpdate) {
-        await deploymentRepo.update(deployment.id, updates);
+        await supabaseService.updateModelDeployment(deployment.id, updates);
         updated++;
         logger.info(`  ✅ Updated deployment in database`);
       } else {
@@ -150,7 +154,7 @@ async function syncDeployments() {
     
     // List unmatched Modal apps
     const unmatchedApps = modalApps.filter(app => 
-      !dbDeployments.some(dep => dep.appName === app.name)
+      !deployments.some(dep => dep.app_name === app.name)
     );
     
     if (unmatchedApps.length > 0) {
@@ -164,9 +168,7 @@ async function syncDeployments() {
     logger.error('Sync failed:', error);
     process.exit(1);
   } finally {
-    if (dataSource.isInitialized) {
-      await dataSource.destroy();
-    }
+    // Supabase client requires no explicit teardown
   }
 }
 

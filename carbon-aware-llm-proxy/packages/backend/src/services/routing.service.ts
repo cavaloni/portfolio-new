@@ -1,9 +1,8 @@
-import { getRepository } from "typeorm";
-import { ModelInfo } from "../entities/ModelInfo";
 import { modelFootprintService } from "./model-footprint.service";
 import { carbonService } from "./carbon.service";
 import { logger } from "../utils/logger";
 import { redisService } from "./redis.service";
+import { supabaseService } from "./supabase.service";
 
 interface UserPreferences {
   weights?: {
@@ -114,8 +113,8 @@ class RoutingService {
           },
           metrics: {
             carbonPerToken: footprint.carbonIntensityAvg / 1e6, // Convert to gCO2eq/token
-            tokensPerSecond: model.getTokensPerSecond(),
-            costPer1kTokens: model.getCostPer1kTokens(),
+            tokensPerSecond: Number((model as any).tokens_per_second ?? (model as any).tokensPerSecond ?? null),
+            costPer1kTokens: Number((model as any).cost_per_1k_tokens ?? (model as any).costPer1kTokens ?? null),
           },
         };
       }),
@@ -129,14 +128,29 @@ class RoutingService {
     return validScoredModels[0]?.model || null;
   }
 
-  // Get eligible models based on required capabilities and preferred providers
+  // Get eligible models based on required capabilities and preferred providers (Supabase)
   private async getEligibleModels(options: {
     requiredCapabilities: string[];
     preferredProviders: string[];
-  }): Promise<ModelInfo[]> {
-    // In a real implementation, this would query the database
-    // For now, return a mock list of models
-    return [];
+  }): Promise<any[]> {
+    const { requiredCapabilities, preferredProviders } = options;
+
+    // Strategy: fetch a wider set (active models) then filter in-memory for multi-capability/provider
+    const base = (await supabaseService.getModels({ isActive: true })) || [];
+
+    const providerFiltered = preferredProviders && preferredProviders.length
+      ? base.filter((m: any) => preferredProviders.includes((m.provider as string) || ""))
+      : base;
+
+    if (!requiredCapabilities || requiredCapabilities.length === 0) {
+      return providerFiltered;
+    }
+
+    return providerFiltered.filter((m: any) => {
+      const caps: string[] = (m.capabilities as string[]) || [];
+      // ensure model includes all required capabilities
+      return requiredCapabilities.every((c) => caps.includes(c));
+    });
   }
 
   // Calculate carbon score (0-1, higher is better)
@@ -156,13 +170,13 @@ class RoutingService {
   }
 
   // Calculate performance score (0-1, higher is better)
-  private calculatePerformanceScore(model: ModelInfo): number {
+  private calculatePerformanceScore(model: any): number {
     // Base score on tokens per second (normalized to 0-1)
     // Assume a reasonable range for tokens per second (e.g., 1 to 1000)
     const minTps = 1;
     const maxTps = 1000;
 
-    const tps = model.getTokensPerSecond();
+    const tps = Number((model as any).tokens_per_second ?? (model as any).tokensPerSecond ?? 0) || 0;
     const tpsScore = (tps - minTps) / (maxTps - minTps);
 
     // Cap the score between 0 and 1
@@ -170,13 +184,13 @@ class RoutingService {
   }
 
   // Calculate cost score (lower cost is better, so we invert it)
-  private calculateCostScore(model: ModelInfo): number {
+  private calculateCostScore(model: any): number {
     // Normalize cost to a 0-1 scale where 0 is the most expensive and 1 is the cheapest
     // We'll assume a reasonable range for cost (e.g., $0.0005 to $0.20 per 1k tokens)
     const minCost = 0.0005;
     const maxCost = 0.2;
 
-    const cost = model.getCostPer1kTokens();
+    const cost = Number((model as any).cost_per_1k_tokens ?? (model as any).costPer1kTokens ?? 0) || 0;
 
     // Invert and normalize the cost
     return Math.max(0, Math.min(1, 1 - (cost - minCost) / (maxCost - minCost)));
@@ -251,12 +265,12 @@ class RoutingService {
     region?: string,
   ): Promise<
     Array<{
-      model: ModelInfo;
+      model: any;
       score: number;
       metrics: {
         carbonPerToken: number;
-        tokensPerSecond: number;
-        costPer1kTokens: number;
+        tokensPerSecond: number | null;
+        costPer1kTokens: number | null;
       };
     }>
   > {
@@ -292,8 +306,8 @@ class RoutingService {
           score: 1.0, // This would be calculated based on the scoring algorithm
           metrics: {
             carbonPerToken: footprint.carbonIntensityAvg / 1e6,
-            tokensPerSecond: optimalModel.getTokensPerSecond(),
-            costPer1kTokens: optimalModel.getCostPer1kTokens(),
+            tokensPerSecond: Number((optimalModel as any).tokens_per_second ?? (optimalModel as any).tokensPerSecond ?? null),
+            costPer1kTokens: Number((optimalModel as any).cost_per_1k_tokens ?? (optimalModel as any).costPer1kTokens ?? null),
           },
         },
       ];
@@ -312,12 +326,11 @@ class RoutingService {
     carbonGrams: number;
     costDollars: number;
     durationSeconds: number;
-    model: ModelInfo;
+    model: any;
   } | null> {
     try {
-      // Get the model using getRepository
-      const modelRepository = getRepository(ModelInfo);
-      const model = await modelRepository.findOne({ where: { id: modelId } });
+      // Get the model via Supabase
+      const model = await supabaseService.getModelById(modelId);
       if (!model) {
         return null;
       }
@@ -349,10 +362,12 @@ class RoutingService {
       const carbonGrams = energyKwh * intensity; // gCO2e = kWh * gCO2e/kWh
 
       // Calculate cost
-      const costDollars = (tokenCount / 1000) * model.getCostPer1kTokens();
+      const costPer1k = Number((model as any).cost_per_1k_tokens ?? (model as any).costPer1kTokens ?? 0) || 0;
+      const costDollars = (tokenCount / 1000) * costPer1k;
 
       // Calculate duration (simplified)
-      const durationSeconds = tokenCount / model.getTokensPerSecond();
+      const tps = Number((model as any).tokens_per_second ?? (model as any).tokensPerSecond ?? 1) || 1;
+      const durationSeconds = tokenCount / tps;
 
       return {
         carbonGrams,

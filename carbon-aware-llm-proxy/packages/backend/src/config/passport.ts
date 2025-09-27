@@ -2,11 +2,12 @@ import passport from "passport";
 import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 import { Strategy as FacebookStrategy, Profile as FacebookProfile } from "passport-facebook";
 import MicrosoftStrategy from "passport-microsoft";
-import { databaseService } from "../services/database.service";
-import { User } from "../entities/User";
+import { supabaseConfig } from "../config/supabase";
 import { logger } from "../utils/logger";
 
-// Helper to upsert user using TypeORM for now (plan to migrate to Supabase later)
+type OAuthProfile = Record<string, any> | null;
+
+// Helper to upsert user using Supabase service role client
 async function upsertOAuthUser({
   provider,
   oauthId,
@@ -20,32 +21,87 @@ async function upsertOAuthUser({
   email?: string | null;
   name?: string | null;
   avatarUrl?: string | null;
-  profile: any;
+  profile: OAuthProfile;
 }) {
-  const repo = databaseService.getDataSource().getRepository(User);
+  const client = supabaseConfig.getServiceRoleClient();
+  const fallbackEmail = email || `${provider}_${oauthId}@example.com`;
+  const timestamp = new Date().toISOString();
 
-  // Try by provider+oauthId first
-  let user = await repo.findOne({ where: { oauthProvider: provider, oauthId } });
+  const baseUpdates = {
+    email: fallbackEmail,
+    name: name || fallbackEmail.split("@")[0],
+    avatar_url: avatarUrl ?? null,
+    oauth_provider: provider,
+    oauth_id: oauthId,
+    oauth_profile: profile ?? null,
+    email_verified: true,
+    role: "user",
+    updated_at: timestamp,
+  } as Record<string, any>;
 
-  // If not found and we have email, try by email to link existing accounts
-  if (!user && email) {
-    user = await repo.findOne({ where: { email } });
+  try {
+    // Prefer existing user by OAuth identifiers
+    const { data: existingByOauth, error: byOauthError } = await client
+      .from("users")
+      .select("*")
+      .eq("oauth_provider", provider)
+      .eq("oauth_id", oauthId)
+      .maybeSingle();
+
+    if (byOauthError && byOauthError.code !== "PGRST116") {
+      throw byOauthError;
+    }
+
+    if (existingByOauth) {
+      const { data, error } = await client
+        .from("users")
+        .update(baseUpdates)
+        .eq("id", existingByOauth.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+
+    // Next try existing by email to support account linking
+    const { data: existingByEmail, error: byEmailError } = await client
+      .from("users")
+      .select("*")
+      .eq("email", fallbackEmail)
+      .maybeSingle();
+
+    if (byEmailError && byEmailError.code !== "PGRST116") {
+      throw byEmailError;
+    }
+
+    if (existingByEmail) {
+      const { data, error } = await client
+        .from("users")
+        .update(baseUpdates)
+        .eq("id", existingByEmail.id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    }
+
+    const insertPayload = {
+      ...baseUpdates,
+      created_at: timestamp,
+    };
+
+    const { data, error } = await client
+      .from("users")
+      .insert(insertPayload)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (err) {
+    logger.error("Failed to upsert OAuth user in Supabase", err);
+    throw err;
   }
-
-  if (!user) {
-    user = new User();
-    user.email = email || `${provider}_${oauthId}@example.com`;
-    user.passwordHash = ""; // Not used for OAuth accounts
-  }
-
-  user.name = name || user.name || null;
-  user.avatarUrl = avatarUrl || user.avatarUrl || null;
-  user.oauthProvider = provider;
-  user.oauthId = oauthId;
-  user.oauthProfile = profile;
-  user.emailVerified = true;
-
-  return await repo.save(user);
 }
 
 // GOOGLE

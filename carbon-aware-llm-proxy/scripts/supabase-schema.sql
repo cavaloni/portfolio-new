@@ -6,10 +6,30 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
--- Create custom types
-CREATE TYPE user_role AS ENUM ('user', 'admin');
-CREATE TYPE conversation_status AS ENUM ('active', 'archived', 'deleted');
-CREATE TYPE message_role AS ENUM ('user', 'assistant', 'system');
+-- Create custom types (idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+        CREATE TYPE user_role AS ENUM ('user', 'admin');
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'conversation_status') THEN
+        CREATE TYPE conversation_status AS ENUM ('active', 'archived', 'deleted');
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'message_role') THEN
+        CREATE TYPE message_role AS ENUM ('user', 'assistant', 'system');
+    END IF;
+END
+$$;
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
@@ -113,6 +133,32 @@ CREATE TABLE IF NOT EXISTS carbon_footprints (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
+-- Bring carbon_footprints in line with runtime expectations
+-- Add supplemental columns if they don't yet exist
+ALTER TABLE carbon_footprints
+  ADD COLUMN IF NOT EXISTS model_id VARCHAR REFERENCES model_info(id),
+  ADD COLUMN IF NOT EXISTS carbon_intensity_min DECIMAL(10,6),
+  ADD COLUMN IF NOT EXISTS carbon_intensity_avg DECIMAL(10,6),
+  ADD COLUMN IF NOT EXISTS carbon_intensity_max DECIMAL(10,6),
+  ADD COLUMN IF NOT EXISTS source VARCHAR,
+  ADD COLUMN IF NOT EXISTS hardware VARCHAR;
+
+-- Helpful indexes
+CREATE INDEX IF NOT EXISTS idx_carbon_footprints_model_id ON carbon_footprints(model_id);
+CREATE INDEX IF NOT EXISTS idx_carbon_footprints_region ON carbon_footprints(region);
+CREATE INDEX IF NOT EXISTS idx_carbon_footprints_created_at ON carbon_footprints(created_at);
+
+-- Ensure model_info has all runtime columns expected by services
+ALTER TABLE model_info
+  ADD COLUMN IF NOT EXISTS energy_per_token DECIMAL(10,6),
+  ADD COLUMN IF NOT EXISTS cost_per_1k_tokens DECIMAL(10,4),
+  ADD COLUMN IF NOT EXISTS capabilities TEXT[] DEFAULT '{}'::text[] NOT NULL,
+  ADD COLUMN IF NOT EXISTS carbon_intensity JSONB,
+  ADD COLUMN IF NOT EXISTS latency JSONB;
+
+-- Helpful index for capability array lookups
+CREATE INDEX IF NOT EXISTS idx_model_info_capabilities ON model_info USING GIN (capabilities);
+
 -- Create model_deployments table
 CREATE TABLE IF NOT EXISTS model_deployments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -154,12 +200,46 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Create triggers for updated_at columns
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_model_info_updated_at BEFORE UPDATE ON model_info FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_model_deployments_updated_at BEFORE UPDATE ON model_deployments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Create triggers for updated_at columns (idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_users_updated_at' AND tgrelid = 'users'::regclass) THEN
+        CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_user_preferences_updated_at' AND tgrelid = 'user_preferences'::regclass) THEN
+        CREATE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_conversations_updated_at' AND tgrelid = 'conversations'::regclass) THEN
+        CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON conversations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_model_info_updated_at' AND tgrelid = 'model_info'::regclass) THEN
+        CREATE TRIGGER update_model_info_updated_at BEFORE UPDATE ON model_info FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_model_deployments_updated_at' AND tgrelid = 'model_deployments'::regclass) THEN
+        CREATE TRIGGER update_model_deployments_updated_at BEFORE UPDATE ON model_deployments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END
+$$;
 
 -- Enable Row Level Security (RLS) for better security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -172,13 +252,18 @@ ALTER TABLE model_deployments ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies (basic policies - can be customized based on requirements)
 -- Users can only see their own data
+DROP POLICY IF EXISTS "Users can view own profile" ON users;
 CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid()::text = id::text);
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
 CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid()::text = id::text);
 
+DROP POLICY IF EXISTS "Users can view own preferences" ON user_preferences;
 CREATE POLICY "Users can view own preferences" ON user_preferences FOR ALL USING (auth.uid()::text = user_id::text);
 
+DROP POLICY IF EXISTS "Users can view own conversations" ON conversations;
 CREATE POLICY "Users can view own conversations" ON conversations FOR ALL USING (auth.uid()::text = user_id::text);
 
+DROP POLICY IF EXISTS "Users can view messages in own conversations" ON messages;
 CREATE POLICY "Users can view messages in own conversations" ON messages FOR ALL USING (
     EXISTS (
         SELECT 1 FROM conversations 
@@ -187,6 +272,7 @@ CREATE POLICY "Users can view messages in own conversations" ON messages FOR ALL
     )
 );
 
+DROP POLICY IF EXISTS "Users can view carbon footprints for own messages" ON carbon_footprints;
 CREATE POLICY "Users can view carbon footprints for own messages" ON carbon_footprints FOR ALL USING (
     EXISTS (
         SELECT 1 FROM messages 
@@ -197,7 +283,9 @@ CREATE POLICY "Users can view carbon footprints for own messages" ON carbon_foot
 );
 
 -- Model info and deployments are publicly readable (for model selection)
+DROP POLICY IF EXISTS "Model info is publicly readable" ON model_info;
 CREATE POLICY "Model info is publicly readable" ON model_info FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Model deployments are publicly readable" ON model_deployments;
 CREATE POLICY "Model deployments are publicly readable" ON model_deployments FOR SELECT USING (true);
 
 -- Grant necessary permissions to authenticated users

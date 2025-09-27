@@ -6,9 +6,8 @@ import crypto from "crypto";
 import { logger } from "../../utils/logger";
 import { ApiError } from "../../middleware/errorHandler";
 import { modalProviderService } from "../../services/modal.provider";
-import { databaseService } from "../../services/database.service";
+import { supabaseService } from "../../services/supabase.service";
 import { carbonService } from "../../services/carbon.service";
-import { ModelDeployment } from "../../entities/ModelDeployment";
 import { calculateTimeoutMs, TimeoutStrategy } from "../../services/deployment-routing.service";
 import { estimateCarbonGPU } from "../../utils/carbon-estimator";
 import { authService } from "../../services/auth.service";
@@ -50,7 +49,7 @@ function createSignature(
 
 // Helper function to attempt request with timeout
 async function attemptRequest(
-  deployment: ModelDeployment,
+  deployment: { ingressUrl: string; secret: string },
   workerBody: any,
   timeout: number,
   isStreaming: boolean = false
@@ -85,16 +84,24 @@ async function tryDeploymentChain(
   greenWeight: number = 0,
   isStreaming: boolean = false
 ): Promise<{ response: any; usedFallback: boolean; fallbackIndex: number }> {
-  const ds = databaseService.getDataSource();
-  const repo = ds.getRepository(ModelDeployment);
-  
+  // Prefetch deployments from Supabase and build a lookup map
+  const rows = await supabaseService.getModelDeploymentsByIds(deploymentIds);
+  const deploymentsById = new Map<string, { id: string; ingressUrl: string | null; secret: string; modelId: string; region: string | null }>();
+  for (const r of rows) {
+    deploymentsById.set(r.id, {
+      id: r.id,
+      ingressUrl: r.ingress_url,
+      secret: r.secret,
+      modelId: r.model_id,
+      region: r.region ?? null,
+    });
+  }
+
   let lastError: any;
   
   for (const [index, deploymentId] of deploymentIds.entries()) {
     try {
-      const deployment = await repo.findOne({
-        where: { id: deploymentId, status: "deployed" },
-      });
+      const deployment = deploymentsById.get(deploymentId) || null;
 
       if (!deployment || !deployment.ingressUrl) {
         logger.warn(`Deployment ${deploymentId} not found or unavailable`);
@@ -113,7 +120,7 @@ async function tryDeploymentChain(
 
       logger.info(`Attempting deployment ${deploymentId} with ${timeout}ms timeout (attempt ${index + 1}/${deploymentIds.length})`);
       
-      const response = await attemptRequest(deployment, workerBody, timeout, isStreaming);
+      const response = await attemptRequest({ ingressUrl: deployment.ingressUrl, secret: deployment.secret }, workerBody, timeout, isStreaming);
       
       return {
         response,
@@ -308,18 +315,13 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
             mockRegion = matchedRegion || (parts.length >= 2 ? parts[parts.length - 1] : 'us-east');
           }
         } else {
-          // Real deployment - get from database
-          const ds = databaseService.getDataSource();
-          const repo = ds.getRepository(ModelDeployment);
-          const deployment = await repo.findOne({
-            where: { id: deploymentId, status: "deployed" },
-          });
-
-          if (!deployment) {
+          // Real deployment - get from Supabase
+          const deployment = await supabaseService.getModelDeploymentById(deploymentId);
+          if (!deployment || deployment.status !== "deployed") {
             throw new ApiError(400, "Invalid or unavailable deployment", true);
           }
 
-          selectedModelForDisplay = model || deployment.modelId || "mistralai/ministral-8b";
+          selectedModelForDisplay = model || deployment.model_id || "mistralai/ministral-8b";
           mockRegion = deployment.region || "global";
         }
         
@@ -482,19 +484,14 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
     // Build deployment chain (primary + fallbacks)
     const deploymentChain = [deploymentId, ...fallbackIds];
     
-    // Get primary deployment for model info
-    const ds = databaseService.getDataSource();
-    const repo = ds.getRepository(ModelDeployment);
-    const primaryDeployment = await repo.findOne({
-      where: { id: deploymentId, status: "deployed" },
-    });
-
-    if (!primaryDeployment || !primaryDeployment.ingressUrl) {
+    // Get primary deployment for model info from Supabase
+    const primaryDeployment = await supabaseService.getModelDeploymentById(deploymentId);
+    if (!primaryDeployment || primaryDeployment.status !== "deployed" || !primaryDeployment.ingress_url) {
       throw new ApiError(400, "Invalid or unavailable primary deployment", true);
     }
 
     // Use model from deployment if not provided
-    const effectiveModel = model || primaryDeployment.modelId;
+    const effectiveModel = model || primaryDeployment.model_id;
 
     logger.info("Chat completion request with fallback chain", {
       primaryDeploymentId: deploymentId,
@@ -530,11 +527,8 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
 
       // Get the deployment that was actually used for metadata
       const usedDeploymentId = deploymentChain[fallbackIndex];
-      const usedDeployment = await repo.findOne({
-        where: { id: usedDeploymentId, status: "deployed" },
-      });
-
-      if (!usedDeployment) {
+      const usedDeployment = await supabaseService.getModelDeploymentById(usedDeploymentId);
+      if (!usedDeployment || usedDeployment.status !== "deployed") {
         throw new ApiError(500, "Used deployment not found", true);
       }
 
@@ -545,7 +539,7 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
 
       // Set metadata headers unless routing is in mock mode (to preserve mocked UI display)
       if (process.env.ROUTING_MOCK_ENABLED !== 'true') {
-        res.setHeader("x-routly-model", usedDeployment.modelId);
+        res.setHeader("x-routly-model", usedDeployment.model_id);
         res.setHeader("x-routly-region", usedDeployment.region || "global");
         res.setHeader("x-routly-co2", co2Intensity.toString());
         if (usedFallback) {
@@ -564,7 +558,7 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
         // Send metadata as the first event
         const metadata = {
           type: "metadata",
-          model: usedDeployment.modelId,
+          model: usedDeployment.model_id,
           region: usedDeployment.region || "global",
           co2: co2Intensity.toString(),
           usedFallback,

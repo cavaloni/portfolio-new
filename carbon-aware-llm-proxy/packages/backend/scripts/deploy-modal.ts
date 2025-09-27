@@ -1,9 +1,8 @@
 import { spawn } from "node:child_process";
-import { DataSource } from "typeorm";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import dbConfig from "../src/config/database";
-import { ModelDeployment } from "../src/entities/ModelDeployment";
+import { supabaseService } from "../src/services/supabase.service";
+import { logger } from "../src/utils/logger";
 
 function findModalAppPath(): string {
   // Try multiple possible locations for the modal app
@@ -78,52 +77,63 @@ async function runModalDeploy(
     console.log("🔄 Force redeployment mode enabled - will redeploy all deployments");
   }
   
-  const ds = new DataSource(dbConfig);
-  await ds.initialize();
-  const repo = ds.getRepository(ModelDeployment);
+  await supabaseService.initialize();
+  const deployments = await supabaseService.getModelDeployments();
 
-  const rows = await repo.find();
-  for (const r of rows) {
-    if (r.status === "deployed" && !forceRedeploy) continue;
+  for (const row of deployments || []) {
+    const appName = row.app_name as string;
+    const modelId = row.model_id as string;
+    const functionName = row.function_name as string | null;
+    const region = (row.region as string | null) ?? null;
+    const status = row.status as string;
+    const gpuClass = row.gpu_class as string | null;
+    const scaledownWindowSec = Number(row.scaledown_window_sec ?? 180);
+    const secret = row.secret as string | null;
+    const ingressUrl = row.ingress_url as string | null;
+
+    if (status === "deployed" && !forceRedeploy) {
+      logger.info(`Skipping ${appName}, already deployed`);
+      continue;
+    }
 
     const env = {
       ...process.env,
-      APP_NAME: r.appName,
-      FUNCTION_NAME: r.functionName,
-      DEFAULT_MODEL_ID: r.modelId,
-      GPU_CLASS: r.gpuClass,
-      SCALEDOWN_WINDOW: String(r.scaledownWindowSec),
-      DEPLOYMENT_SECRET: r.secret, // Pass secret to worker
+      APP_NAME: appName,
+      FUNCTION_NAME: functionName || "asgi-app",
+      DEFAULT_MODEL_ID: modelId,
+      GPU_CLASS: gpuClass || "standard",
+      SCALEDOWN_WINDOW: String(scaledownWindowSec),
+      DEPLOYMENT_SECRET: secret || "",
     } as Record<string, string>;
-    if (r.region) env["REGION"] = r.region;
+
+    if (region) env["REGION"] = region;
 
     console.log(
-      `Deploying ${r.appName} (${r.modelId}) region=${r.region ?? "agnostic"}...`,
+      `Deploying ${appName} (${modelId}) region=${region ?? "agnostic"}...`,
     );
 
     try {
-      const { success, ingressUrl } = await runModalDeploy(env);
+      const { success, ingressUrl: newIngressUrl } = await runModalDeploy(env);
 
       if (success) {
-        await repo.update(r.id, {
+        await supabaseService.updateModelDeployment(row.id, {
           status: "deployed",
-          ingressUrl: ingressUrl || r.ingressUrl, // Keep existing if parse failed
+          ingress_url: newIngressUrl || ingressUrl,
         });
         console.log(
-          `✅ Deployed ${r.appName}${ingressUrl ? ` at ${ingressUrl}` : ""}`,
+          `✅ Deployed ${appName}${newIngressUrl ? ` at ${newIngressUrl}` : ""}`,
         );
       } else {
-        await repo.update(r.id, { status: "error" });
-        console.error(`❌ Failed to deploy ${r.appName}`);
+        await supabaseService.updateModelDeployment(row.id, { status: "error" });
+        console.error(`❌ Failed to deploy ${appName}`);
         process.exit(1);
       }
     } catch (error) {
-      console.error(`❌ Deploy error for ${r.appName}:`, error);
-      await repo.update(r.id, { status: "error" });
+      console.error(`❌ Deploy error for ${appName}:`, error);
+      await supabaseService.updateModelDeployment(row.id, { status: "error" });
       process.exit(1);
     }
   }
 
-  await ds.destroy();
   console.log("🎉 All deployments completed");
 })();

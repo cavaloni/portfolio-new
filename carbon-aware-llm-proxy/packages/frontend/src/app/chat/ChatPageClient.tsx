@@ -27,6 +27,9 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { useLoginModal } from "@/contexts/login-modal-context";
+import { useFreePromptsGate } from "@/hooks/use-free-prompts-gate";
 
 // Import smart routing services
 import {
@@ -89,6 +92,11 @@ export default function ChatPageClient() {
     maxToleratedDelay: 0,
     showTimeoutOptions: false,
   });
+
+  // Auth and free prompt gating
+  const { isAuthenticated } = useAuth();
+  const { open: openLoginModal } = useLoginModal();
+  const { remaining, limit, canUseFreePrompt, incrementFreePromptCount } = useFreePromptsGate();
 
   // Handle scroll events to track if user is at bottom
   const handleScroll = useCallback(() => {
@@ -206,6 +214,14 @@ export default function ChatPageClient() {
     async (content: string) => {
       if (isLoading) return;
 
+      // Free prompts gating for anonymous users
+      if (!isAuthenticated) {
+        if (!canUseFreePrompt) {
+          openLoginModal();
+          return;
+        }
+      }
+
       // Add user message immediately
       const userMessage: Message = {
         id: `user_${Date.now()}`,
@@ -236,6 +252,11 @@ export default function ChatPageClient() {
         }
 
         setCurrentRouting(routing);
+
+        // Count this as a free prompt usage once routing is ready (attempt started)
+        if (!isAuthenticated) {
+          incrementFreePromptCount();
+        }
 
         // Set up timeout state
         setTimeoutState({
@@ -329,6 +350,12 @@ export default function ChatPageClient() {
           return; // Don't add error message yet, let user choose
         }
 
+        // If unauthorized, prompt login modal
+        if (error?.status === 401) {
+          openLoginModal();
+          return;
+        }
+
         setMessages((prev) =>
           prev.filter((msg) => msg.id !== assistantMessageId)
         );
@@ -351,7 +378,7 @@ export default function ChatPageClient() {
         setStreamingMessageId(null);
       }
     },
-    [isLoading, getRouting, joystickPosition, currentRouting]
+    [isLoading, getRouting, joystickPosition, currentRouting, isAuthenticated, canUseFreePrompt, openLoginModal, incrementFreePromptCount]
   );
 
   // Timeout handling functions
@@ -650,6 +677,11 @@ export default function ChatPageClient() {
                             : initialPlaceholder
                         }
                       />
+                      {!isAuthenticated && (
+                        <div className="mt-2 text-xs text-muted-foreground text-center">
+                          {remaining}/{limit} free prompts left
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -729,9 +761,11 @@ export default function ChatPageClient() {
                       : bottomPlaceholder
                   }
                 />
-                <div className="mt-3 text-xs text-muted-foreground text-center">
-                  <p></p>
-                </div>
+                {!isAuthenticated && (
+                  <div className="mt-3 text-xs text-muted-foreground text-center">
+                    {remaining}/{limit} free prompts left
+                  </div>
+                )}
               </div>
             </div>
           </div>

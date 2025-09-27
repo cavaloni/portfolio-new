@@ -17,7 +17,7 @@ A carbon-aware proxy gateway for Large Language Models (LLMs) that intelligently
 ┌─────────────────┐     ┌───────────────────────┐     ┌──────────────────┐
 │                 │     │                       │     │                  │
 │   Frontend      │────▶│   Backend API        │◀───▶│  Database        │
-│   (Next.js)     │     │   (Node.js/Express)  │     │  (PostgreSQL)    │
+│   (Next.js)     │     │   (Node.js/Express)  │     │  (Supabase)      │
 │                 │     │                       │     │                  │
 └────────┬────────┘     └───────────┬───────────┘     └────────┬─────────┘
          │                          │                          │
@@ -53,8 +53,8 @@ A carbon-aware proxy gateway for Large Language Models (LLMs) that intelligently
 **For Local Development:**
 
 - Node.js 18+
-- PostgreSQL 13+
-- Redis 6+
+- Redis 6+ (or run the bundled Redis container via Docker)
+- Supabase project credentials (URL, anon key, and service role key)
 - API keys for:
   - ElectricityMap (for carbon intensity data)
   - WattTime (for carbon intensity forecasts)
@@ -111,20 +111,13 @@ A carbon-aware proxy gateway for Large Language Models (LLMs) that intelligently
 
    # Start all services with Docker Compose
    docker compose up -d
-
-   # Run database migrations
-   docker compose exec backend npm run migration:run
    ```
 
    **Option C: Local Development (without Docker)**
 
    ```bash
-   # Start database and Redis with Docker
-   docker compose up -d postgres redis
-
-   # Run database migrations
-   cd packages/backend
-   npm run migration:run
+   # Start Redis (optional helper via Docker)
+   docker compose up -d redis
 
    # Start backend in development mode
    npm run dev
@@ -149,13 +142,12 @@ For comprehensive Docker setup instructions, see [DOCKER.md](./DOCKER.md).
 # Development
 make dev              # Start development environment
 make dev-logs         # View logs
-make migrate          # Run database migrations
+make supabase-schema  # Locate Supabase schema SQL helper
 make health           # Check service health
 
 # Production
 make prod             # Deploy to production
 make prod-logs        # View production logs
-make backup           # Create database backup
 
 # Utilities
 make status           # Show service status
@@ -188,7 +180,6 @@ make troubleshoot     # Interactive troubleshooting
    ```bash
    docker compose -f docker-compose.prod.yml build --no-cache
    docker compose -f docker-compose.prod.yml up -d
-   docker compose -f docker-compose.prod.yml exec backend npm run migration:run
    ```
 
 ### Vercel Deployment (Frontend)
@@ -224,26 +215,13 @@ See `.env.example` for all available configuration options. For provider configu
 - `MODAL_ENDPOINT_URL=https://<your-modal-app>.modal.run`
 - `MODAL_API_KEY=<optional-shared-secret>`
 
-### Database Migrations
+### Supabase Schema
 
-To create a new migration:
+Supabase hosts all persistent data. To update the schema:
 
-```bash
-cd packages/backend
-npm run typeorm migration:create src/migrations/YourMigrationName
-```
-
-To run migrations:
-
-```bash
-npm run typeorm migration:run
-```
-
-To revert the last migration:
-
-```bash
-npm run typeorm migration:revert
-```
+1. Edit `scripts/supabase-schema.sql` to reflect the desired tables, policies, and routines.
+2. Apply the script in the Supabase SQL editor (or via `supabase` CLI).
+3. Commit the updated SQL so future environments stay in sync.
 
 ## 📊 API Documentation
 
@@ -296,6 +274,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [ElectricityMap](https://www.electricitymap.org/) for carbon intensity data
 - [WattTime](https://www.watttime.org/) for carbon intensity forecasts
-- [TypeORM](https://typeorm.io/) for database ORM
+- [Supabase](https://supabase.com/) for managed Postgres + auth
 - [Next.js](https://nextjs.org/) and [React](https://reactjs.org/) for the frontend
 - [Express](https://expressjs.com/) for the backend API

@@ -1,15 +1,6 @@
-import { v4 as uuidv4 } from "uuid";
-import { QueryRunner } from "typeorm";
-import { databaseService } from "./database.service";
 import { logger } from "../utils/logger";
-import { Conversation } from "../entities/Conversation";
-import { Message } from "../entities/Message";
-import { CarbonFootprint } from "../entities/CarbonFootprint";
-import { User } from "../entities/User";
-import { ModelInfo } from "../entities/ModelInfo";
-import { modelService } from "./model.service";
 import { carbonService } from "./carbon.service";
-import { MessageRole } from "../entities/Message";
+import { supabaseService } from "./supabase.service";
 
 class ChatService {
   async createConversation(
@@ -20,97 +11,78 @@ class ChatService {
     maxTokens?: number,
     carbonAware: boolean = true,
   ) {
-    const conversationRepository = databaseService
-      .getDataSource()
-      .getRepository(Conversation);
-    const userRepository = databaseService.getDataSource().getRepository(User);
+    const conversationData = {
+      user_id: userId,
+      title: title || "New Conversation",
+      model_id: modelId || null,
+      temperature: temperature ?? 0.7,
+      max_tokens: maxTokens ?? null,
+      carbon_aware: carbonAware,
+    } as any;
 
-    // First, get the user to associate with the conversation
-    const user = await userRepository.findOne({ where: { id: userId } });
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Create a new conversation with the required parameters
-    const conversation = new Conversation(userId, user);
-    conversation.title = title || "New Conversation";
-    conversation.modelId = modelId || null;
-    conversation.temperature = temperature || 0.7;
-    conversation.maxTokens = maxTokens || null;
-    conversation.carbonAware = carbonAware;
-
-    return await conversationRepository.save(conversation);
+    const created = await supabaseService.createConversation(conversationData);
+    return created;
   }
 
   async getConversations(userId: string, page: number = 1, limit: number = 20) {
-    const conversationRepository = databaseService
-      .getDataSource()
-      .getRepository(Conversation);
-
-    const [conversations, total] = await conversationRepository.findAndCount({
-      where: { userId },
-      order: { updatedAt: "DESC" },
-      skip: (page - 1) * limit,
-      take: limit,
-      relations: ["messages"],
-    });
+    const offset = (page - 1) * limit;
+    const { data, count } = await supabaseService.getConversationsByUserIdWithCount(
+      userId,
+      limit,
+      offset,
+    );
 
     return {
-      data: conversations,
+      data: data || [],
       meta: {
-        total,
+        total: count || 0,
         page,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.ceil((count || 0) / limit),
         limit,
       },
     };
   }
 
   async getConversation(userId: string, conversationId: string) {
-    const conversationRepository = databaseService
-      .getDataSource()
-      .getRepository(Conversation);
-
-    return await conversationRepository.findOne({
-      where: { id: conversationId, userId },
-      relations: ["messages", "messages.carbonFootprint"],
-    });
+    const conv = await supabaseService.getConversationById(conversationId);
+    if (!conv || conv.user_id !== userId) return null;
+    // Map to camelCase keys expected by callers
+    return {
+      ...conv,
+      userId: conv.user_id,
+      modelId: conv.model_id,
+      maxTokens: conv.max_tokens,
+      carbonAware: conv.carbon_aware,
+      createdAt: conv.created_at,
+      updatedAt: conv.updated_at,
+    } as any;
   }
 
   async updateConversation(
     userId: string,
     conversationId: string,
-    updates: Partial<Conversation>,
+    updates: Partial<{ title: string; modelId: string | null; temperature: number; maxTokens: number | null; carbonAware: boolean }>,
   ) {
-    const conversationRepository = databaseService
-      .getDataSource()
-      .getRepository(Conversation);
+    const conv = await supabaseService.getConversationById(conversationId);
+    if (!conv || conv.user_id !== userId) return null;
 
-    await conversationRepository.update(
-      { id: conversationId, userId },
-      updates,
-    );
+    // Map camelCase to snake_case
+    const mapped: any = {};
+    if (updates.title !== undefined) mapped.title = updates.title;
+    if (updates.modelId !== undefined) mapped.model_id = updates.modelId;
+    if (updates.temperature !== undefined) mapped.temperature = updates.temperature;
+    if (updates.maxTokens !== undefined) mapped.max_tokens = updates.maxTokens;
+    if (updates.carbonAware !== undefined) mapped.carbon_aware = updates.carbonAware;
 
+    await supabaseService.updateConversation(conversationId, mapped);
     return await this.getConversation(userId, conversationId);
   }
 
   async deleteConversation(userId: string, conversationId: string) {
-    const conversationRepository = databaseService
-      .getDataSource()
-      .getRepository(Conversation);
-
-    // This will cascade delete all related messages due to the CASCADE option in the entity
-    const result = await conversationRepository.delete({
-      id: conversationId,
-      userId,
-    });
-
-    return (
-      result.affected !== null &&
-      result.affected !== undefined &&
-      result.affected > 0
-    );
+    const conv = await supabaseService.getConversationById(conversationId);
+    if (!conv || conv.user_id !== userId) return false;
+    await supabaseService.deleteConversation(conversationId);
+    return true;
   }
 
   async addMessage(
@@ -127,101 +99,43 @@ class ChatService {
       modelName?: string;
       provider?: string;
     },
-    queryRunner?: QueryRunner,
   ) {
-    const messageRepository = databaseService
-      .getDataSource()
-      .getRepository(Message);
-    const conversationRepository = databaseService
-      .getDataSource()
-      .getRepository(Conversation);
+    // Insert message
+    const msg = await supabaseService.createMessage({
+      conversation_id: conversationId,
+      role,
+      content,
+      model_id: modelId || null,
+      tokens: tokens ?? null,
+      is_streaming: false,
+      is_complete: true,
+    });
 
-    // Start a transaction if one isn't provided
-    const shouldReleaseQueryRunner = !queryRunner;
-    const qr =
-      queryRunner || databaseService.getDataSource().createQueryRunner();
-
-    if (!queryRunner) {
-      await qr.connect();
-      await qr.startTransaction();
-    }
-
-    try {
-      // Create the message
-      const message = new Message();
-      message.conversationId = conversationId;
-      message.role = role as MessageRole; // Ensure the role matches the MessageRole enum
-      message.content = content;
-      message.modelId = modelId || null;
-      message.tokens = tokens || null;
-      message.isStreaming = false;
-      message.isComplete = true;
-
-      const savedMessage = await qr.manager.save(Message, message);
-
-      // Create carbon footprint if provided
-      if (carbonFootprint) {
-        const footprint = new CarbonFootprint();
-        footprint.messageId = savedMessage.id;
-        footprint.emissions = carbonFootprint.emissions;
-        footprint.energy = carbonFootprint.energy;
-
-        // Only assign if the value is defined
-        if (carbonFootprint.intensity !== undefined) {
-          footprint.intensity = carbonFootprint.intensity;
-        }
-        if (carbonFootprint.region !== undefined) {
-          footprint.region = carbonFootprint.region;
-        }
-        if (carbonFootprint.modelName !== undefined) {
-          footprint.modelName = carbonFootprint.modelName;
-        }
-        if (carbonFootprint.provider !== undefined) {
-          footprint.provider = carbonFootprint.provider;
-        }
-
-        await qr.manager.save(CarbonFootprint, footprint);
-        savedMessage.carbonFootprint = footprint;
-      }
-
-      // Update conversation stats
-      const conversation = await qr.manager.findOne(Conversation, {
-        where: { id: conversationId },
-        relations: ["messages"],
+    // Create carbon footprint if provided
+    if (carbonFootprint && msg?.id) {
+      await supabaseService.createCarbonFootprint({
+        message_id: msg.id,
+        emissions: carbonFootprint.emissions,
+        energy: carbonFootprint.energy,
+        ...(carbonFootprint.intensity !== undefined
+          ? { intensity: carbonFootprint.intensity }
+          : {}),
+        ...(carbonFootprint.region !== undefined
+          ? { region: carbonFootprint.region }
+          : {}),
+        ...(carbonFootprint.modelName !== undefined
+          ? { model_name: carbonFootprint.modelName }
+          : {}),
+        ...(carbonFootprint.provider !== undefined
+          ? { provider: carbonFootprint.provider }
+          : {}),
       });
-
-      if (conversation) {
-        conversation.updatedAt = new Date();
-        conversation.messageCount = (conversation.messages?.length || 0) + 1;
-        conversation.totalTokens =
-          (conversation.totalTokens || 0) + (tokens || 0);
-
-        if (carbonFootprint) {
-          conversation.totalEmissions =
-            (conversation.totalEmissions || 0) + carbonFootprint.emissions;
-          conversation.totalEnergy =
-            (conversation.totalEnergy || 0) + carbonFootprint.energy;
-        }
-
-        await qr.manager.save(Conversation, conversation);
-      }
-
-      if (!queryRunner) {
-        await qr.commitTransaction();
-      }
-
-      return savedMessage;
-    } catch (error) {
-      if (!queryRunner) {
-        await qr.rollbackTransaction();
-      }
-      logger.error("Error adding message:", error);
-      throw new Error("Failed to add message");
-    } finally {
-      if (shouldReleaseQueryRunner) {
-        await qr.release();
-      }
     }
+
+    // Best-effort update conversation updated_at
+    await supabaseService.updateConversation(conversationId, { updated_at: new Date().toISOString() });
+
+    return msg;
   }
 
   async getMessages(
@@ -230,48 +144,24 @@ class ChatService {
     limit: number = 50,
     before?: string,
   ) {
-    const messageRepository = databaseService
-      .getDataSource()
-      .getRepository(Message);
+    const conv = await supabaseService.getConversationById(conversationId);
+    if (!conv || conv.user_id !== userId) return [];
 
-    const query = messageRepository
-      .createQueryBuilder("message")
-      .leftJoinAndSelect("message.carbonFootprint", "carbonFootprint")
-      .innerJoin("message.conversation", "conversation")
-      .where("conversation.id = :conversationId", { conversationId })
-      .andWhere("conversation.userId = :userId", { userId })
-      .orderBy("message.createdAt", "DESC")
-      .take(limit);
-
-    if (before) {
-      query.andWhere("message.createdAt < :before", { before });
-    }
-
-    return await query.getMany();
+    const messages = await supabaseService.getMessagesByConversationIdWithBefore(
+      conversationId,
+      limit,
+      before,
+    );
+    return messages;
   }
 
   async deleteMessage(userId: string, messageId: string) {
-    const messageRepository = databaseService
-      .getDataSource()
-      .getRepository(Message);
-
-    // This will cascade delete the carbon footprint due to the CASCADE option in the entity
-    const result = await messageRepository
-      .createQueryBuilder()
-      .delete()
-      .from(Message)
-      .where("id = :messageId", { messageId })
-      .andWhere(
-        "conversationId IN (SELECT id FROM conversations WHERE userId = :userId)",
-        { userId },
-      )
-      .execute();
-
-    return (
-      result.affected !== null &&
-      result.affected !== undefined &&
-      result.affected > 0
-    );
+    const msg = await supabaseService.getMessageById(messageId);
+    if (!msg) return false;
+    const conv = await supabaseService.getConversationById(msg.conversation_id);
+    if (!conv || conv.user_id !== userId) return false;
+    await supabaseService.deleteMessage(messageId);
+    return true;
   }
 
   // Helper method to calculate carbon footprint for a message
@@ -287,28 +177,31 @@ class ChatService {
     modelName?: string;
     provider?: string;
   }> {
-    const model = await modelService.getModelById(modelId);
+    // Fetch model metadata from Supabase (snake_case columns)
+    const model = await supabaseService.getModelById(modelId);
     if (!model) {
       throw new Error(`Model not found: ${modelId}`);
     }
 
-    // Get carbon intensity for the region (gCO2e/kWh)
+    // Determine carbon intensity for the region (gCO2e/kWh)
     const carbonIntensity = region
       ? await carbonService.getCarbonIntensity(region)
-      : model.carbonIntensity.avg;
+      : (model.carbon_intensity?.avg ?? 300); // default average if missing
 
-    // Calculate energy usage per token (using model's energy consumption data)
-    // Model carbonIntensity.avg represents baseline energy per token in Wh
-    // Convert to kWh: divide by 1000
-    const energyPerToken = model.getEnergyPerToken(); // Use model's energy method
-    const energy = (energyPerToken * tokens) / 1000; // Convert Wh to kWh
+    // Estimate energy per token (Wh)
+    // Prefer explicit energy_per_token if present; otherwise approximate from carbon intensity baseline
+    const energyPerTokenWh: number =
+      model.energy_per_token ?? (carbonIntensity / 300000); // ~inverse conversion used previously
 
-    // Calculate emissions: energy (kWh) * carbon intensity (gCO2e/kWh)
-    const emissions = energy * carbonIntensity;
+    // Convert Wh to kWh for total energy
+    const energyKWh = (energyPerTokenWh * tokens) / 1000;
+
+    // Emissions = energy (kWh) * carbon intensity (gCO2e/kWh)
+    const emissionsG = energyKWh * carbonIntensity;
 
     return {
-      emissions,
-      energy,
+      emissions: emissionsG,
+      energy: energyKWh,
       intensity: carbonIntensity,
       region: region || undefined,
       modelName: model.name,

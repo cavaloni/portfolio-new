@@ -131,12 +131,15 @@ export const chatService = {
       );
 
       if (!response.ok) {
+        const status = response.status;
         const error = await response.json().catch(() => ({}));
         onProgress?.({
           status: 'error',
           message: error.message || "Failed to stream response",
         });
-        throw new Error(error.message || "Failed to stream response");
+        const err: any = new Error(error.message || "Failed to stream response");
+        err.status = status;
+        throw err;
       }
 
       if (!response.body) {
@@ -308,8 +311,11 @@ export const chatService = {
       );
 
       if (!response.ok) {
+        const status = response.status;
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || "Failed to stream response");
+        const err: any = new Error(error.message || "Failed to stream response");
+        err.status = status;
+        throw err;
       }
 
       if (!response.body) {

@@ -2,6 +2,7 @@ import { Providers } from "@/components/providers";
 import BrandLogo from "@/components/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/toaster";
+import { HeaderAuthControls } from "@/components/header-auth-controls";
 import "highlight.js/styles/github-dark.min.css";
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
@@ -44,6 +45,7 @@ export default function RootLayout({
                 <BrandLogo scale={3} leftOffsetPx={35} className="ml-1" zIndexClass="-z-10" />
                 <div className="flex items-center gap-2">
                   <ThemeToggle />
+                  <HeaderAuthControls />
                 </div>
               </div>
             </div>

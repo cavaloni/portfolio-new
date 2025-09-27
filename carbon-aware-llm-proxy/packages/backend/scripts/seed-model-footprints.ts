@@ -1,7 +1,6 @@
-import "reflect-metadata";
 import { modelFootprintService } from "../src/services/model-footprint.service";
-import { databaseService } from "../src/services/database.service";
 import { logger } from "../src/utils/logger";
+import { supabaseService } from "../src/services/supabase.service";
 
 // Sample model data with realistic carbon footprint information
 const SAMPLE_MODELS = [
@@ -170,9 +169,8 @@ async function seedDatabase() {
   logger.info("Starting database seeding...");
 
   try {
-    // Initialize database connection
-    await databaseService.initialize();
-    logger.info("Database connection established");
+    await supabaseService.initialize();
+    logger.info("Supabase connection established");
 
     // Seed each model
     for (const modelData of SAMPLE_MODELS) {
@@ -204,8 +202,6 @@ async function seedDatabase() {
     logger.error("Error during database seeding:", error);
     process.exit(1);
   } finally {
-    // Close the database connection
-    await databaseService.close();
     process.exit(0);
   }
 }

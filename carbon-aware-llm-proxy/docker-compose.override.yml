@@ -32,10 +32,6 @@ services:
       ROUTING_MOCK_ENABLED: "false"
       # Mock authentication flag (separate from routing)
       MOCK_AUTH: ${MOCK_AUTH:-false}
-      # Skip TypeORM database initialization during development
-      SKIP_DB: "true"
-      # Use Supabase only for development
-      DATABASE_MODE: "supabase"
       # Add your custom environment variables here
     
     # Add additional volumes for development
