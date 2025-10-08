@@ -19,10 +19,21 @@ export function getCookieConfig(): CookieOptions {
 
   // Development-friendly configuration
   if (!isProduction) {
+    const devSameSiteEnv = (process.env.DEV_COOKIE_SAMESITE || '').toLowerCase();
+    const devSameSite = (['strict', 'lax', 'none'] as const).includes(
+      devSameSiteEnv as any,
+    )
+      ? (devSameSiteEnv as CookieOptions['sameSite'])
+      : undefined;
+
+    const preferredSameSite = devSameSite || 'lax';
+    const secureOverride = process.env.DEV_COOKIE_SECURE === 'true';
+    const secure = preferredSameSite === 'none' ? true : secureOverride;
+
     return {
       httpOnly: true,
-      secure: false, // Allow HTTP in development
-      sameSite: 'lax', // Changed from 'none' to 'lax' for same-site requests in development
+      secure,
+      sameSite: secure ? preferredSameSite : preferredSameSite === 'none' ? 'lax' : preferredSameSite,
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     };

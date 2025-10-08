@@ -7,6 +7,13 @@ export interface User {
   updated_at: Date;
 }
 
+export interface AnonymousUser {
+  isAnonymous: true;
+  creditsRemaining: number;
+  creditsLimit: number;
+  creditsUsed: number;
+}
+
 export interface UserProfile {
   id: string;
   email: string;

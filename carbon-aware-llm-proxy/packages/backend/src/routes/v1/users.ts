@@ -1,14 +1,14 @@
 import { Router } from "express";
 import { authController } from "../../controllers/auth.controller";
-import { authenticate } from "../../middleware/auth";
+import { authenticate, authenticateOptional } from "../../middleware/auth";
 
 const router = Router();
 
-// All user routes require authentication
-router.use(authenticate);
-
 // Get current user profile
-router.get("/me", authController.getCurrentUser);
+router.get("/me", authenticateOptional, authController.getCurrentUser);
+
+// All remaining user routes require authentication
+router.use(authenticate);
 
 // Update current user profile
 router.put("/me", authController.updateProfile);

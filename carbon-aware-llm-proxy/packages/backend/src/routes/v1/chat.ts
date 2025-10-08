@@ -12,6 +12,7 @@ import { calculateTimeoutMs, TimeoutStrategy } from "../../services/deployment-r
 import { estimateCarbonGPU } from "../../utils/carbon-estimator";
 import { authService } from "../../services/auth.service";
 import { redisService } from "../../services/redis.service";
+import { anonymousSessionService } from "../../services/anonymous-session.service";
 
 // Define Zod schemas for request validation
 const chatCompletionSchema = z
@@ -156,15 +157,7 @@ export const chatRouter = Router();
 // POST /v1/chat/completions
 chatRouter.post("/completions", async (req: Request, res: Response, next) => {
   try {
-    // --- Free prompts gating for unauthenticated users ---
-    const getClientIp = () => {
-      const xf = (req.headers["x-forwarded-for"] as string) || "";
-      if (xf) return xf.split(",")[0].trim();
-      const xr = (req.headers["x-real-ip"] as string) || "";
-      if (xr) return xr;
-      return (req.socket.remoteAddress || "unknown").replace("::ffff:", "");
-    };
-
+    // --- Anonymous user credit gating ---
     const authHeader = req.headers.authorization;
     let token: string | null = null;
     if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -177,24 +170,29 @@ chatRouter.post("/completions", async (req: Request, res: Response, next) => {
 
     if (!isAuthenticated) {
       try {
-        const ip = getClientIp();
-        const key = `free_prompts:${ip}`;
-        const limit = Number(process.env.FREE_PROMPTS_LIMIT || 5);
-        const windowSec = Number(process.env.FREE_PROMPTS_WINDOW_SEC || 24 * 60 * 60); // 24h
-
-        const current = (await redisService.get(key)) ?? 0;
-        if (current >= limit) {
+        // Use anonymous session service for persistent tracking
+        const creditResult = await anonymousSessionService.consumeCredit(req, res);
+        
+        if (!creditResult.success) {
           return res.status(403).json({
             success: false,
             code: "FREE_TIER_EXHAUSTED",
             message: "Free prompt limit reached. Please sign in to continue.",
+            data: {
+              used: creditResult.used,
+              limit: creditResult.limit,
+              remaining: creditResult.remaining,
+            },
           });
         }
-        const nextVal = current + 1;
-        await redisService.set(key, nextVal, windowSec);
-        logger.info("Free prompts counter", { ip, nextVal, limit });
+        
+        logger.info("Anonymous credit consumed", {
+          used: creditResult.used,
+          remaining: creditResult.remaining,
+          limit: creditResult.limit,
+        });
       } catch (e) {
-        logger.warn("Free prompts gating error (continuing):", e);
+        logger.warn("Anonymous credit gating error (continuing):", e);
       }
     }
 

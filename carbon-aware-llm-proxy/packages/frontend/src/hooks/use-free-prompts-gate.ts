@@ -2,58 +2,74 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLoginModal } from "@/contexts/login-modal-context";
-
-const STORAGE_KEY = "free_prompts_used";
-const LIMIT = 5;
+import { userService } from "@/services/user-service";
 
 export function useFreePromptsGate() {
   const { open: openLoginModal } = useLoginModal();
   const [used, setUsed] = useState<number>(0);
+  const [limit, setLimit] = useState<number>(5);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  // Fetch credits from backend on mount and periodically
+  const fetchCredits = useCallback(async () => {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      const num = raw ? parseInt(raw, 10) : 0;
-      setUsed(Number.isFinite(num) && num >= 0 ? num : 0);
-    } catch {
+      const user = await userService.getCurrentUser();
+      
+      if (user && "isAnonymous" in user && user.isAnonymous) {
+        setLimit(user.creditsLimit);
+        setUsed(user.creditsUsed);
+      } else if (user) {
+        // Authenticated user - no limits
+        setLimit(Infinity);
+        setUsed(0);
+      } else {
+        // Failed to fetch - use defaults
+        setLimit(5);
+        setUsed(0);
+      }
+    } catch (error) {
+      console.error("Error fetching credits:", error);
+      // On error, use safe defaults
+      setLimit(5);
       setUsed(0);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
-  const remaining = Math.max(0, LIMIT - used);
+  // Initial fetch
+  useEffect(() => {
+    fetchCredits();
+  }, [fetchCredits]);
 
-  const canUseFreePrompt = useMemo(() => used < LIMIT, [used]);
+  const remaining = Math.max(0, limit - used);
+
+  const canUseFreePrompt = useMemo(() => used < limit, [used, limit]);
 
   const incrementFreePromptCount = useCallback(() => {
-    setUsed((prev) => {
-      const next = Math.min(LIMIT, prev + 1);
-      try {
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(STORAGE_KEY, String(next));
-        }
-      } catch {}
-      return next;
-    });
-  }, []);
+    // Increment optimistically - backend will enforce the limit
+    setUsed((prev) => Math.min(limit, prev + 1));
+  }, [limit]);
 
   const resetFreePrompts = useCallback(() => {
+    // Reset local state only - backend tracking persists
     setUsed(0);
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(STORAGE_KEY, "0");
-      }
-    } catch {}
   }, []);
 
+  const refreshCredits = useCallback(() => {
+    // Allow manual refresh of credit state
+    return fetchCredits();
+  }, [fetchCredits]);
+
   return {
-    limit: LIMIT,
+    limit,
     used,
     remaining,
     canUseFreePrompt,
     incrementFreePromptCount,
     resetFreePrompts,
+    refreshCredits,
     openLoginModal,
+    isLoading,
   };
 }

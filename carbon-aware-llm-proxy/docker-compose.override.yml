@@ -29,9 +29,14 @@ services:
       # Mock routing flag (optional). Enable by running:
       #   ROUTING_MOCK_ENABLED=true docker compose ... up -d
       # Force mock routing in dev to avoid DB dependency while we fix DB config
-      ROUTING_MOCK_ENABLED: "false"
+      ROUTING_MOCK_ENABLED: ${ROUTING_MOCK_ENABLED:-false}
       # Mock authentication flag (separate from routing)
       MOCK_AUTH: ${MOCK_AUTH:-false}
+      # Anonymous user credits configuration
+      ANONYMOUS_FREE_CREDITS: ${ANONYMOUS_FREE_CREDITS:-5}
+      FREE_PROMPTS_WINDOW_SEC: ${FREE_PROMPTS_WINDOW_SEC:-86400}
+      # OpenRouter API Key (required when ROUTING_MOCK_ENABLED=true)
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
       # Add your custom environment variables here
     
     # Add additional volumes for development

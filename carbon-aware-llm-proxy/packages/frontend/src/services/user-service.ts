@@ -1,4 +1,5 @@
 import { apiGet, apiPost, apiPut } from "@/lib/api-client";
+import { AnonymousUser } from "@/types/user";
 
 export interface UserPreferences {
   id: string;
@@ -29,10 +30,10 @@ export interface UserProfile {
 }
 
 export const userService = {
-  // Get current user's profile
-  async getCurrentUser(): Promise<UserProfile | null> {
+  // Get current user's profile or anonymous status
+  async getCurrentUser(): Promise<UserProfile | AnonymousUser | null> {
     try {
-      const response = await apiGet<{ user: UserProfile }>("/v1/users/me");
+      const response = await apiGet<{ user?: UserProfile } & Partial<AnonymousUser>>("/v1/users/me");
 
       if (response.error || !response.data) {
         console.warn(
@@ -42,7 +43,17 @@ export const userService = {
         return null;
       }
 
-      return response.data.user;
+      // Check if this is an anonymous user response
+      if (response.data.isAnonymous) {
+        return {
+          isAnonymous: true,
+          creditsRemaining: response.data.creditsRemaining ?? 0,
+          creditsLimit: response.data.creditsLimit ?? 5,
+          creditsUsed: response.data.creditsUsed ?? 0,
+        };
+      }
+
+      return response.data.user ?? null;
     } catch (error) {
       console.error("Error fetching user profile:", error);
       return null;

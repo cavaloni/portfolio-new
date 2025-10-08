@@ -4,6 +4,7 @@ import { authService } from "../services/auth.service";
 import { supabaseService } from "../services/supabase.service";
 import { logger } from "../utils/logger";
 import { setAuthCookie, clearAuthCookie } from "../utils/cookie-config";
+import { anonymousSessionService } from "../services/anonymous-session.service";
 
 export class AuthController {
   async register(req: Request, res: Response) {
@@ -121,9 +122,18 @@ export class AuthController {
       const user = (req as any).user;
 
       if (!user) {
-        return res.status(401).json({
-          success: false,
-          message: "Not authenticated",
+        // For anonymous users, get actual remaining credits from Redis
+        const remaining = await anonymousSessionService.getRemainingCredits(req, res);
+        const limit = Number(process.env.ANONYMOUS_FREE_CREDITS || 5);
+        
+        return res.json({
+          success: true,
+          data: {
+            isAnonymous: true,
+            creditsRemaining: remaining,
+            creditsLimit: limit,
+            creditsUsed: limit - remaining,
+          },
         });
       }
 

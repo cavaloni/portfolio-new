@@ -6,6 +6,7 @@ import { logger } from "../utils/logger";
 type AuthMiddleware = {
   authenticate: RequestHandler;
   authorize: (roles: string[]) => RequestHandler;
+  authenticateOptional: RequestHandler;
 };
 
 export interface AuthenticatedRequest extends Request {
@@ -110,6 +111,50 @@ export const authenticate: RequestHandler = async (
   }
 };
 
+export const authenticateOptional: RequestHandler = async (
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction,
+) => {
+  try {
+    let token: string | null = null;
+    const authHeader = req.headers.authorization;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    } else if ((req as any).cookies?.auth_token) {
+      token = (req as any).cookies.auth_token as string;
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = authService.verifyToken(token);
+
+    if (!decoded) {
+      return next();
+    }
+
+    const user = {
+      id: decoded.id,
+      email: decoded.email,
+      name: decoded.name || decoded.email.split('@')[0],
+      email_verified: decoded.email_verified || true,
+      role: decoded.role || 'user',
+      created_at: decoded.created_at || new Date().toISOString(),
+      updated_at: decoded.updated_at || new Date().toISOString(),
+    };
+
+    const { passwordHash, ...userWithoutPassword } = user;
+    req.user = userWithoutPassword;
+    return next();
+  } catch (error) {
+    logger.warn('Optional authentication parse failed', { error });
+    return next();
+  }
+};
+
 // Authorization middleware
 export const authorize = (roles: string[]): RequestHandler => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -134,5 +179,6 @@ export const authorize = (roles: string[]): RequestHandler => {
 // Export auth object for backward compatibility
 export const auth = {
   authenticate,
+  authenticateOptional,
   authorize,
 };

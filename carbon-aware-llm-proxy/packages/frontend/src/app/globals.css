@@ -196,6 +196,13 @@
     position: relative;
   }
 
+  .glass-theme .glass-modal {
+    @apply backdrop-blur-2xl supports-[backdrop-filter]:bg-white/[0.03] rounded-2xl;
+    background: hsla(var(--glass-bg));
+    box-shadow: var(--glass-shadow), var(--glass-inner-shadow);
+    border: 1px solid hsla(var(--glass-border));
+  }
+
   .glass-theme .glass-input {
     @apply backdrop-blur-xl supports-[backdrop-filter]:bg-white/[0.03] focus-visible:ring-2 rounded-2xl;
     background: hsla(var(--glass-bg));
@@ -230,6 +237,8 @@
   /* Futuristic glow effect for interactive elements */
   .glass-theme .glass-glow {
     position: relative;
+  }
+  
   .glass-theme .glass-glow::before {
     content: "";
     position: absolute;
@@ -294,7 +303,6 @@
       transition: none !important;
     }
   }
-}
 }
 
 @layer utilities {
