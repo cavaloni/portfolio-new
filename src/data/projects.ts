@@ -31,7 +31,7 @@ export const projects: Project[] = [
     category: 'Data Visualization',
     image: '/routlynew.png',
     modalImage: '/routly.jpg',
-    link: 'https://routly.ai',
+    link: 'https://routly-main.vercel.app/chat',
   },
   {
     id: 'somnology',
