@@ -24,7 +24,7 @@ const Footer = () => {
         </div>
         <div className="flex flex-wrap items-center justify-between gap-4 text-xs uppercase tracking-[0.3em] text-slate-500">
           <span>© {new Date().getFullYear()} Chad Avalon. All rights reserved.</span>
-          <span>Santa Cruz, California, United States</span>
+          <span>Portland, Oregon, United States</span>
         </div>
       </div>
     </footer>

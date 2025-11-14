@@ -34,7 +34,7 @@ const Hero = ({ onOpenProject }: HeroProps) => {
               <span className="block">AVALON</span>
             </h1>
             <p className="max-w-xl text-sm uppercase tracking-[0.35em] text-slate-400 sm:text-base">
-              AI, FRONT END, &amp; PRODUCT SYSTEMS
+              AI, Product Focused | Full Stack/Front End
             </p>
           </div>
 

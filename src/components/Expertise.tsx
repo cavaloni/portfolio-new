@@ -5,21 +5,21 @@ const EXPERTISE_CARDS = [
     title: 'Software Development',
     accent: 'Software',
     description:
-      'Extensive experience in functional and OOP paradigms across Python, JavaScript, and TypeScript ecosystems.',
+      'Proficient in TypeScript, React, Redux, Next.js, Node, Python, Django, MongoDB, Prisma, and modern full-stack development.',
     icon: Code2,
   },
   {
     title: 'Frontend Dev. React, NextJS',
     accent: 'Frontend Dev.',
     description:
-      'Passionate about UI/UX with 8+ years sculpting interfaces in HTML, CSS, React, and Next.js frameworks.',
+      'Expert in React, Next.js, Redux, Zustand, shadcn, SCSS, with strong focus on UI/UX, accessibility, and performance optimization.',
     icon: LayoutPanelTop,
   },
   {
     title: 'AI and Cloud Engineering',
     accent: 'AI and Cloud',
     description:
-      'Deploy anywhere: AWS, GCP, Fly.io, Runpod, Ollama, Qdrant, Pinecone, Supabase, Hasura, Postgres, Redis, Docker, Kubernetes.',
+      'AWS (EC2, Lambda, S3, CloudWatch, SQS), GCP (Compute Engine, Cloud Storage, BigQuery), Docker, CI/CD, vLLM, HuggingFace, Pinecone, LangChain.',
     icon: BrainCircuit,
   },
 ];

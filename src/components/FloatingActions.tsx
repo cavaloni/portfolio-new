@@ -136,7 +136,7 @@ const FloatingActions = () => {
             <p className="mt-2 text-sm text-slate-300">Select the document that fits what you need.</p>
             <div className="mt-6 flex flex-col gap-4">
               <a
-                href="/files/ChadAvalonCV.pdf"
+                href="/files/ChadAvalon.pdf"
                 download
                 className="flex items-center justify-between rounded-2xl border border-white/10 bg-night/40 px-5 py-4 text-sm uppercase tracking-[0.25em] text-white transition hover:border-accent hover:text-accent"
               >
@@ -144,7 +144,7 @@ const FloatingActions = () => {
                 <span className="text-xs text-slate-400">PDF · 61 KB</span>
               </a>
               <a
-                href="/files/Chad_Avalon_Resume_Final.pdf"
+                href="/files/ChadAvalonRes.pdf"
                 download
                 className="flex items-center justify-between rounded-2xl border border-white/10 bg-night/40 px-5 py-4 text-sm uppercase tracking-[0.25em] text-white transition hover:border-accent hover:text-accent"
               >
