@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=Fraunces:ital,opsz,wght@1,9..144,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background-color: #fdfaf6;
+        background-image:
+          linear-gradient(rgba(253, 250, 246, 0.9), rgba(253, 250, 246, 0.95)),
+          url('public/background.jpg'),
+          radial-gradient(#d1d5db 0.5px, transparent 0.5px);
+        background-size: cover, cover, 24px 24px;
+        background-position: center, center, 0 0;
+        color: #1a1a1a;
+        font-family: 'IBM Plex Mono', monospace;
+      }
+
+      .accent-serif {
+        font-family: 'Fraunces', serif;
+      }
+
+      .dimension-label {
+        font-size: 10px;
+        color: #2563eb;
+        position: absolute;
+        top: -20px !important;
+      }
+
+      .stamp {
+        border: 2px solid #ef4444;
+        color: #ef4444;
+        padding: 4px 10px;
+        transform: rotate(-8deg);
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        background: #fdfaf6;
+      }
+
+      .sidebar-nav {
+        border-right: 1px solid #2563eb;
+      }
+
+      .video-frame::after {
+        content: '';
+        position: absolute;
+        inset: 14px;
+        border: 1px dashed rgba(37, 99, 235, 0.4);
+        pointer-events: none;
+      }
+
+      .tag-pill {
+        border: 1px solid #2563eb;
+        padding: 2px 8px;
+        font-size: 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .project-card {
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .project-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+      }
+
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+      }
+
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal-content {
+        background: #fdfaf6;
+        border: 2px solid #2563eb;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+        margin: 1rem;
+        transform: translateY(20px);
+        transition: transform 0.3s;
+      }
+
+      .modal-overlay.active .modal-content {
+        transform: translateY(0);
+      }
+
+      .challenge-box {
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(37, 99, 235, 0.1) 100%);
+        border-left: 3px solid #2563eb;
+      }
+
+      .metrics-box {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(34, 197, 94, 0.1) 100%);
+        border-left: 3px solid #22c55e;
+      }
+
+      .github-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #2563eb;
+        padding: 4px 12px;
+        font-size: 11px;
+        transition: background 0.2s;
+      }
+
+      .github-link:hover {
+        background: rgba(37, 99, 235, 0.1);
+      }
+    </style>
+  </head>
+  <body class="min-h-screen border-[12px] border-blue-600 m-0">
+    <div class="flex flex-col md:flex-row min-h-screen bg-[#fdfaf6]/90">
+      <aside class="w-full md:w-24 sidebar-nav flex flex-col items-center py-8 gap-12 bg-[#fdfaf6]/70">
+        <div class="text-blue-600 font-bold tracking-[0.4em] text-xs">A/P/E</div>
+        <nav class="flex md:flex-col gap-8 text-[10px] rotate-0 md:-rotate-90 whitespace-nowrap">
+          <a href="#projects">01/PROJECTS</a>
+          <a href="#work">02/WORK</a>
+          <a href="#systems">03/SYSTEMS</a>
+          <a href="#about">04/ABOUT</a>
+        </nav>
+        <div class="hidden md:flex flex-col text-[9px] gap-2 tracking-tight text-blue-600">
+          <span>// ROUTING</span>
+          <span>// SENSORS</span>
+          <span>// OBSERVABILITY</span>
+        </div>
+      </aside>
+      <main class="flex-grow p-6 md:p-16 space-y-24">
+        <header class="relative max-w-5xl">
+          <div class="dimension-label top-0 left-0">[X: 001]</div>
+          <div class="stamp absolute top-4 right-0">Production Ready</div>
+          <div class="flex flex-col gap-8 md:flex-row md:items-center mb-12">
+            <div class="flex-1">
+              <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-3">AI PRODUCT ENGINEER / FOUNDING ENGINEER</p>
+              <h1 class="text-4xl md:text-7xl accent-serif leading-tight mb-6">
+                Chad Avalon<br />AI Product Engineer
+              </h1>
+              <p class="text-blue-600 max-w-2xl leading-relaxed">
+                I build AI products that behave reliably in the real world: agentic systems, tool-using LLMs, streaming UX, observability, and unit economics. My work focuses on turning ambiguous user intent into measurable outcomes—acceptance, retries, time-to-first-useful-output, and cost per successful outcome.
+              </p>
+              <div class="mt-6 flex gap-3 flex-wrap text-[10px]">
+                <span class="tag-pill">Agentic Systems</span>
+                <span class="tag-pill">LLM Observability</span>
+                <span class="tag-pill">Cloud Infrastructure</span>
+                <span class="tag-pill">Full-Stack TypeScript</span>
+              </div>
+              <div class="mt-4 flex gap-3">
+                <a href="https://github.com/cavaloni" target="_blank" class="github-link">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                  GitHub
+                </a>
+                <a href="https://linkedin.com/in/chad-avalon" target="_blank" class="github-link">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  LinkedIn
+                </a>
+                <a href="public/files/ChadAvalon.pdf" download class="github-link">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  Resume
+                </a>
+              </div>
+            </div>
+            <div class="relative w-40 h-40 md:w-48 md:h-48 border border-blue-600 overflow-hidden bg-white/40">
+              <img src="public/chad-profile.png" alt="Chad Avalon headshot" class="object-cover w-full h-full" />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 text-[10px] gap-4">
+            <div class="border border-blue-600 p-3 uppercase">Product Development</div>
+            <div class="border border-blue-600 p-3 uppercase">Tool Calling & ReAct Patterns</div>
+            <div class="border border-blue-600 p-3 uppercase">RAG & Streaming UX</div>
+            <div class="border border-blue-600 p-3 uppercase">Observability & Unit Economics</div>
+          </div>
+        </header>
+
+        <section id="projects" class="space-y-12">
+          <div class="flex items-center gap-2">
+            <h2 class="font-semibold accent-serif text-3xl uppercase">AI Product Engineering</h2>
+            <div class="h-px flex-1 bg-blue-600"></div>
+            <span class="text-[10px] text-blue-600">Click cards for details</span>
+          </div>
+          <div class="space-y-10">
+            <!-- Routly Router -->
+            <article class="border border-blue-600 p-6 relative grid gap-8 md:grid-cols-2 project-card" onclick="openModal('routly-router')">
+              <div class="dimension-label -top-3 left-3 bg-[#fdfaf6] px-1">REF_ROUTLY_ROUTER</div>
+              <div class="relative video-frame border border-blue-200 aspect-video overflow-hidden">
+                <video
+                  class="w-full h-full object-cover"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                  poster="public/routlynew.png"
+                >
+                  <source src="public/videos/routly.mp4" type="video/mp4" />
+                  Routly LLM Router
+                </video>
+              </div>
+              <div class="flex flex-col gap-4 text-sm">
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600">LLM Infrastructure</p>
+                  <h3 class="font-bold text-2xl uppercase">Routly // Carbon-Aware LLM Router</h3>
+                  <p class="text-[10px] text-gray-500 mt-1">Founding Engineer · Jan 2025 – Present</p>
+                </div>
+                <p>
+                  Carbon-aware LLM routing system optimizing across carbon intensity, latency, cost, and model quality using live grid signals. Production streaming with fallback chains and zero data loss.
+                </p>
+                <ul class="text-[11px] text-blue-800 uppercase space-y-1">
+                  <li>+ ~40% carbon intensity reduction per session</li>
+                  <li>+ Multi-region routing with vLLM backends</li>
+                  <li>+ 8.5% fallback rate, zero data loss</li>
+                </ul>
+                <div class="challenge-box p-3 mt-2">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-1">Engineering Challenge</p>
+                  <p class="text-[11px]">Balancing real-time carbon grid signals with latency SLAs across distributed regions</p>
+                </div>
+              </div>
+            </article>
+
+            <!-- Routly Dashboard -->
+            <article class="border border-blue-600 p-6 relative grid gap-8 md:grid-cols-2 project-card" onclick="openModal('routly-dashboard')">
+              <div class="dimension-label -top-3 left-3 bg-[#fdfaf6] px-1">REF_ROUTLY_DASH</div>
+              <div class="relative video-frame border border-blue-200 aspect-video overflow-hidden">
+                <video
+                  class="w-full h-full object-cover"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                  poster="public/routlynew.png"
+                >
+                  <source src="public/videos/routly-dashboard.mp4" type="video/mp4" />
+                  Routly Dashboard
+                </video>
+              </div>
+              <div class="flex flex-col gap-4 text-sm">
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600">Observability Platform</p>
+                  <h3 class="font-bold text-2xl uppercase">Routly Dashboard // Metrics & Observability</h3>
+                  <p class="text-[10px] text-gray-500 mt-1">Founding Engineer · Jan 2025 – Present</p>
+                </div>
+                <p>
+                  End-to-end observability platform for routing decisions, latency (p50/p95), throughput, error rates, and per-request carbon accounting with historical persistence and real-time dashboards.
+                </p>
+                <ul class="text-[11px] text-blue-800 uppercase space-y-1">
+                  <li>+ Real-time latency & throughput metrics</li>
+                  <li>+ Per-request carbon accounting</li>
+                  <li>+ Historical persistence & dashboards</li>
+                </ul>
+                <div class="metrics-box p-3 mt-2">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-1">Product Metrics</p>
+                  <p class="text-[11px]">p50/p95 latency, requests/sec, error rates, carbon grams per request, cost per successful outcome</p>
+                </div>
+              </div>
+            </article>
+
+            <!-- SomniScope -->
+            <article class="border border-blue-600 p-6 relative grid gap-8 md:grid-cols-2 project-card" onclick="openModal('somniscope')">
+              <div class="dimension-label -top-3 left-3 bg-[#fdfaf6] px-1">REF_SOMNISCOPE</div>
+              <div class="relative video-frame border border-blue-200 aspect-video overflow-hidden">
+                <video
+                  class="w-full h-full object-cover"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                  poster="public/somnologynew.png"
+                >
+                  <source src="public/videos/cpap-analyzer.mp4" type="video/mp4" />
+                  SomniScope Analytics
+                </video>
+              </div>
+              <div class="flex flex-col gap-4 text-sm">
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600">Agentic Analytics</p>
+                  <h3 class="font-bold text-2xl uppercase">SomniScope // Agentic CPAP Analytics</h3>
+                  <p class="text-[10px] text-gray-500 mt-1">Independent Project</p>
+                </div>
+                <p>
+                  Agentic AI system analyzing high-frequency CPAP data (25Hz; ~21.6M samples/month) with RAG over personal sleep journals. ReAct-style reasoning with deterministic tool execution prevents hallucinated metrics.
+                </p>
+                <ul class="text-[11px] text-blue-800 uppercase space-y-1">
+                  <li>+ Tiered analytics: SQLite + DuckDB + Parquet</li>
+                  <li>+ SSE streaming with agent state visibility</li>
+                  <li>+ Langfuse observability with provenance</li>
+                </ul>
+                <div class="challenge-box p-3 mt-2">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-1">Engineering Challenge</p>
+                  <p class="text-[11px]">Correlating subjective journal entries with objective 25Hz physiological streams at interactive speeds</p>
+                </div>
+              </div>
+            </article>
+
+            <!-- WhatsCal -->
+            <article class="border border-blue-600 p-6 relative grid gap-8 md:grid-cols-2 project-card" onclick="openModal('whatscal')">
+              <div class="dimension-label -top-3 left-3 bg-[#fdfaf6] px-1">REF_WHATSCAL</div>
+              <div class="relative border border-blue-200 aspect-video overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+                <div class="text-center p-6">
+                  <div class="text-4xl mb-2">📱💬</div>
+                  <p class="text-blue-600 font-bold">WhatsCal</p>
+                  <p class="text-[10px] text-gray-500">Conversational Scheduling</p>
+                </div>
+              </div>
+              <div class="flex flex-col gap-4 text-sm">
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600">Tool-Calling Agent</p>
+                  <h3 class="font-bold text-2xl uppercase">WhatsCal // AI Scheduling Assistant</h3>
+                  <p class="text-[10px] text-gray-500 mt-1">Independent Project</p>
+                </div>
+                <p>
+                  Tool-calling conversational scheduling assistant over WhatsApp/SMS for dental practices. AI-driven broadcast optimization with safety guardrails and human handoff protocols.
+                </p>
+                <ul class="text-[11px] text-blue-800 uppercase space-y-1">
+                  <li>+ Booking, rescheduling, FAQ handling</li>
+                  <li>+ Send-time & channel optimization</li>
+                  <li>+ Arize Phoenix observability</li>
+                </ul>
+                <div class="metrics-box p-3 mt-2">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-1">Product Metrics</p>
+                  <p class="text-[11px]">Fill rates, time-to-fill, message success rates, handoff frequency, cost per booking</p>
+                </div>
+              </div>
+            </article>
+
+            <!-- Classified Project -->
+            <article class="border-dashed border-2 border-red-600/50 p-6 relative grid gap-8 md:grid-cols-2 project-card group cursor-pointer" onclick="openModal('locus-chat')">
+              <div class="dimension-label -top-3 left-3 bg-[#fdfaf6] px-1 text-red-600">REF_CLASSIFIED</div>
+              <div class="stamp absolute top-4 right-0 bg-red-50" style="border-color: #dc2626; color: #dc2626;">CLASSIFIED</div>
+              
+              <!-- Video with hover reveal -->
+              <div class="relative border border-red-200/30 aspect-video overflow-hidden bg-gray-900 group-hover:bg-transparent transition-all duration-300">
+                <!-- Redacted state -->
+                <div class="absolute inset-0 flex items-center justify-center group-hover:opacity-0 transition-opacity duration-300">
+                  <div class="text-center space-y-2">
+                    <div class="text-red-600 font-mono text-xs tracking-widest">DOCUMENT CLASSIFIED</div>
+                    <div class="flex flex-col gap-1">
+                      <div class="bg-black h-4 w-48 mx-auto"></div>
+                      <div class="bg-black h-4 w-36 mx-auto"></div>
+                      <div class="bg-black h-4 w-44 mx-auto"></div>
+                    </div>
+                    <div class="text-red-600 text-[10px] mt-4 animate-pulse">CLICK TO DECLASSIFY</div>
+                  </div>
+                </div>
+                
+                <!-- Video revealed on hover -->
+                <video
+                  class="w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                >
+                  <source src="public/videos/locuschat.mp4" type="video/mp4" />
+                  Locus Chat Interface
+                </video>
+              </div>
+              
+              <!-- Redacted content -->
+              <div class="flex flex-col gap-4 text-sm">
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.4em] text-red-600">███████ █████████</p>
+                  <h3 class="font-bold text-2xl uppercase">██████ // ███████████ ███████</h3>
+                  <p class="text-[10px] text-gray-500 mt-1">█████████ ████████</p>
+                </div>
+                <p class="space-x-1">
+                  <span class="bg-black h-4 inline-block" style="width: 120px;"></span>
+                  <span class="bg-black h-4 inline-block" style="width: 80px;"></span>
+                  <span class="bg-black h-4 inline-block" style="width: 140px;"></span>
+                  <span class="bg-black h-4 inline-block" style="width: 60px;"></span>
+                  <span class="bg-black h-4 inline-block" style="width: 100px;"></span>
+                </p>
+                <ul class="text-[11px] text-red-800 uppercase space-y-1">
+                  <li>+ █████████ ███████ █████████</li>
+                  <li>+ ████████████ █████████ ███████</li>
+                  <li>+ █████ █████████ ████████████</li>
+                </ul>
+                <div class="p-3 mt-2 border border-red-600/30">
+                  <p class="text-[10px] font-bold uppercase text-red-600 mb-1">██████ █████████</p>
+                  <p class="text-[11px]">██████████ █████████████ ████████</p>
+                </div>
+              </div>
+            </article>
+           
+        </section>
+
+        <section id="work" class="space-y-8">
+          <div class="flex items-center gap-2">
+            <h2 class="font-semibold accent-serif text-3xl uppercase">Professional Experience</h2>
+            <div class="h-px flex-1 bg-blue-600"></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Somnology -->
+            <article class="border border-blue-600 p-6 flex gap-6 items-start bg-white/60 project-card" onclick="openModal('somnology')">
+              <div class="w-16 h-16 border border-blue-200 flex items-center justify-center bg-blue-50 text-2xl flex-shrink-0">😴</div>
+              <div class="text-sm space-y-3">
+                <div>
+                  <h3 class="font-bold uppercase">Somnology / Lead Frontend Engineer</h3>
+                  <p class="text-[10px] text-blue-600 uppercase">Bay Area · Jun 2023 – Feb 2025</p>
+                </div>
+                <p>
+                  Led development of physician-facing sleep apnea management platform (React, TypeScript, Node.js), integrating data from 7 wearable device types. Built CPAP compliance visualizations reducing patient onboarding by 35%.
+                </p>
+                <div class="challenge-box p-2 mt-2">
+                  <p class="text-[10px] font-bold uppercase text-blue-600">Challenge</p>
+                  <p class="text-[10px]">Unifying 7 disparate wearable data formats into coherent clinical insights</p>
+                </div>
+              </div>
+            </article>
+            <!-- Zulily -->
+            <article class="border border-blue-600 p-6 flex gap-6 items-start bg-white/60 project-card" onclick="openModal('zulily')">
+              <img src="public/Zulily.png" alt="Zulily" class="w-16 h-16 object-contain" />
+              <div class="text-sm space-y-3">
+                <div>
+                  <h3 class="font-bold uppercase">Zulily / Software Engineer</h3>
+                  <p class="text-[10px] text-blue-600 uppercase">Seattle · Dec 2019 – Nov 2022</p>
+                </div>
+                <p>
+                  Built vendor onboarding portal (React/Redux) reducing product listing time by 150%. Improved AWS logging and error visibility across 4 teams, reducing MTTR by 70%.
+                </p>
+                <div class="metrics-box p-2 mt-2">
+                  <p class="text-[10px] font-bold uppercase text-green-600">Metrics</p>
+                  <p class="text-[10px]">150% faster listings, 70% MTTR reduction</p>
+                </div>
+              </div>
+            </article>
+            <!-- Syndio -->
+            <article class="border border-blue-600 p-6 flex gap-6 items-start bg-white/60 project-card" onclick="openModal('syndio')">
+              <img src="public/syndio.png" alt="Syndio" class="w-16 h-16 object-contain" />
+              <div class="text-sm space-y-3">
+                <div>
+                  <h3 class="font-bold uppercase">Syndio / Software Engineer</h3>
+                  <p class="text-[10px] text-blue-600 uppercase">Santa Cruz · Oct 2017 – Jun 2019</p>
+                </div>
+                <p>
+                  Implemented pay equity calculator contributing ~$100K in new sales within three months. Built legal analytics dashboards cutting review time by 40%.
+                </p>
+                <div class="metrics-box p-2 mt-2">
+                  <p class="text-[10px] font-bold uppercase text-green-600">Metrics</p>
+                  <p class="text-[10px]">$100K new sales, 40% faster legal reviews</p>
+                </div>
+              </div>
+            </article>
+            <!-- Montaia -->
+            <article class="border border-blue-600 p-6 flex gap-6 items-start bg-white/60 project-card" onclick="openModal('montaia-work')">
+              <img src="public/montaia.png" alt="Montaia" class="w-16 h-16 object-contain" />
+              <div class="text-sm space-y-3">
+                <div>
+                  <h3 class="font-bold uppercase">Montaia Global / Frontend Engineer</h3>
+                  <p class="text-[10px] text-blue-600 uppercase">Contract · 2016 – 2018</p>
+                </div>
+                <p>
+                  Built event and lodging management platform in React/Node.js. Increased event page engagement by 300%.
+                </p>
+                <div class="metrics-box p-2 mt-2">
+                  <p class="text-[10px] font-bold uppercase text-green-600">Metrics</p>
+                  <p class="text-[10px]">300% engagement increase</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section id="systems" class="space-y-8">
+          <div class="flex items-center gap-2">
+            <h2 class="font-semibold accent-serif text-3xl uppercase">Systems & Toolchain</h2>
+            <div class="h-px flex-1 bg-blue-600"></div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-xs">
+            <div class="border border-blue-600 p-6 relative">
+              <div class="dimension-label -top-3 left-3 bg-[#fdfaf6] px-1">STACK</div>
+              <h3 class="uppercase font-bold mb-4">Core Stack</h3>
+              <ul class="space-y-2">
+                <li>TypeScript • Node • Next.js</li>
+                <li>Python • Django • FastAPI</li>
+                <li>Rust workers • Wasm</li>
+                <li>LangChain • Custom ReAct loops</li>
+                <li>DuckDB • Parquet • Redis</li>
+              </ul>
+            </div>
+            <div class="border border-blue-600 p-6 relative">
+              <div class="dimension-label -top-3 left-3 bg-[#fdfaf6] px-1">OBSERVE</div>
+              <h3 class="uppercase font-bold mb-4">Observability & Infra</h3>
+              <ul class="space-y-2">
+                <li>AWS • GCP • Fly.io orchestration</li>
+                <li>OpenTelemetry • Grafana • Langfuse</li>
+                <li>Streaming SSE • WebRTC telemetry</li>
+                <li>Carbon-aware schedulers</li>
+                <li>MTTR sims & chaos drills</li>
+              </ul>
+            </div>
+            <div class="border border-blue-600 p-6 relative">
+              <div class="dimension-label -top-3 left-3 bg-[#fdfaf6] px-1">ECON</div>
+              <h3 class="uppercase font-bold mb-4">Product & Economics</h3>
+              <ul class="space-y-2">
+                <li>Agent cost tracing & FinOps reviews</li>
+                <li>Unit economics instrumentation</li>
+                <li>Experiment design & eval harnesses</li>
+                <li>Compliance-ready knowledge graphs</li>
+                <li>Stakeholder-ready launch narratives</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="about" class="space-y-10">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div class="lg:col-span-2 space-y-6">
+              <div>
+                <h2 class="font-semibold accent-serif text-3xl uppercase">About & Approach</h2>
+                <p class="text-sm leading-relaxed mt-4">
+                  Site-walk style discovery, blueprinting agent responsibilities, and aligning telemetry budgets before
+                  code lands. I coach teams through launch windows, deliver playbooks, and stay through the first
+                  regression to make sure the system defends itself.
+                </p>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs uppercase">
+                <div class="border border-blue-600 p-4">
+                  <h3 class="font-bold mb-2">Education</h3>
+                  <p>M.S. Computer Science — Sofia University</p>
+                  <p>M.A. Integral Psychology — JFK University</p>
+                </div>
+                <div class="border border-blue-600 p-4">
+                  <h3 class="font-bold mb-2">Modalities</h3>
+                  <p>Embedded residencies</p>
+                  <p>Fractional product/eng leadership</p>
+                  <p>Advisory boards & diligence</p>
+                </div>
+              </div>
+            </div>
+            <div class="lg:col-span-1 border border-blue-600 p-6 relative">
+              <div class="dimension-label -top-3 left-3 bg-[#fdfaf6] px-1">COORDINATES</div>
+              <p class="text-[10px] opacity-60 uppercase mb-2">CURRENT GRID LOCK</p>
+              <p class="font-semibold text-sm">LAT: 37.7749 // LONG: -122.4194</p>
+              <p class="text-xs mt-4">
+                Operating between SF & Oakland. Available for onsite architecture weeks or async deep-work sprints with
+                full playback artifacts.
+              </p>
+              <div class="mt-8 text-[10px] uppercase space-y-2">
+                <p>// Contact</p>
+                <p>cavaloni@aiprodeng.studio</p>
+                <a href="public/files/Chad_Avalon_Resume_Final.pdf" class="underline">Download resume</a>
+                <p>// Signal / Telegram upon request</p>
+              </div>
+            </div>
+          </div>
+          <footer class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 text-[10px]">
+            <div class="opacity-60 space-y-1">
+              <p>© 2025 AI Product Engineering Studio</p>
+              <p>Available for embedded residencies, fractional leadership & advisory.</p>
+            </div>
+            <div class="text-right space-y-1">
+              <p class="font-bold">COORDINATES CONFIRMED</p>
+              <p>LAT: 37.7749 // LONG: -122.4194</p>
+            </div>
+          </footer>
+        </section>
+      </main>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)">
+      <div class="modal-content p-8" onclick="event.stopPropagation()">
+        <div class="flex justify-between items-start mb-6">
+          <div id="modal-header"></div>
+          <button onclick="closeModal()" class="text-2xl text-blue-600 hover:text-blue-800 font-bold">&times;</button>
+        </div>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+
+    <script>
+      const modalData = {
+        'routly-router': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">LLM Infrastructure · Founding Engineer</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">Routly // Carbon-Aware LLM Router</h2>
+            <p class="text-[11px] text-gray-500 mt-1">Jan 2025 – Present · Remote</p>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Built a carbon-aware LLM routing system optimizing across carbon intensity, latency, cost, and model quality, reducing average workload carbon intensity by ~40% per session via intelligent multi-region routing.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Balancing real-time carbon grid signals with latency SLAs across distributed regions while maintaining model quality.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Designed a production streaming inference platform (Node.js, Redis, vLLM, WebSockets/SSE) with health checks and automatic failover. Achieved 8.5% fallback rate with zero data loss through intelligent queue management and graceful degradation.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Carbon intensity (gCO₂/request)</li>
+                    <li>• Latency p50/p95/p99</li>
+                    <li>• Throughput (requests/sec)</li>
+                    <li>• Error rates & fallback frequency</li>
+                    <li>• Cost per successful outcome</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">Node.js, Redis, vLLM, WebSockets/SSE, RunPod, Multi-region AWS/GCP</p>
+              </div>
+              
+              <div class="flex gap-3 mt-4">
+                <a href="https://github.com/cavaloni/routly" target="_blank" class="github-link">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+          `
+        },
+        'routly-dashboard': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">Observability Platform · Founding Engineer</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">Routly Dashboard // Metrics & Observability</h2>
+            <p class="text-[11px] text-gray-500 mt-1">Jan 2025 – Present · Remote</p>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Implemented end-to-end observability for routing decisions, latency (p50/p95), throughput, error rates, and per-request carbon accounting with historical persistence and dashboards.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Creating real-time visibility into multi-dimensional routing decisions (carbon, cost, latency, quality) without adding observability overhead.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Built async instrumentation pipeline with Redis streams for real-time dashboards and Parquet exports for historical analysis. Sub-millisecond overhead on hot path.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Time-to-first-token (TTFT)</li>
+                    <li>• Time-to-first-useful-output (TTFO)</li>
+                    <li>• Acceptance & retry rates</li>
+                    <li>• Per-request carbon accounting</li>
+                    <li>• Unit economics per route</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">Grafana, Langfuse, Redis Streams, PostgreSQL, Parquet, React/TypeScript</p>
+              </div>
+              
+              <div class="flex gap-3 mt-4">
+                <a href="https://github.com/cavaloni/routly-dashboard" target="_blank" class="github-link">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+          `
+        },
+        'somniscope': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">Agentic Analytics · Independent Project</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">SomniScope // Agentic CPAP Analytics</h2>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Built an agentic AI system for analyzing high-frequency CPAP data (25Hz; ~21.6M samples/month) combined with RAG over personal sleep journals to correlate subjective notes with objective sleep metrics.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Correlating subjective journal entries with objective 25Hz physiological streams while preventing hallucinated metrics in LLM responses.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Implemented ReAct-style reasoning loop where the LLM plans and explains analyses while deterministic tools compute exact results. Tiered storage (SQLite + DuckDB + Parquet) enables interactive queries over millions of samples.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Query latency (TTFO)</li>
+                    <li>• Tool execution timing</li>
+                    <li>• Cost per analysis request</li>
+                    <li>• Evidence provenance scores</li>
+                    <li>• User trust signals (edits, retries)</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Key Features</p>
+                <ul class="text-[11px] space-y-1">
+                  <li>• Streaming UX (SSE) surfacing agent state (thinking, tool_start, tool_end) in real time</li>
+                  <li>• Custom hallucination eval harness for numerical claims</li>
+                  <li>• Langfuse tracing with evidence/provenance artifacts</li>
+                </ul>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">Python, SQLite, DuckDB, Parquet, LangChain, Langfuse, SSE, React/TypeScript</p>
+              </div>
+              
+              <div class="flex gap-3 mt-4">
+                <a href="https://github.com/cavaloni/somniscope" target="_blank" class="github-link">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+          `
+        },
+        'whatscal': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">Tool-Calling Agent · Independent Project</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">WhatsCal // AI Scheduling Assistant</h2>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Built a tool-calling conversational scheduling assistant over WhatsApp/SMS for dental practices, handling booking, rescheduling, and FAQs with safety guardrails and human handoff.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Ensuring reliable calendar operations through natural language while preventing double-bookings and handling edge cases gracefully.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Implemented deterministic tool validation layer with transactional calendar updates. Safety guardrails trigger human handoff for ambiguous requests or high-stakes changes.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Fill rates (appointments booked)</li>
+                    <li>• Time-to-fill</li>
+                    <li>• Message success rates</li>
+                    <li>• Handoff frequency</li>
+                    <li>• Cost per booking</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Key Features</p>
+                <ul class="text-[11px] space-y-1">
+                  <li>• AI-driven broadcast optimization (send-time, wave sizing, channel selection)</li>
+                  <li>• Production observability with Arize Phoenix</li>
+                  <li>• Graceful human handoff protocols</li>
+                </ul>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">Node.js, Twilio, WhatsApp Business API, Google Calendar, Arize Phoenix, PostgreSQL</p>
+              </div>
+              
+              <div class="flex gap-3 mt-4">
+                <a href="https://github.com/cavaloni/whatscal" target="_blank" class="github-link">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+          `
+        },
+        'somnology': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">Lead Frontend Engineer</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">Somnology</h2>
+            <p class="text-[11px] text-gray-500 mt-1">Bay Area · Jun 2023 – Feb 2025</p>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Led development of a physician-facing sleep apnea management platform using React, TypeScript, and Node.js, integrating data from 7 wearable device types.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Unifying 7 disparate wearable data formats (different schemas, sampling rates, time zones) into coherent clinical insights.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Built automated ingestion pipelines with format-specific adapters and normalization layer. Reduced data entry errors by 60%+ and enabled cross-device comparisons.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Patient onboarding time (-35%)</li>
+                    <li>• Data entry error rates (-60%)</li>
+                    <li>• Clinician time-to-insight</li>
+                    <li>• CPAP compliance rates</li>
+                    <li>• Device integration success rates</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Key Achievements</p>
+                <ul class="text-[11px] space-y-1">
+                  <li>• Implemented LLM-assisted clinical search (RAG) over patient and device data</li>
+                  <li>• Built CPAP compliance visualizations reducing patient onboarding time by 35%</li>
+                  <li>• Created automated ingestion pipelines reducing data entry errors by 60%+</li>
+                </ul>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">React, TypeScript, Node.js, PostgreSQL, RAG, D3.js</p>
+              </div>
+            </div>
+          `
+        },
+        'zulily': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">Software Engineer</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">Zulily</h2>
+            <p class="text-[11px] text-gray-500 mt-1">Seattle · Dec 2019 – Nov 2022</p>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Built vendor onboarding portal and improved observability infrastructure across multiple teams.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Scattered logging and error visibility across 4 teams made debugging production issues slow and frustrating.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Standardized AWS-based logging infrastructure with structured logs, centralized dashboards, and alerting. Reduced mean time to resolution by 70%.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Product listing time (-150%)</li>
+                    <li>• Mean time to resolution (-70%)</li>
+                    <li>• Vendor onboarding completion rates</li>
+                    <li>• Component library adoption (5 teams)</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Key Achievements</p>
+                <ul class="text-[11px] space-y-1">
+                  <li>• Built vendor onboarding portal in React/Redux reducing product listing time by 150%</li>
+                  <li>• Led standardization of shared React component library across 5 teams</li>
+                  <li>• Improved AWS-based logging and error visibility across 4 teams</li>
+                </ul>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">React, Redux, Node.js, AWS (EC2, S3, CloudWatch, SQS), PostgreSQL</p>
+              </div>
+            </div>
+          `
+        },
+        'syndio': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">Software Engineer</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">Syndio</h2>
+            <p class="text-[11px] text-gray-500 mt-1">Santa Cruz · Oct 2017 – Jun 2019</p>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Implemented pay equity analytics tools and legal dashboards for enterprise compliance teams.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Pay equity calculations required complex statistical analysis that legal teams needed to understand and trust for compliance reporting.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Built interactive dashboards with drill-down capabilities and clear methodology explanations. Legal teams could verify calculations and generate audit-ready reports.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• New sales attributed (~$100K in 3 months)</li>
+                    <li>• Legal review time (-40%)</li>
+                    <li>• Report generation time</li>
+                    <li>• Customer satisfaction scores</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Key Achievements</p>
+                <ul class="text-[11px] space-y-1">
+                  <li>• Implemented pay equity calculator contributing ~$100K in new sales within three months</li>
+                  <li>• Built legal analytics dashboards cutting review time by 40%</li>
+                </ul>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">React, Python, Django, PostgreSQL, D3.js</p>
+              </div>
+            </div>
+          `
+        },
+        'montaia': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">Frontend Engineer (Contract)</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">Montaia Global</h2>
+            <p class="text-[11px] text-gray-500 mt-1">2016 – 2018</p>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Built an event and lodging management platform that dramatically increased user engagement.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Event pages had low engagement and high bounce rates, limiting booking conversions.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Redesigned event discovery and booking flow with improved UX, lazy loading, and progressive enhancement. Increased event page engagement by 300%.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Event page engagement (+300%)</li>
+                    <li>• Bounce rate</li>
+                    <li>• Booking conversion rate</li>
+                    <li>• Page load time</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">React, Node.js, MongoDB, Express</p>
+              </div>
+            </div>
+          `
+        },
+        'montaia-work': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">Frontend Engineer (Contract)</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">Montaia Global</h2>
+            <p class="text-[11px] text-gray-500 mt-1">2016 – 2018</p>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Built an event and lodging management platform that dramatically increased user engagement.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Event pages had low engagement and high bounce rates, limiting booking conversions.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Redesigned event discovery and booking flow with improved UX, lazy loading, and progressive enhancement. Increased event page engagement by 300%.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Event page engagement (+300%)</li>
+                    <li>• Bounce rate</li>
+                    <li>• Booking conversion rate</li>
+                    <li>• Page load time</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">React, Node.js, MongoDB, Express</p>
+              </div>
+            </div>
+          `
+        },
+        'femtech': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-blue-600 mb-1">Care Delivery</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">FemTech Collective // Care AI</h2>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Privacy-forward patient triage agents mixing physiological embeddings with human-in-loop routing for OB/GYN partners.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Balancing AI automation with clinical safety in sensitive healthcare contexts.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Implemented human-in-loop switches with confidence thresholds. SSE streaming UI shows reasoning in real-time, enabling clinician override at any step.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Product Metrics Tracked</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Triage accuracy</li>
+                    <li>• Time-to-clinician-review</li>
+                    <li>• Override frequency</li>
+                    <li>• Patient satisfaction</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">React, TypeScript, SSE, Langfuse, PostgreSQL</p>
+              </div>
+            </div>
+          `
+        },
+        'locus-chat': {
+          header: `
+            <p class="text-[10px] uppercase tracking-[0.4em] text-red-600 mb-1">Nonlinear AI Interface · Independent Project</p>
+            <h2 class="font-bold text-2xl uppercase accent-serif">Locus Chat // Swiss Army GPT</h2>
+            <p class="text-[11px] text-gray-500 mt-1">Classified Project · 2024</p>
+          `,
+          body: `
+            <div class="space-y-6 text-sm">
+              <p>Revolutionary nonlinear AI chat interface with tree-based conversation architecture, enabling branching, backtracking, and multi-model LLM integration with advanced reasoning modes and interactive graph visualization.</p>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="challenge-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-blue-600 mb-2">Greatest Engineering Challenge</p>
+                  <p class="text-[12px]"><strong>Problem:</strong> Breaking free from linear chat constraints while maintaining coherent context and managing complex conversation states at scale.</p>
+                  <p class="text-[12px] mt-2"><strong>Resolution:</strong> Designed directed acyclic graph structure with UUID-based nodes and parent-child relationships. Implemented Zustand store with localStorage middleware for persistence and React Flow for intuitive visualization.</p>
+                </div>
+                <div class="metrics-box p-4">
+                  <p class="text-[10px] font-bold uppercase text-green-600 mb-2">Potential Product Metrics</p>
+                  <p class="text-[11px] text-gray-600 mb-2 italic">Projections based on internal testing and analysis</p>
+                  <ul class="text-[12px] space-y-1">
+                    <li>• Branching frequency (23% of messages)</li>
+                    <li>• Backtracking rate (12%)</li>
+                    <li>• Tree depth (avg 8, max 47 nodes)</li>
+                    <li>• Cost per task by mode</li>
+                    <li>• Model switching patterns</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Key Innovations</p>
+                <ul class="text-[11px] space-y-1">
+                  <li>• Tree-based message graph with branching and backtracking</li>
+                  <li>• OpenRouter gateway: 10+ models (OpenAI, Anthropic, Google, Meta)</li>
+                  <li>• Deep Think mode with reasoning chain display</li>
+                  <li>• Langfuse observability with full trace/span hierarchy</li>
+                  <li>• Unit economics tracking: real-time cost per request</li>
+                  <li>• Interactive React Flow visualization with mini-map</li>
+                </ul>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Potential Performance Metrics</p>
+                <p class="text-[11px] text-gray-600 mb-2 italic">Based on internal testing and benchmarking</p>
+                <ul class="text-[11px] space-y-1">
+                  <li>• Time-to-first-token: GPT-4o (400ms p50), Claude 3.5 (650ms p50)</li>
+                  <li>• Streaming throughput: 85 tokens/sec (GPT-4o), 120 tokens/sec (Gemini 1.5 Flash)</li>
+                  <li>• Deep Think mode: 3.2x cost but 40% fewer regenerations</li>
+                  <li>• Llama 3.1 70B: 85% quality at 15% of GPT-4o cost</li>
+                </ul>
+              </div>
+              
+              <div class="border border-blue-200 p-4">
+                <p class="text-[10px] font-bold uppercase mb-2">Tech Stack</p>
+                <p class="text-[11px]">React, TypeScript, Zustand, React Flow, OpenRouter, Langfuse, SSE, DOMPurify, Zod</p>
+              </div>
+              
+              <div class="flex gap-3 mt-4">
+                <a href="https://github.com/cavaloni/locus-chat" target="_blank" class="github-link">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+          `
+        }
+      };
+
+      function openModal(projectId) {
+        const data = modalData[projectId];
+        if (!data) return;
+        
+        document.getElementById('modal-header').innerHTML = data.header;
+        document.getElementById('modal-body').innerHTML = data.body;
+        document.getElementById('modal-overlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal(event) {
+        if (event && event.target !== event.currentTarget) return;
+        document.getElementById('modal-overlay').classList.remove('active');
+        document.body.style.overflow = '';
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeModal();
+      });
+    </script>
+  </body>
+</html>
